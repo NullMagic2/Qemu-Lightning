@@ -30,7 +30,8 @@ while todo:
         if lib.is_file() and not (stage/name).exists():
             shutil.copy2(lib,stage/name)
             todo.append(stage/name)
-            packages.add(subprocess.check_output(['pacman','-Qoq',str(lib)],text=True).strip())
+            posix=subprocess.check_output(['cygpath','-u',str(lib)],text=True).strip()
+            packages.add(subprocess.check_output(['pacman','-Qoq',posix],text=True).strip())
 for pkg in sorted(packages):
     files=subprocess.check_output(['pacman','-Qlq',pkg],text=True).splitlines()
     for posix in files:
