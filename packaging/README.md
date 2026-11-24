@@ -13,9 +13,11 @@ cd build-host
   --enable-slirp --enable-libusb --enable-pa --enable-gtk --enable-opengl -Dlightning=true
 ninja qemu-system-x86_64 qemu-img
 cd ..
-for project in manager networking guest-packages; do
+for project in networking guest-packages; do
   cargo build --locked --release --manifest-path "lightning/$project/Cargo.toml"
 done
+cargo rustc --locked --release --manifest-path lightning/manager/Cargo.toml \
+  --bin qemu-lightning-manager -- -C 'link-arg=-Wl,--disable-new-dtags,-rpath,$ORIGIN/../lib/lightning'
 ./build.sh --venus-host
 ```
 
