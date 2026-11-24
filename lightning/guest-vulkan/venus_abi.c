@@ -6,6 +6,11 @@
  */
 #include <virgl/virglrenderer.h>
 #include "transport.h"
+
+/* Venus has Virtio GPU capset ID 4, including on hosts with older UAPI headers. */
+#ifndef VIRTIO_GPU_CAPSET_VENUS
+#define VIRTIO_GPU_CAPSET_VENUS 4
+#endif
 /* Private maintained renderer accessor; source patch is packaged alongside. */
 extern int virgl_renderer_resource_get_host_memory_properties(uint32_t, uint32_t *);
 int qlv_venus_memory_properties(uint32_t resource, uint32_t *properties)
