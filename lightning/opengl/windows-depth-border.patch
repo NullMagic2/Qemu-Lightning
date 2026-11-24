@@ -1,0 +1,58 @@
+--- a/src/gallium/drivers/zink/zink_context.c
++++ b/src/gallium/drivers/zink/zink_context.c
+@@ -527,7 +527,7 @@
+             warn_missing_feature(warned, "VK_EXT_border_color_swizzle");
+          }
+ 
+-         if (!is_integer && !screen->have_D24_UNORM_S8_UINT) {
++         if (!is_integer && (!screen->have_D24_UNORM_S8_UINT || !screen->have_X8_D24_UNORM_PACK32)) {
+             union pipe_color_union clamped_border_color;
+             for (unsigned i = 0; i < 4; ++i) {
+                /* Use channel 0 on purpose, so that we can use OPAQUE_WHITE
+@@ -751,10 +751,16 @@
+ }
+ 
+ ALWAYS_INLINE static bool
+-sampler_surface_needs_clamped(enum pipe_format format)
+-{
+-   return (format == PIPE_FORMAT_Z24X8_UNORM && util_format_get_depth_only(format) == PIPE_FORMAT_Z32_FLOAT) ||
+-          (format == PIPE_FORMAT_Z24_UNORM_S8_UINT && util_format_get_depth_only(format) == PIPE_FORMAT_Z32_FLOAT);
++sampler_surface_needs_clamped(struct zink_screen *screen, enum pipe_format format)
++{
++   /* The view retains its logical UNORM format after the resource falls back
++    * to floating-point storage. Compare the actual Vulkan format instead of
++    * asking the logical format to be both UNORM and FLOAT simultaneously. */
++   enum pipe_format depth = util_format_get_depth_only(format);
++   if (depth != PIPE_FORMAT_Z24X8_UNORM && depth != PIPE_FORMAT_X8Z24_UNORM)
++      return false;
++   VkFormat storage = zink_get_format(screen, format);
++   return storage == VK_FORMAT_D32_SFLOAT || storage == VK_FORMAT_D32_SFLOAT_S8_UINT;
+ }
+ 
+ ALWAYS_INLINE static struct zink_resource *
+@@ -778,10 +784,9 @@
+          struct zink_surface *surface = get_imageview_for_binding(ctx, shader, type, slot, &format);
+          ctx->di.textures[shader][slot].imageLayout = ctx->blitting ? res->layout : get_layout_for_binding(ctx, res, type, shader == MESA_SHADER_COMPUTE);
+          ctx->di.textures[shader][slot].imageView = surface->image_view;
+-         if (!screen->have_D24_UNORM_S8_UINT &&
+-             ctx->sampler_states[shader][slot] && ctx->sampler_states[shader][slot]->sampler_clamped) {
++         if (ctx->sampler_states[shader][slot] && ctx->sampler_states[shader][slot]->sampler_clamped) {
+             struct zink_sampler_state *state = ctx->sampler_states[shader][slot];
+-            VkSampler sampler = sampler_surface_needs_clamped(format) ?
++            VkSampler sampler = sampler_surface_needs_clamped(screen, format) ?
+                                 state->sampler_clamped :
+                                 state->sampler;
+             if (ctx->di.textures[shader][slot].sampler != sampler) {
+@@ -875,10 +880,10 @@
+       ctx->sampler_states[shader][start_slot + i] = state;
+       if (state) {
+          ctx->di.textures[shader][start_slot + i].sampler = state->sampler;
+-         if (state->sampler_clamped && !screen->have_D24_UNORM_S8_UINT) {
++         if (state->sampler_clamped) {
+             enum pipe_format format;
+             struct zink_surface *surface = get_imageview_for_binding(ctx, shader, ZINK_DESCRIPTOR_TYPE_SAMPLER_VIEW, start_slot + i, &format);
+-            if (surface && sampler_surface_needs_clamped(format))
++            if (surface && sampler_surface_needs_clamped(screen, format))
+                ctx->di.textures[shader][start_slot + i].sampler = state->sampler_clamped;
+          }
+       } else {

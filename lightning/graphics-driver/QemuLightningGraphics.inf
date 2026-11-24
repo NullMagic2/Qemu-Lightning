@@ -1,0 +1,85 @@
+; Module: lightning.graphics_driver.private_installation
+; Purpose: Describe the x64 Venus display adapter with Vulkan and Direct3D 10/11/12 UMDs.
+; Created: 2026-10-09
+; Architecture: Install-QemuLightning.ps1 signs the SYS, ICD and catalog with a
+; development certificate on the target and submits this INF to PnP.
+[Version]
+Signature="$WINDOWS NT$"
+Class=Display
+ClassGuid={4d36e968-e325-11ce-bfc1-08002be10318}
+Provider=%Provider%
+DriverVer=11/24/2026,0.1.0.928
+CatalogFile=QemuLightningGraphics.cat
+PnpLockdown=1
+
+[Manufacturer]
+%Provider%=Devices,NTamd64.10.0...22000
+
+[Devices.NTamd64.10.0...22000]
+%Device%=Graphics,PCI\VEN_1234&DEV_11F1
+
+[ControlFlags]
+ExcludeFromSelect=*
+
+[Graphics.NT]
+FeatureScore=FB
+CopyFiles=GraphicsFiles
+AddReg=GraphicsRegistry
+DelReg=GraphicsStaleRegistry
+
+[GraphicsRegistry]
+HKR,,VulkanDriverName,%REG_SZ%,"%13%\QemuLightningVulkan.json"
+; KMTUMDVERSION indexes are DX9, DX10, DX11 and DX12 (not DX10.1).
+; The native DX12 DLL negotiates its DDI separately from feature-level support.
+HKR,,UserModeDriverName,%REG_MULTI_SZ%,"%13%\QemuLightningD3D10.dll","%13%\QemuLightningD3D10.dll","%13%\QemuLightningD3D10.dll","%13%\QemuLightningD3D12Bootstrap.dll"
+
+; Values left by earlier render-only packages: RenderOnly hides every output
+; from the desktop, so an upgrade must remove it.
+[GraphicsStaleRegistry]
+HKR,,RenderOnly
+HKR,,InstalledDisplayDrivers
+
+[Graphics.NT.Services]
+AddService=QemuLightningGraphics,0x00000002,GraphicsService
+
+[GraphicsService]
+DisplayName=%ServiceName%
+ServiceType=1
+StartType=3
+ErrorControl=0
+LoadOrderGroup=Video
+ServiceBinary=%13%\QemuLightningGraphics.sys
+
+[DestinationDirs]
+GraphicsFiles=13
+
+[GraphicsFiles]
+QemuLightningGraphics.sys
+QemuLightningVulkan.dll
+QemuLightningVulkan.json
+QemuLightningD3D10.dll
+QemuLightningD3D12Bootstrap.dll
+QemuLightningShader.dll
+; The D3D UMD loads this Khronos loader from its own driver-store directory.
+vulkan-1.dll
+
+[SourceDisksNames]
+1=%Disk%,,
+
+[SourceDisksFiles]
+QemuLightningGraphics.sys=1
+QemuLightningVulkan.dll=1
+QemuLightningVulkan.json=1
+QemuLightningD3D10.dll=1
+QemuLightningD3D12Bootstrap.dll=1
+QemuLightningShader.dll=1
+vulkan-1.dll=1
+
+[Strings]
+REG_SZ=0x00000000
+REG_MULTI_SZ=0x00010000
+REG_DWORD=0x00010001
+Provider="Qemu Lightning experimental graphics"
+Device="Qemu Lightning render adapter (private test)"
+ServiceName="Qemu Lightning experimental render miniport"
+Disk="Qemu Lightning private test driver"

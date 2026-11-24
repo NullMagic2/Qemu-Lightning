@@ -1,0 +1,882 @@
+--- a/src/gallium/drivers/zink/zink_blit.c
++++ b/src/gallium/drivers/zink/zink_blit.c
+@@ -413,9 +413,13 @@
+          return;
+    }
+ 
+-   if (src_desc == dst_desc ||
++   if (src->lightning_msaa16 && dst->lightning_msaa16 && try_copy_region(pctx, info))
++      goto end;
++
++   if (!src->lightning_msaa16 && !dst->lightning_msaa16 &&
++       (src_desc == dst_desc ||
+        src_desc->nr_channels != 4 || src_desc->layout != UTIL_FORMAT_LAYOUT_PLAIN ||
+-       (src_desc->nr_channels == 4 && src_desc->channel[3].type != UTIL_FORMAT_TYPE_VOID)) {
++       (src_desc->nr_channels == 4 && src_desc->channel[3].type != UTIL_FORMAT_TYPE_VOID))) {
+       /* we can't blit RGBX -> RGBA formats directly since they're emulated
+        * so we have to use sampler views
+        */
+--- a/src/gallium/drivers/zink/zink_clear.c
++++ b/src/gallium/drivers/zink/zink_clear.c
+@@ -24,6 +24,7 @@
+ #include "zink_batch.h"
+ #include "zink_clear.h"
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_format.h"
+ #include "zink_inlines.h"
+ #include "zink_query.h"
+@@ -158,6 +159,23 @@
+    struct zink_screen *screen = zink_screen(pctx->screen);
+    struct pipe_framebuffer_state *fb = &ctx->fb_state;
+    bool needs_rp = false;
++   if (screen->lightning_msaa16 && fb->samples == ZINK_MSAA16_SAMPLES &&
++       !ctx->lightning_msaa16_replay) {
++      ctx->lightning_msaa16_replay = true;
++      for (unsigned bank = 0; bank < ZINK_MSAA16_BANKS; bank++) {
++         zink_batch_no_rp(ctx);
++         ctx->lightning_msaa16_bank = bank;
++         ctx->rp_changed = true;
++         pctx->clear(pctx, buffers, color_clear_mask, stencil_clear_mask,
++                     scissor_state, pcolor, depth, stencil);
++         zink_batch_rp(ctx);
++      }
++      zink_batch_no_rp(ctx);
++      ctx->lightning_msaa16_bank = 0;
++      ctx->lightning_msaa16_replay = false;
++      ctx->rp_changed = true;
++      return;
++   }
+ 
+    if (scissor_state) {
+       struct u_rect scissor = {scissor_state->minx, scissor_state->maxx, scissor_state->miny, scissor_state->maxy};
+--- a/src/gallium/drivers/zink/zink_compiler.c
++++ b/src/gallium/drivers/zink/zink_compiler.c
+@@ -24,6 +24,7 @@
+ #include "nir_opcodes.h"
+ #include "shader_enums.h"
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_compiler.h"
+ #include "zink_descriptors.h"
+ #include "zink_program.h"
+@@ -108,6 +109,7 @@
+    PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_VIEWPORT_SCALE, viewport_scale);
+    PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_LINE_WIDTH, line_width);
+    PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_FBFETCH_ALPHA1, fbfetch_alpha1);
++   PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_LIGHTNING_SAMPLE_BASE, lightning_sample_base);
+ 
+    pushconst = nir_variable_create(nir, nir_var_mem_push_const,
+                                    glsl_struct_type(fields, ZINK_GFX_PUSHCONST_MAX, "struct", false),
+@@ -3727,6 +3729,8 @@
+    return dest;
+ }
+ 
++#include "zink_msaa16_nir.h"
++
+ struct lower_zs_swizzle_state {
+    bool shadow_only;
+    unsigned base_sampler_id;
+@@ -4151,7 +4155,7 @@
+    bool need_optimize = true;
+    bool inlined_uniforms = false;
+ 
+-   if (nir->info.stage == MESA_SHADER_FRAGMENT && (zink_fs_key_base(key)->force_persample_interp || zink_fs_key_base(key)->fbfetch_ms)) {
++   if (nir->info.stage == MESA_SHADER_FRAGMENT && (zink_fs_key_base(key)->force_persample_interp || zink_fs_key_base(key)->fbfetch_ms || zink_fs_key_base(key)->lightning_msaa16)) {
+       nir->info.fs.uses_sample_shading = true;
+       NIR_PASS(_, nir, nir_lower_sample_shading);
+       nir_foreach_shader_in_variable(var, nir) {
+@@ -4160,6 +4164,8 @@
+    }
+ 
+    NIR_PASS(_, nir, add_derefs);
++   if (nir->info.stage == MESA_SHADER_FRAGMENT && zink_fs_key_base(key)->lightning_msaa16)
++      NIR_PASS(_, nir, lightning_msaa16_lower_fragment);
+    NIR_PASS(_, nir, nir_lower_fragcolor, nir->info.fs.color_is_dual_source ? 1 : 8);
+    if (key) {
+       if (key->inline_uniforms) {
+@@ -4316,6 +4322,8 @@
+          need_optimize = true;
+       }
+    }
++   if (screen->lightning_msaa16)
++      NIR_PASS(need_optimize, nir, lightning_msaa16_lower, extra_data);
+    if (screen->driconf.inline_uniforms) {
+       NIR_PASS(_, nir, nir_lower_io_to_scalar, nir_var_mem_global | nir_var_mem_ubo | nir_var_mem_ssbo | nir_var_mem_shared, NULL, NULL);
+       NIR_PASS(_, nir, rewrite_bo_access, screen);
+--- a/src/gallium/drivers/zink/zink_context.c
++++ b/src/gallium/drivers/zink/zink_context.c
+@@ -23,6 +23,7 @@
+ 
+ #include "zink_clear.h"
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_descriptors.h"
+ #include "zink_fence.h"
+ #include "zink_format.h"
+@@ -2211,6 +2212,40 @@
+ }
+ 
+ static void
++lightning_msaa16_update_resources(struct zink_context *ctx, mesa_shader_stage stage)
++{
++   if (!zink_screen(ctx->base.screen)->lightning_msaa16)
++      return;
++
++   uint32_t samplers = 0, images = 0;
++   for (unsigned slot = 0; slot < PIPE_MAX_SAMPLERS; slot++) {
++      const struct pipe_sampler_view *view = ctx->sampler_views[stage][slot];
++      if (view && view->texture && zink_resource(view->texture)->lightning_msaa16)
++         samplers |= BITFIELD_BIT(slot);
++   }
++   for (unsigned slot = 0; slot < PIPE_MAX_SHADER_IMAGES; slot++) {
++      const struct pipe_image_view *view = &ctx->image_views[stage][slot].base;
++      if (view->resource && zink_resource(view->resource)->lightning_msaa16)
++         images |= BITFIELD_BIT(slot);
++   }
++   struct zink_zs_swizzle_key *resource_key = &ctx->di.zs_swizzle[stage];
++   bool changed = resource_key->lightning_msaa16_samplers != samplers ||
++                  resource_key->lightning_msaa16_images != images;
++   resource_key->lightning_msaa16_samplers = samplers;
++   resource_key->lightning_msaa16_images = images;
++   if (!changed)
++      return;
++
++   if (stage == MESA_SHADER_COMPUTE) {
++      ctx->compute_pipeline_state.key.base.needs_zs_shader_swizzle =
++         !!(resource_key->mask | samplers | images);
++      ctx->compute_dirty = true;
++   } else {
++      zink_set_zs_needs_shader_swizzle_key(ctx, stage, true);
++   }
++}
++
++static void
+ zink_set_shader_images(struct pipe_context *pctx,
+                        mesa_shader_stage shader_type,
+                        unsigned start_slot, unsigned count,
+@@ -2351,6 +2386,7 @@
+       unbind_shader_image(ctx, shader_type, start_slot + count + i);
+       update_descriptor_state_image(ctx, shader_type, start_slot + count + i, NULL);
+    }
++   lightning_msaa16_update_resources(ctx, shader_type);
+    ctx->di.num_images[shader_type] = start_slot + count;
+    if (update)
+       ctx->invalidate_descriptor_state(ctx, shader_type, ZINK_DESCRIPTOR_TYPE_IMAGE, start_slot, count);
+@@ -2557,6 +2593,7 @@
+       pipe_sampler_view_reference(&ctx->sampler_views[shader_type][slot], NULL);
+       update_descriptor_state_sampler(ctx, shader_type, slot, NULL);
+    }
++   lightning_msaa16_update_resources(ctx, shader_type);
+    ctx->di.num_sampler_views[shader_type] = start_slot + num_views;
+    if (update) {
+       struct zink_screen *screen = zink_screen(pctx->screen);
+@@ -3887,6 +3924,31 @@
+       {0.5, 0.5},
+    };
+ 
++   if (screen->lightning_msaa16 && ctx->fb_state.samples == ZINK_MSAA16_SAMPLES) {
++      for (unsigned sample = 0; sample < ZINK_MSAA16_BANK_SAMPLES; sample++) {
++         float position[2] = {0.5f, 0.5f};
++         if (ctx->rast_state && ctx->rast_state->base.multisample) {
++            unsigned logical = sample + ctx->lightning_msaa16_bank * ZINK_MSAA16_BANK_SAMPLES;
++            if (ctx->sample_locations_enabled && logical < ctx->num_sample_locations) {
++               position[0] = (ctx->sample_locations[logical] & 0xf) / 16.0f;
++               position[1] = (ctx->sample_locations[logical] >> 4) / 16.0f;
++            } else {
++               u_default_get_sample_position(&ctx->base, ZINK_MSAA16_SAMPLES, logical, position);
++            }
++         }
++         ctx->lightning_sample_locations[sample].x = position[0];
++         ctx->lightning_sample_locations[sample].y = position[1];
++      }
++      *loc = (VkSampleLocationsInfoEXT) {
++         .sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT,
++         .sampleLocationsPerPixel = VK_SAMPLE_COUNT_8_BIT,
++         .sampleLocationGridSize = {1, 1},
++         .sampleLocationsCount = ZINK_MSAA16_BANK_SAMPLES,
++         .pSampleLocations = ctx->lightning_sample_locations,
++      };
++      return;
++   }
++
+    if (ctx->sample_locations_changed)
+       zink_update_vk_sample_locations(ctx);
+    unsigned idx = util_logbase2_ceil(MAX2(ctx->gfx_pipeline_state.rast_samples + 1, 1));
+@@ -4404,7 +4466,10 @@
+    if (ctx->fb_state.width != w || ctx->fb_state.height != h)
+       ctx->scissor_changed = true;
+ 
+-   uint8_t rast_samples = ctx->fb_state.samples - 1;
++   bool banked = screen->lightning_msaa16 && ctx->fb_state.samples == ZINK_MSAA16_SAMPLES;
++   if (zink_get_fs_base_key(ctx)->lightning_msaa16 != banked)
++      zink_set_fs_base_key(ctx)->lightning_msaa16 = banked;
++   uint8_t rast_samples = (banked ? ZINK_MSAA16_BANK_SAMPLES : ctx->fb_state.samples) - 1;
+    if (rast_samples != ctx->gfx_pipeline_state.rast_samples) {
+       zink_update_fs_key_samples(ctx);
+       ctx->sample_locations_changed |= ctx->sample_locations_enabled;
+@@ -4466,6 +4531,7 @@
+    ctx->sample_locations_changed = true;
+    if (size > sizeof(ctx->sample_locations))
+       size = sizeof(ctx->sample_locations);
++   ctx->num_sample_locations = size;
+ 
+    if (locations)
+       memcpy(ctx->sample_locations, locations, size);
+@@ -5480,6 +5546,12 @@
+          region.dstOffset.z = 0;
+       }
+ 
++      if (src->lightning_msaa16 && dst->lightning_msaa16) {
++         region.srcSubresource.baseArrayLayer *= ZINK_MSAA16_BANKS;
++         region.srcSubresource.layerCount *= ZINK_MSAA16_BANKS;
++         region.dstSubresource.baseArrayLayer *= ZINK_MSAA16_BANKS;
++         region.dstSubresource.layerCount *= ZINK_MSAA16_BANKS;
++      }
+       region.dstOffset.x = dstx;
+       region.dstOffset.y = dsty;
+       region.extent.width = src_box->width;
+--- a/src/gallium/drivers/zink/zink_draw.cpp
++++ b/src/gallium/drivers/zink/zink_draw.cpp
+@@ -1,6 +1,7 @@
+ #include "zink_batch.h"
+ #include "zink_compiler.h"
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_descriptors.h"
+ #include "zink_program.h"
+ #include "zink_program_state.hpp"
+@@ -433,7 +434,9 @@
+    }
+ 
+    if ((BATCH_CHANGED && (screen->base.caps.programmable_sample_locations || uses_shobj)) || ctx->sample_locations_changed) {
+-      bool enabled = ctx->sample_locations_enabled || (!rast_state->base.multisample && ctx->gfx_pipeline_state.rast_samples);
++      bool enabled = ctx->sample_locations_enabled ||
++         (screen->lightning_msaa16 && ctx->fb_state.samples == ZINK_MSAA16_SAMPLES) ||
++         (!rast_state->base.multisample && ctx->gfx_pipeline_state.rast_samples);
+       VKCTX(CmdSetSampleLocationsEnableEXT)(bs->cmdbuf, enabled);
+       if (enabled) {
+          VkSampleLocationsInfoEXT loc;
+@@ -573,6 +576,35 @@
+ 
+    struct zink_context *ctx = zink_context(pctx);
+    struct zink_screen *screen = zink_screen(pctx->screen);
++   if (unlikely(screen->lightning_msaa16 && ctx->fb_state.samples == ZINK_MSAA16_SAMPLES &&
++                !ctx->lightning_msaa16_replay)) {
++      struct pipe_draw_info replay = *dinfo;
++      const unsigned logical_mask = ctx->gfx_pipeline_state.sample_mask;
++      const bool sample_shading = ctx->gfx_pipeline_state.force_persample_interp;
++      ctx->lightning_msaa16_replay = true;
++      ctx->gfx_pipeline_state.force_persample_interp = true;
++      ctx->gfx_pipeline_state.dirty = true;
++      for (unsigned bank = 0; bank < ZINK_MSAA16_BANKS; bank++) {
++         zink_batch_no_rp(ctx);
++         ctx->lightning_msaa16_bank = bank;
++         ctx->sample_locations_changed = true;
++         ctx->rp_changed = true;
++         pctx->set_sample_mask(pctx, (logical_mask >> (bank * ZINK_MSAA16_BANK_SAMPLES)) &
++                                    BITFIELD_MASK(ZINK_MSAA16_BANK_SAMPLES));
++         zink_update_fbfetch(ctx);
++         zink_draw<HAS_MULTIDRAW, DYNAMIC_STATE, true, DRAW_STATE>(pctx, &replay,
++            drawid_offset, dindirect, draws, num_draws, vstate, partial_velem_mask);
++      }
++      zink_batch_no_rp(ctx);
++      ctx->lightning_msaa16_bank = 0;
++      ctx->sample_locations_changed = true;
++      ctx->lightning_msaa16_replay = false;
++      ctx->gfx_pipeline_state.force_persample_interp = sample_shading;
++      ctx->gfx_pipeline_state.dirty = true;
++      ctx->rp_changed = true;
++      pctx->set_sample_mask(pctx, logical_mask);
++      return;
++   }
+    struct zink_rasterizer_state *rast_state = ctx->rast_state;
+    struct zink_batch_state *bs = ctx->bs;
+    struct zink_so_target *so_target =
+@@ -821,6 +853,11 @@
+                              offsetof(struct zink_gfx_push_constant, fbfetch_alpha1), sizeof(alpha1), &alpha1);
+    }
+ 
++   if (screen->lightning_msaa16 && ctx->fb_state.samples == ZINK_MSAA16_SAMPLES) {
++      unsigned sample_base = ctx->lightning_msaa16_bank * ZINK_MSAA16_BANK_SAMPLES;
++      VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
++         offsetof(struct zink_gfx_push_constant, lightning_sample_base), sizeof(sample_base), &sample_base);
++   }
+    if (reads_basevertex) {
+       unsigned draw_mode_is_indexed = index_size > 0;
+       VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
+--- /dev/null
++++ b/src/gallium/drivers/zink/zink_msaa16.h
+@@ -0,0 +1,17 @@
++/*
++ * Module: lightning.opengl.zink_msaa16
++ * Purpose: Describe independently stored sample banks for the private 16x path.
++ * Created: 2026-11-11
++ * Architecture: Zink owns Vulkan resources and synchronization; this adapter
++ * maps logical samples onto two disjoint native eight-sample array layers.
++ */
++#ifndef ZINK_MSAA16_H
++#define ZINK_MSAA16_H
++
++#define ZINK_MSAA16_SAMPLES 16u
++#define ZINK_MSAA16_BANK_SAMPLES 8u
++#define ZINK_MSAA16_BANKS 2u
++#define ZINK_MSAA16_BANK_SHIFT 3u
++#define ZINK_MSAA16_BANK_SAMPLE_MASK (ZINK_MSAA16_BANK_SAMPLES - 1)
++
++#endif
+--- /dev/null
++++ b/src/gallium/drivers/zink/zink_msaa16_nir.h
+@@ -0,0 +1,231 @@
++/*
++ * Module: lightning.opengl.zink_msaa16_nir
++ * Purpose: Map logical multisample texture/image operations onto native array banks.
++ * Created: 2026-11-11
++ * Architecture: Included by the pinned Zink compiler; the existing per-resource
++ * variant cache supplies immutable masks. No CPU pixel path is introduced.
++ */
++#ifndef ZINK_MSAA16_NIR_H
++#define ZINK_MSAA16_NIR_H
++
++struct lightning_msaa16_nir_state {
++   const struct zink_zs_swizzle_key *resources;
++};
++
++static nir_def *
++lightning_msaa16_binding_index(nir_builder *b, nir_deref_instr *deref)
++{
++   nir_variable *var = nir_deref_instr_get_variable(deref);
++   nir_def *index = nir_imm_int(b, var->data.driver_location);
++   for (nir_deref_instr *walk = deref; walk->deref_type != nir_deref_type_var;
++        walk = nir_deref_instr_parent(walk)) {
++      if (walk->deref_type == nir_deref_type_array) {
++         unsigned stride = glsl_type_is_array(walk->type) ? glsl_get_aoa_size(walk->type) : 1;
++         index = nir_iadd(b, index, nir_imul_imm(b, walk->arr.index.ssa, stride));
++      }
++   }
++   return index;
++}
++
++static nir_def *
++lightning_msaa16_is_banked(nir_builder *b, nir_deref_instr *deref, uint32_t mask)
++{
++   return nir_ine_imm(b, nir_iand_imm(b,
++      nir_ushr(b, nir_imm_int(b, mask), lightning_msaa16_binding_index(b, deref)), 1), 0);
++}
++
++static nir_def *
++lightning_msaa16_layer(nir_builder *b, nir_def *layer, nir_def *sample, nir_def *banked)
++{
++   nir_def *bank = sample ? nir_ushr_imm(b, sample, ZINK_MSAA16_BANK_SHIFT) : nir_imm_int(b, 0);
++   nir_def *physical = nir_iadd(b, nir_imul_imm(b, layer, ZINK_MSAA16_BANKS), bank);
++   return nir_bcsel(b, banked, physical, layer);
++}
++
++static bool
++lightning_msaa16_lower_tex(nir_builder *b, nir_tex_instr *tex, const struct zink_zs_swizzle_key *resources)
++{
++   if (tex->sampler_dim != GLSL_SAMPLER_DIM_MS)
++      return false;
++   int deref_index = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
++   if (deref_index < 0)
++      return false;
++
++   nir_deref_instr *deref = nir_src_as_deref(tex->src[deref_index].src);
++   b->cursor = nir_before_instr(&tex->instr);
++   uint32_t mask = resources ? resources->lightning_msaa16_samplers : 0;
++   nir_def *banked = lightning_msaa16_is_banked(b, deref, mask);
++   bool was_array = tex->is_array;
++   tex->is_array = true;
++   int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
++   int sample_index = nir_tex_instr_src_index(tex, nir_tex_src_ms_index);
++   if (coord_index >= 0) {
++      nir_def *coord = tex->src[coord_index].src.ssa;
++      nir_def *sample = sample_index >= 0 ? tex->src[sample_index].src.ssa : NULL;
++      nir_def *layer = was_array ? nir_channel(b, coord, 2) : nir_imm_int(b, 0);
++      nir_def *physical_coord = nir_vec3(b, nir_channel(b, coord, 0), nir_channel(b, coord, 1),
++         lightning_msaa16_layer(b, layer, sample, banked));
++      nir_src_rewrite(&tex->src[coord_index].src, physical_coord);
++      tex->coord_components = 3;
++      if (sample) {
++         nir_def *physical_sample = nir_bcsel(b, banked,
++            nir_iand_imm(b, sample, ZINK_MSAA16_BANK_SAMPLE_MASK), sample);
++         nir_src_rewrite(&tex->src[sample_index].src, physical_sample);
++      }
++   }
++   b->cursor = nir_after_instr(&tex->instr);
++   if (tex->op == nir_texop_txs) {
++      tex->def.num_components = 3;
++      nir_def *size = was_array ? nir_vec3(b, nir_channel(b, &tex->def, 0),
++         nir_channel(b, &tex->def, 1), nir_bcsel(b, banked,
++            nir_ushr_imm(b, nir_channel(b, &tex->def, 2), 1), nir_channel(b, &tex->def, 2))) :
++         nir_trim_vector(b, &tex->def, 2);
++      nir_def_rewrite_uses_after(&tex->def, size);
++   } else if (tex->op == nir_texop_texture_samples) {
++      nir_def *samples = nir_bcsel(b, banked,
++         nir_imul_imm(b, &tex->def, ZINK_MSAA16_BANKS), &tex->def);
++      nir_def_rewrite_uses_after(&tex->def, samples);
++   } else if (tex->op == nir_texop_samples_identical) {
++      /* Eight equal values in one bank do not establish equality across both. */
++      nir_def *identical = nir_bcsel(b, banked, nir_imm_false(b), &tex->def);
++      nir_def_rewrite_uses_after(&tex->def, identical);
++   }
++   return true;
++}
++
++static bool
++lightning_msaa16_lower_image(nir_builder *b, nir_intrinsic_instr *intr,
++                            const struct zink_zs_swizzle_key *resources)
++{
++   if (!nir_intrinsic_has_image_dim(intr) || nir_intrinsic_image_dim(intr) != GLSL_SAMPLER_DIM_MS)
++      return false;
++   switch (intr->intrinsic) {
++   case nir_intrinsic_image_deref_load:
++   case nir_intrinsic_image_deref_sparse_load:
++   case nir_intrinsic_image_deref_store:
++   case nir_intrinsic_image_deref_atomic:
++   case nir_intrinsic_image_deref_atomic_swap:
++   case nir_intrinsic_image_deref_size:
++   case nir_intrinsic_image_deref_samples:
++      break;
++   default:
++      return false;
++   }
++
++   b->cursor = nir_before_instr(&intr->instr);
++   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
++   uint32_t mask = resources ? resources->lightning_msaa16_images : 0;
++   nir_def *banked = lightning_msaa16_is_banked(b, deref, mask);
++   bool was_array = nir_intrinsic_image_array(intr);
++   nir_intrinsic_set_image_array(intr, true);
++   if (intr->intrinsic != nir_intrinsic_image_deref_size && intr->intrinsic != nir_intrinsic_image_deref_samples) {
++      nir_def *coord = intr->src[1].ssa;
++      nir_def *sample = intr->src[2].ssa;
++      nir_def *layer = was_array ? nir_channel(b, coord, 2) : nir_imm_int(b, 0);
++      nir_def *physical_coord = nir_vector_insert_imm(b, coord,
++         lightning_msaa16_layer(b, layer, sample, banked), 2);
++      nir_src_rewrite(&intr->src[1], physical_coord);
++      nir_src_rewrite(&intr->src[2], nir_bcsel(b, banked,
++         nir_iand_imm(b, sample, ZINK_MSAA16_BANK_SAMPLE_MASK), sample));
++   }
++   b->cursor = nir_after_instr(&intr->instr);
++   if (intr->intrinsic == nir_intrinsic_image_deref_size) {
++      intr->def.num_components = 3;
++      nir_def *size = was_array ? nir_vec3(b, nir_channel(b, &intr->def, 0),
++         nir_channel(b, &intr->def, 1), nir_bcsel(b, banked,
++            nir_ushr_imm(b, nir_channel(b, &intr->def, 2), 1), nir_channel(b, &intr->def, 2))) :
++         nir_trim_vector(b, &intr->def, 2);
++      nir_def_rewrite_uses_after(&intr->def, size);
++   } else if (intr->intrinsic == nir_intrinsic_image_deref_samples) {
++      nir_def *samples = nir_bcsel(b, banked,
++         nir_imul_imm(b, &intr->def, ZINK_MSAA16_BANKS), &intr->def);
++      nir_def_rewrite_uses_after(&intr->def, samples);
++   }
++   return true;
++}
++
++static bool
++lightning_msaa16_lower_instr(nir_builder *b, nir_instr *instr, void *data)
++{
++   struct lightning_msaa16_nir_state *state = data;
++   if (instr->type == nir_instr_type_tex)
++      return lightning_msaa16_lower_tex(b, nir_instr_as_tex(instr), state->resources);
++   if (instr->type == nir_instr_type_intrinsic)
++      return lightning_msaa16_lower_image(b, nir_instr_as_intrinsic(instr), state->resources);
++   return false;
++}
++
++static const struct glsl_type *
++lightning_msaa16_array_type(const struct glsl_type *type)
++{
++   if (glsl_type_is_array(type))
++      return glsl_array_type(lightning_msaa16_array_type(glsl_get_array_element(type)), glsl_get_length(type), 0);
++   if (glsl_type_is_sampler(type))
++      return glsl_sampler_type(GLSL_SAMPLER_DIM_MS, glsl_sampler_type_is_shadow(type), true, glsl_get_sampler_result_type(type));
++   return glsl_image_type(GLSL_SAMPLER_DIM_MS, true, glsl_get_sampler_result_type(type));
++}
++
++static bool
++lightning_msaa16_lower(nir_shader *nir, const void *resources)
++{
++   struct lightning_msaa16_nir_state state = {resources};
++   bool progress = nir_shader_instructions_pass(nir, lightning_msaa16_lower_instr,
++      nir_metadata_control_flow, &state);
++   if (progress) {
++      nir_foreach_variable_with_modes(var, nir, nir_var_uniform | nir_var_image) {
++         const struct glsl_type *type = glsl_without_array(var->type);
++         if (!var->data.bindless && (glsl_type_is_sampler(type) || glsl_type_is_image(type)) &&
++             glsl_get_sampler_dim(type) == GLSL_SAMPLER_DIM_MS)
++            var->type = lightning_msaa16_array_type(var->type);
++      }
++      nir_fixup_deref_types(nir);
++   }
++   return progress;
++}
++/* Translate application-visible sample builtins before internal framebuffer
++ * fetch lowering inserts physical sample IDs. Every bank executes eight native
++ * sample invocations; application outputs remain in logical sixteen-bit space.
++ */
++static bool
++lightning_msaa16_fragment_instr(nir_builder *b, nir_instr *instr, void *data)
++{
++   if (instr->type != nir_instr_type_intrinsic)
++      return false;
++   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
++   b->cursor = nir_before_instr(instr);
++   switch (intr->intrinsic) {
++   case nir_intrinsic_load_sample_id:
++   case nir_intrinsic_load_sample_mask_in: {
++      b->cursor = nir_after_instr(instr);
++      nir_def *base = nir_load_push_constant_zink(b, 1, 32,
++         nir_imm_int(b, ZINK_GFX_PUSHCONST_LIGHTNING_SAMPLE_BASE));
++      nir_def *logical = intr->intrinsic == nir_intrinsic_load_sample_id ?
++         nir_iadd(b, &intr->def, base) : nir_ishl(b, &intr->def, base);
++      nir_def_rewrite_uses_after(&intr->def, logical);
++      return true;
++   }
++   case nir_intrinsic_interp_deref_at_sample:
++      nir_src_rewrite(&intr->src[1], nir_iand_imm(b, intr->src[1].ssa,
++         ZINK_MSAA16_BANK_SAMPLE_MASK));
++      return true;
++   case nir_intrinsic_store_deref: {
++      nir_variable *var = nir_intrinsic_get_var(intr, 0);
++      if (var->data.mode != nir_var_shader_out || var->data.location != FRAG_RESULT_SAMPLE_MASK)
++         return false;
++      nir_def *base = nir_load_push_constant_zink(b, 1, 32,
++         nir_imm_int(b, ZINK_GFX_PUSHCONST_LIGHTNING_SAMPLE_BASE));
++      nir_src_rewrite(&intr->src[1], nir_ushr(b, intr->src[1].ssa, base));
++      return true;
++   }
++   default:
++      return false;
++   }
++}
++
++static bool
++lightning_msaa16_lower_fragment(nir_shader *nir)
++{
++   return nir_shader_instructions_pass(nir, lightning_msaa16_fragment_instr,
++      nir_metadata_control_flow, NULL);
++}
++#endif
+--- a/src/gallium/drivers/zink/zink_program.c
++++ b/src/gallium/drivers/zink/zink_program.c
+@@ -1911,7 +1911,8 @@
+ ALWAYS_INLINE static bool
+ compute_can_shortcut(const struct zink_compute_program *comp)
+ {
+-   return !comp->use_local_size && !comp->curr->num_uniforms && !comp->curr->has_nonseamless;
++   return !comp->use_local_size && !comp->curr->num_uniforms && !comp->curr->has_nonseamless &&
++          !comp->curr->needs_zs_shader_swizzle;
+ }
+ 
+ VkPipeline
+@@ -2338,7 +2339,8 @@
+    }
+    ctx->compute_pipeline_state.dirty = true;
+    if (comp && comp != ctx->curr_compute) {
+-      if (ctx->compute_pipeline_state.key.base.nonseamless_cube_mask)
++      if (ctx->compute_pipeline_state.key.base.nonseamless_cube_mask ||
++          ctx->compute_pipeline_state.key.base.needs_zs_shader_swizzle)
+          ctx->compute_dirty = true;
+       if (comp->uses_bindless)
+          zink_descriptors_init_bindless(ctx);
+--- a/src/gallium/drivers/zink/zink_program.h
++++ b/src/gallium/drivers/zink/zink_program.h
+@@ -399,7 +399,9 @@
+          zink_set_fs_base_key(ctx)->shadow_needs_shader_swizzle = enable;
+       return;
+    }
+-   bool enable = !!ctx->di.zs_swizzle[pstage].mask;
++   bool enable = !!(ctx->di.zs_swizzle[pstage].mask |
++                    ctx->di.zs_swizzle[pstage].lightning_msaa16_samplers |
++                    ctx->di.zs_swizzle[pstage].lightning_msaa16_images);
+    const struct zink_shader_key_base *key = zink_get_shader_key_base(ctx, pstage);
+    if (enable != key->needs_zs_shader_swizzle || (enable && swizzle_update))
+       zink_set_shader_key_base(ctx, pstage)->needs_zs_shader_swizzle = enable;
+--- a/src/gallium/drivers/zink/zink_render_pass.c
++++ b/src/gallium/drivers/zink/zink_render_pass.c
+@@ -22,6 +22,7 @@
+  */
+ 
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_clear.h"
+ #include "zink_kopper.h"
+ #include "zink_query.h"
+@@ -102,6 +103,8 @@
+    struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[PIPE_MAX_COLOR_BUFS];
+    rt->format = zsbuf->format;
+    rt->samples = MAX3(ctx->fb_state.zsbuf.nr_samples, ctx->fb_state.zsbuf.texture->nr_samples, 1);
++   if (zsbuf->lightning_msaa16)
++      rt->samples = ZINK_MSAA16_BANK_SAMPLES;
+    rt->clear_color = zink_fb_clear_enabled(ctx, PIPE_MAX_COLOR_BUFS) &&
+                                          !zink_fb_clear_first_needs_explicit(fb_clear) &&
+                                          (zink_fb_clear_element(fb_clear, 0)->zs.bits & PIPE_CLEAR_DEPTH);
+@@ -132,6 +135,8 @@
+    struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[PIPE_MAX_COLOR_BUFS];
+    rt->format = zsbuf->format;
+    rt->samples = MAX3(ctx->fb_state.zsbuf.nr_samples, ctx->fb_state.zsbuf.texture->nr_samples, 1);
++   if (zsbuf->lightning_msaa16)
++      rt->samples = ZINK_MSAA16_BANK_SAMPLES;
+    rt->clear_color = zink_fb_clear_enabled(ctx, PIPE_MAX_COLOR_BUFS) &&
+                                          !zink_fb_clear_first_needs_explicit(fb_clear) &&
+                                          (zink_fb_clear_element(fb_clear, 0)->zs.bits & PIPE_CLEAR_DEPTH);
+@@ -151,6 +156,8 @@
+    if (res) {
+       rt->format = ctx->fb_formats[i];
+       rt->samples = MAX3(ctx->fb_state.cbufs[i].nr_samples, ctx->fb_state.cbufs[i].texture->nr_samples, 1);
++      if (res->lightning_msaa16)
++         rt->samples = ZINK_MSAA16_BANK_SAMPLES;
+       rt->clear_color = zink_fb_clear_enabled(ctx, i) && !zink_fb_clear_first_needs_explicit(&ctx->fb_clears[i]);
+       rt->invalid = !res->valid;
+       rt->fbfetch = (ctx->fbfetch_outputs & BITFIELD_BIT(i)) > 0;
+@@ -170,6 +177,8 @@
+    if (res) {
+       rt->format = ctx->fb_formats[i];
+       rt->samples = MAX3(ctx->fb_state.cbufs[i].nr_samples, ctx->fb_state.cbufs[i].texture->nr_samples, 1);
++      if (res->lightning_msaa16)
++         rt->samples = ZINK_MSAA16_BANK_SAMPLES;
+       rt->clear_color = zink_fb_clear_enabled(ctx, i) && !zink_fb_clear_first_needs_explicit(&ctx->fb_clears[i]);
+       rt->invalid = !res->valid;
+       rt->fbfetch = (info->cbuf_fbfetch & BITFIELD_BIT(i)) > 0;
+--- a/src/gallium/drivers/zink/zink_resource.c
++++ b/src/gallium/drivers/zink/zink_resource.c
+@@ -26,6 +26,7 @@
+ #include "zink_batch.h"
+ #include "zink_clear.h"
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_fence.h"
+ #include "zink_format.h"
+ #include "zink_program.h"
+@@ -819,6 +820,10 @@
+    ici->mipLevels = templ->last_level + 1;
+    ici->arrayLayers = MAX2(templ->array_size, 1);
+    ici->samples = templ->nr_samples ? templ->nr_samples : VK_SAMPLE_COUNT_1_BIT;
++   if (screen->lightning_msaa16 && templ->nr_samples == ZINK_MSAA16_SAMPLES) {
++      ici->samples = VK_SAMPLE_COUNT_8_BIT;
++      ici->arrayLayers *= ZINK_MSAA16_BANKS;
++   }
+ 
+    /* pNext may already be set */
+    if (bind & ZINK_BIND_MUTABLE)
+@@ -1821,7 +1826,14 @@
+          goto fail;
+    }
+ 
++   if (screen->lightning_msaa16 && templ->nr_samples == ZINK_MSAA16_SAMPLES &&
++       (templ->array_size > screen->info.props.limits.maxImageArrayLayers / ZINK_MSAA16_BANKS ||
++        (templ->target != PIPE_TEXTURE_2D && templ->target != PIPE_TEXTURE_2D_ARRAY) ||
++        whandle || loader_private || (templ->flags & PIPE_RESOURCE_FLAG_SPARSE)))
++      goto fail;
++
+    res->base.b = *templ;
++   res->lightning_msaa16 = screen->lightning_msaa16 && templ->nr_samples == ZINK_MSAA16_SAMPLES;
+    res->size = templ->width0;
+    res->is_sparse = !!(templ->flags & PIPE_RESOURCE_FLAG_SPARSE);
+ 
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -26,6 +26,7 @@
+ #include "zink_kopper.h"
+ #include "zink_compiler.h"
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_descriptors.h"
+ #include "zink_fence.h"
+ #include "vk_format.h"
+@@ -1362,6 +1363,21 @@
+                          unsigned bind)
+ {
+    struct zink_screen *screen = zink_screen(pscreen);
++
++   if (sample_count == ZINK_MSAA16_SAMPLES && screen->lightning_msaa16) {
++      if (!screen->info.have_EXT_sample_locations ||
++          !screen->info.sample_locations_props.variableSampleLocations ||
++          !screen->info.dynamic_state3_feats.extendedDynamicState3SampleLocationsEnable ||
++          !(screen->info.sample_locations_props.sampleLocationSampleCounts & VK_SAMPLE_COUNT_8_BIT))
++         return false;
++      if ((target != PIPE_TEXTURE_2D && target != PIPE_TEXTURE_2D_ARRAY) ||
++          (bind & (PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_SCANOUT | PIPE_BIND_SHARED)))
++         return false;
++      if (storage_sample_count && storage_sample_count != ZINK_MSAA16_SAMPLES)
++         return false;
++      sample_count = ZINK_MSAA16_BANK_SAMPLES;
++      storage_sample_count = storage_sample_count ? ZINK_MSAA16_BANK_SAMPLES : 0;
++   }
+ 
+    if (storage_sample_count && !screen->info.feats.features.shaderStorageImageMultisample && bind & PIPE_BIND_SHADER_IMAGE)
+       return false;
+@@ -2957,6 +2973,11 @@
+                            unsigned *width, unsigned *height)
+ {
+    struct zink_screen *screen = zink_screen(pscreen);
++   if (screen->lightning_msaa16 && sample_count == ZINK_MSAA16_SAMPLES) {
++      /* Both native banks use one independently programmable pixel. */
++      *width = *height = 1;
++      return;
++   }
+    unsigned idx = util_logbase2_ceil(MAX2(sample_count, 1));
+    assert(idx < ARRAY_SIZE(screen->maxSampleLocationGridSize));
+    *width = screen->maxSampleLocationGridSize[idx].width;
+@@ -3291,6 +3312,8 @@
+ static void
+ init_optimal_keys(struct zink_screen *screen)
+ {
++   if (screen->lightning_msaa16)
++      screen->driver_compiler_workarounds.needs_zs_shader_swizzle = true;
+    screen->optimal_keys = !screen->need_decompose_attrs &&
+                           screen->info.have_EXT_non_seamless_cube_map &&
+                           screen->info.have_EXT_provoking_vertex &&
+@@ -3327,7 +3350,7 @@
+       printf("\n");
+       mesa_logw("zink: force-enabling optimal_keys despite missing features. Good luck!");
+    }
+-   if (zink_debug & ZINK_DEBUG_OPTIMAL_KEYS)
++   if (zink_debug & ZINK_DEBUG_OPTIMAL_KEYS && !screen->lightning_msaa16)
+       screen->optimal_keys = true;
+    if (!screen->optimal_keys)
+       screen->info.have_EXT_graphics_pipeline_library = false;
+@@ -3463,6 +3486,10 @@
+       return NULL;
+    }
+ 
++   /* Private qualification gate. Full rendering qualification precedes any
++    * default capability change; native 1x-8x storage is never rewritten.
++    */
++   screen->lightning_msaa16 = debug_get_bool_option("QLG_EXPERIMENTAL_MSAA16", false);
+    screen->driver_name_is_inferred = config && config->driver_name_is_inferred;
+    screen->drm_fd = -1;
+ 
+--- a/src/gallium/drivers/zink/zink_shader_keys.h
++++ b/src/gallium/drivers/zink/zink_shader_keys.h
+@@ -76,6 +76,8 @@
+ struct zink_zs_swizzle_key {
+    /* Mask of sampler views with zs_view, i.e. have swizzles other than GL_RED for depth */
+    uint32_t mask;
++   uint32_t lightning_msaa16_samplers;
++   uint32_t lightning_msaa16_images;
+    struct zink_zs_swizzle swizzle[32];
+ };
+ 
+@@ -86,7 +88,8 @@
+    bool force_persample_interp : 1;
+    bool fbfetch_ms : 1;
+    bool shadow_needs_shader_swizzle : 1; //append zink_zs_swizzle_key after the key data
+-   uint8_t pad : 2;
++   bool lightning_msaa16 : 1;
++   uint8_t pad : 1;
+    uint8_t coord_replace_bits;
+ };
+ 
+--- a/src/gallium/drivers/zink/zink_surface.c
++++ b/src/gallium/drivers/zink/zink_surface.c
+@@ -22,6 +22,7 @@
+  */
+ 
+ #include "zink_context.h"
++#include "zink_msaa16.h"
+ #include "zink_format.h"
+ #include "zink_resource.h"
+ #include "zink_screen.h"
+@@ -101,6 +102,14 @@
+    assert(ivci.viewType != VK_IMAGE_VIEW_TYPE_3D || ivci.subresourceRange.layerCount == 1);
+    /* ensure cube image types get clamped to 2D/2D_ARRAY as expected for partial views */
+    ivci.viewType = zink_surface_clamp_viewtype(ivci.viewType, templ->first_layer, templ->last_layer, res->base.b.array_size);
++
++   if (screen->lightning_msaa16 && res->base.b.nr_samples > 1)
++      ivci.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
++   if (res->lightning_msaa16) {
++      ivci.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
++      ivci.subresourceRange.baseArrayLayer *= ZINK_MSAA16_BANKS;
++      ivci.subresourceRange.layerCount *= ZINK_MSAA16_BANKS;
++   }
+ 
+    return ivci;
+ }
+@@ -217,6 +226,9 @@
+       .format = templ->format,
+       .viewtype = type,
+       .stencil = ivci->subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT,
++      .lightning_sample_bank = zink_resource(templ->texture)->lightning_msaa16 &&
++         ivci->subresourceRange.layerCount == 1 + templ->last_layer - templ->first_layer ?
++         1 + ivci->subresourceRange.baseArrayLayer % ZINK_MSAA16_BANKS : 0,
+       .swizzle_r = componentmapping_to_pipe(ivci->components.r),
+       .swizzle_g = componentmapping_to_pipe(ivci->components.g),
+       .swizzle_b = componentmapping_to_pipe(ivci->components.b),
+@@ -286,6 +298,11 @@
+    struct zink_resource *res = zink_resource(templ->texture);
+ 
+    VkImageViewCreateInfo ivci = create_fb_ivci(zink_screen(pctx->screen), res, templ);
++   if (res->lightning_msaa16) {
++      ivci.subresourceRange.baseArrayLayer = templ->first_layer * ZINK_MSAA16_BANKS +
++         zink_context(pctx)->lightning_msaa16_bank;
++      ivci.subresourceRange.layerCount = 1 + templ->last_layer - templ->first_layer;
++   }
+    return zink_get_surface(zink_context(pctx), templ, &ivci);
+ }
+ 
+--- a/src/gallium/drivers/zink/zink_types.h
++++ b/src/gallium/drivers/zink/zink_types.h
+@@ -28,6 +28,8 @@
+ #define ZINK_TYPES_H
+ 
+ #include <vulkan/vulkan_core.h>
++
++#include "zink_msaa16.h"
+ 
+ #include "compiler/nir/nir_defines.h"
+ #include "compiler/nir/nir_shader_compiler_options.h"
+@@ -980,6 +982,7 @@
+    float viewport_scale[2];
+    float line_width;
+    uint32_t fbfetch_alpha1;
++   uint32_t lightning_sample_base;
+ };
+ 
+ /* The order of the enums MUST match the order of the zink_gfx_push_constant
+@@ -995,6 +998,7 @@
+    ZINK_GFX_PUSHCONST_VIEWPORT_SCALE,
+    ZINK_GFX_PUSHCONST_LINE_WIDTH,
+    ZINK_GFX_PUSHCONST_FBFETCH_ALPHA1,
++   ZINK_GFX_PUSHCONST_LIGHTNING_SAMPLE_BASE,
+    ZINK_GFX_PUSHCONST_MAX
+ };
+ 
+@@ -1273,6 +1277,7 @@
+ 
+    enum pipe_format internal_format:16;
+    bool is_sparse;
++   bool lightning_msaa16;
+    uint32_t size;
+    struct zink_resource_object *obj;
+    struct zink_resource *transient; //for msrtt without EXT_multisampled_render_to_single_sampled and format view shadowing
+@@ -1371,6 +1376,7 @@
+ 
+ struct zink_screen {
+    struct pipe_screen base;
++   bool lightning_msaa16;
+ 
+    const char *vendor_name;
+    const char *device_name;
+@@ -1588,7 +1594,8 @@
+    unsigned level_count:4;
+    enum zink_surface_type viewtype:2;      /**< layered view of an array/3d iamge */
+    unsigned stencil:1;           /**< stencil-only view */
+-   unsigned pad:29;
++   unsigned lightning_sample_bank:2;
++   unsigned pad:27;
+    unsigned first_layer:16;  /**< first layer to use for array textures */
+    unsigned last_layer:16;   /**< last layer to use for array textures */
+ };
+@@ -1844,6 +1851,9 @@
+    uint16_t rp_clears_enabled;
+    uint16_t void_clears;
+    uint16_t fbfetch_outputs;
++   unsigned lightning_msaa16_bank;
++   VkSampleLocationEXT lightning_sample_locations[ZINK_MSAA16_BANK_SAMPLES];
++   bool lightning_msaa16_replay;
+    uint16_t feedback_loops;
+    struct zink_resource *needs_present;
+ 

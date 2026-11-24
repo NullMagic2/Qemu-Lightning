@@ -1,0 +1,50 @@
+{
+  "module": "lightning.direct3d12_umd.native_fences",
+  "created": "2026-11-07",
+  "bundle_version": 1,
+  "source_scope": "Owned local/imported Windows monitored fences connected to genuine experimental R0 fence callbacks and attached native COPY/COMPUTE/DIRECT queues.",
+  "public_interface_ready": false,
+  "default_WDDM_build": "1.3",
+  "required_sequence": [
+    "Query private native fence bundle and allocate queried aligned runtime storage",
+    "PrepareFence creates or imports an actual KMT mapping on the exact runtime-selected guest LUID",
+    "CreateFence validates its genuine R0 descriptor against the owned GPU address",
+    "AttachQueue enables bounded logical scheduling for the native queue before admitting additional logical queues",
+    "Use genuine SignalFence/WaitForFence and the existing ExecuteCommandLists path",
+    "DrainQueue and retry retirement after actual work completion; failures never imply completed signals"
+  ],
+  "limits": {
+    "fences": 32,
+    "logical_queues": 32,
+    "queued_operations": 256,
+    "shared_native_object_claims": 32,
+    "host_submission": "Existing selected VkQueue accepts one retained native command submission at a time. CPU waits consume no physical queue slot. Other ready waits/signals progress while unrelated host work remains pending.",
+    "OS_waits": "Actual asynchronous KMT CPU wait events capture intermediate shared values, including rewinds; no blocking future-value wait occurs on submitting threads.",
+    "poll_interval_milliseconds": 1,
+    "worker_stop_timeout_milliseconds": 5000
+  },
+  "ownership": [
+    "Every queued list retains its exact generation and recording until actual submission; old cleanup cannot release a reset replacement.",
+    "Every signal/wait retains the exact fence and its owned KMT device/mapping. Shared NT handles are borrowed during import; exported handles are owned and closed by the caller.",
+    "The worker pins its containing module. Last-queue retirement joins it; failed stop retains the queue and refuses new admissions until retirement retry.",
+    "Accepted or uncertain host attempts are never replayed. Pending signals remain uncompleted after execution errors; only proven drain permits cancellation and owner release.",
+    "OS teardown failure preserves partially destroyed owners and exact native claims for retry. Hidden failed construction owners are collected before device retirement."
+  ],
+  "explicit_boundaries": [
+    "The experimental source requires owned PrepareFence registration; arbitrary runtime GPU VAs outside that mapping are declined. Caller-provided GPU notification threshold addresses are declined; KMT owns threshold notification.",
+    "No complete public D3D12 mandatory interface, WDDM context/resource registration, residency, general GPUVA mapping or hardware queue implementation is advertised.",
+    "Cross-adapter fence sharing and unbounded scheduling are outside this bounded single-adapter subset.",
+    "Actual Windows KMT notification, cross-process/API shared fence execution and native GPU acceptance have not been run; controlled fixtures model KMT/Vulkan services."
+  ],
+  "testing_credit": 0,
+  "contracts": [
+    "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3d12umddi/nc-d3d12umddi-pfnd3d12ddi_createfence",
+    "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmthk/ns-d3dkmthk-_d3dkmt_opensyncobjectfromnthandle2",
+    "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmthk/ns-d3dkmthk-_d3dkmt_waitforsynchronizationobjectfromcpu"
+  ],
+  "runtime_status_without_fences": {
+    "implementation": "The existing removal query first probes the retained native runtime DeviceStatusQuery Escape callback, then preserves its existing retained-KMT-fence observation path. Existing queue/fence pumps also sample runtime contexts with no fence.",
+    "ownership": "The actual runtime device and parent generation stay pinned across the outside-lock callback. Recursive status calls return the last known state and cannot enter another Escape. Confirmed loss is sticky and no fence progress is invented.",
+    "qualification": "Modeled Windows ABI regression only; public ID3D12Device/ID3D12Fence integration remains unavailable."
+  }
+}

@@ -1,0 +1,40 @@
+name: Windows host
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+      - run: git config --global core.symlinks true
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            bzip2 diffutils make git
+            mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-pixman
+            mingw-w64-ucrt-x86_64-libslirp mingw-w64-ucrt-x86_64-SDL2
+            mingw-w64-ucrt-x86_64-dtc mingw-w64-ucrt-x86_64-zstd
+      - shell: msys2 {0}
+        run: bash packaging/windows-host.sh
+      - name: Smoke test outside MSYS2
+        shell: pwsh
+        working-directory: win-release/Qemu-Lightning
+        run: |
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          .\qemu-system-x86_64.exe --version
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          .\qemu-img.exe create -f qcow2 "$env:RUNNER_TEMP\smoke.qcow2" 16M
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          '{"execute":"qmp_capabilities"}','{"execute":"quit"}' | .\qemu-system-x86_64.exe -L share/qemu -machine q35,accel=tcg -display none -nodefaults -S -qmp stdio
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-host
+          path: win-release/

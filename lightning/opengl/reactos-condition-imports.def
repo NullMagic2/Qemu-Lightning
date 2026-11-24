@@ -1,0 +1,8 @@
+; i386 import spellings; dlltool --kill-at preserves canonical DLL exports.
+LIBRARY QemuLightningSync.dll
+EXPORTS
+InitializeConditionVariable@4
+SleepConditionVariableCS@12
+SleepConditionVariableSRW@16
+WakeConditionVariable@4
+WakeAllConditionVariable@4

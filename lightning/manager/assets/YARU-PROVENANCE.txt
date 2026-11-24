@@ -1,0 +1,13 @@
+Module: lightning.manager.yaru_provenance
+Purpose: Record the source and license of bundled icon assets.
+Created: 2026-10-08
+Architecture: Unmodified icons bundled with the GTK manager.
+
+Source: Ubuntu yaru-theme-icon 26.04.5.1ubuntu, downloaded from the Ubuntu archive.
+Upstream: https://github.com/ubuntu/yaru
+Icon license: Creative Commons Attribution-ShareAlike 4.0.
+See YARU-COPYRIGHT for authors and complete package license notices.
+Selected assets are copied without modification; index.theme is project-authored.
+
+Full-color 24px folder, system-reboot and system-shutdown PNGs were copied
+unchanged from the installed /usr/share/icons/Yaru theme on 2026-10-08.

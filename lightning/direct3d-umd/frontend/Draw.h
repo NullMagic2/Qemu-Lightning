@@ -1,0 +1,65 @@
+/**************************************************************************
+ *
+ * Copyright 2012-2021 VMware, Inc.
+ * All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ **************************************************************************/
+
+/*
+ * Draw.h --
+ *    Functions that render 3D primitives.
+ */
+
+#ifndef DRAW_H
+#define DRAW_H
+
+#include "DriverIncludes.h"
+
+void APIENTRY Draw(D3D10DDI_HDEVICE hDevice, UINT VertexCount, UINT StartVertexLocation);
+void APIENTRY DrawIndexed(D3D10DDI_HDEVICE hDevice, UINT IndexCount,
+                 UINT StartIndexLocation, INT BaseVertexLocation);
+
+void APIENTRY DrawInstanced(D3D10DDI_HDEVICE hDevice, UINT VertexCountPerInstance,
+                   UINT InstanceCount, UINT StartVertexLocation,
+                   UINT StartInstanceLocation);
+
+void APIENTRY DrawIndexedInstanced(D3D10DDI_HDEVICE hDevice, UINT IndexCountPerInstance,
+                          UINT InstanceCount, UINT StartIndexLocation,
+                          INT BaseVertexLocation, UINT StartInstanceLocation);
+
+void APIENTRY DrawAuto(D3D10DDI_HDEVICE hDevice);
+
+/* Qemu Lightning: D3D11 indirect draws. */
+void APIENTRY DrawInstancedIndirect(D3D10DDI_HDEVICE hDevice, D3D10DDI_HRESOURCE hBuffer,
+                                    UINT AlignedByteOffset);
+void APIENTRY DrawIndexedInstancedIndirect(D3D10DDI_HDEVICE hDevice, D3D10DDI_HRESOURCE hBuffer,
+                                           UINT AlignedByteOffset);
+
+/* Qemu Lightning: bind the D3D views and samplers behind the bound
+ * shader's texture slots (Shader_nir_texture_bindings); and remove a view
+ * that is being destroyed from every slot that holds it. */
+struct Device;
+void BindStageResources(struct Device *pDevice, mesa_shader_stage stage);
+void UnbindShaderResourceView(struct Device *pDevice, struct pipe_sampler_view *view);
+
+#endif

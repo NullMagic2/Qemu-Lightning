@@ -1,0 +1,191 @@
+{
+  "module": "lightning.direct3d12_umd.requirements_source",
+  "created": "2026-10-24",
+  "profile_id": 1,
+  "profile_complete": false,
+  "proposed_dependency": "vkd3d-proton v2.14",
+  "commit": "c965c1351fd6915a65bb7f647319536252a24a93",
+  "scope": "Checked physical prerequisites and explicit unresolved guest/native boundaries, not complete backend/device initialization",
+  "source_files": [
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/HansKristian-Work/vkd3d-proton/c965c1351fd6915a65bb7f647319536252a24a93/README.md",
+      "sha256": "385876421408b87649667a90387b1412c03428adb3dcf33f063144243fafd27d",
+      "bytes": 21723
+    },
+    {
+      "path": "libs/vkd3d/device.c",
+      "url": "https://raw.githubusercontent.com/HansKristian-Work/vkd3d-proton/c965c1351fd6915a65bb7f647319536252a24a93/libs/vkd3d/device.c",
+      "sha256": "6e1652b01fc470cf122be75e5505b77d84ceb05c0d05465fd26cebbfe620097a",
+      "bytes": 425721
+    },
+    {
+      "path": "libs/vkd3d/state.c",
+      "url": "https://raw.githubusercontent.com/HansKristian-Work/vkd3d-proton/c965c1351fd6915a65bb7f647319536252a24a93/libs/vkd3d/state.c",
+      "sha256": "80cfcd243b60be24ef82a1bde187547e73ae0f02ebc15d5d9aa63606c7e806d7",
+      "bytes": 307613
+    },
+    {
+      "path": "libs/vkd3d/vkd3d_private.h",
+      "url": "https://raw.githubusercontent.com/HansKristian-Work/vkd3d-proton/c965c1351fd6915a65bb7f647319536252a24a93/libs/vkd3d/vkd3d_private.h",
+      "sha256": "69a8be7dcba9eef76a864d2592ee849e4f3f981cef2e03d064f94abe82f1adb9",
+      "bytes": 210252
+    },
+    {
+      "path": "include/private/vkd3d_common.h",
+      "url": "https://raw.githubusercontent.com/HansKristian-Work/vkd3d-proton/c965c1351fd6915a65bb7f647319536252a24a93/include/private/vkd3d_common.h",
+      "sha256": "68e679b9ebf18c6f3fe9dd50d7c2f2fdd363028e3846aa9b4965e8d5b4608bd0",
+      "bytes": 9188
+    }
+  ],
+  "rules": [
+    {
+      "index": 0,
+      "name": "VULKAN13",
+      "source": "README.md",
+      "branch": "Drivers Vulkan1.3; device.c rejects inadequate loader/physical API versions"
+    },
+    {
+      "index": 1,
+      "name": "ROBUSTNESS2_EXTENSION",
+      "source": "libs/vkd3d/device.c",
+      "branch": "optional_device_extensions recognizes EXT_ROBUSTNESS_2; vkd3d_init_device_caps unconditionally rejects missing robustness2 features"
+    },
+    {
+      "index": 2,
+      "name": "PUSH_DESCRIPTOR_EXTENSION",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing KHR_push_descriptor returns E_INVALIDARG"
+    },
+    {
+      "index": 3,
+      "name": "SAMPLER_MIRROR_CLAMP",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing samplerMirrorClampToEdge returns E_INVALIDARG"
+    },
+    {
+      "index": 4,
+      "name": "SHADER_DRAW_PARAMETERS",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing shaderDrawParameters returns E_INVALIDARG"
+    },
+    {
+      "index": 5,
+      "name": "ROBUST_BUFFER_ACCESS2",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing robustBufferAccess2 or robustImageAccess2 returns E_INVALIDARG"
+    },
+    {
+      "index": 6,
+      "name": "ROBUST_IMAGE_ACCESS2",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing robustBufferAccess2 or robustImageAccess2 returns E_INVALIDARG"
+    },
+    {
+      "index": 7,
+      "name": "NULL_DESCRIPTOR",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing nullDescriptor returns E_INVALIDARG"
+    },
+    {
+      "index": 8,
+      "name": "DESCRIPTOR_INDEXING",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: missing descriptorIndexing enters fail"
+    },
+    {
+      "index": 9,
+      "name": "STORAGE_TEXEL_NON_UNIFORM",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: missing shaderStorageTexelBufferArrayNonUniformIndexing enters fail"
+    },
+    {
+      "index": 10,
+      "name": "STORAGE_IMAGE_NON_UNIFORM",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: missing shaderStorageImageArrayNonUniformIndexing enters fail"
+    },
+    {
+      "index": 11,
+      "name": "VARIABLE_DESCRIPTOR_COUNT",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: missing descriptorBindingVariableDescriptorCount enters fail"
+    },
+    {
+      "index": 12,
+      "name": "SAMPLED_IMAGE_LIMIT",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: sampled-image per-stage update-after-bind limit below MIN_VIEW_DESCRIPTOR_COUNT fails only when descriptor buffers are not in use"
+    },
+    {
+      "index": 13,
+      "name": "STORAGE_IMAGE_LIMIT",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: storage-image per-stage update-after-bind limit below MIN_VIEW_DESCRIPTOR_COUNT fails only when descriptor buffers are not in use"
+    },
+    {
+      "index": 14,
+      "name": "STORAGE_BUFFER_LIMIT",
+      "source": "libs/vkd3d/state.c",
+      "branch": "vkd3d_bindless_state_init: storage-buffer per-stage update-after-bind limit below MIN_VIEW_DESCRIPTOR_COUNT fails only when descriptor buffers are not in use"
+    },
+    {
+      "index": 15,
+      "name": "ROBUST_ACCESS_UPDATE_AFTER_BIND",
+      "source": "libs/vkd3d/device.c",
+      "branch": "vkd3d_init_device_caps: missing robustBufferAccessUpdateAfterBind logs WARN and continues"
+    },
+    {
+      "index": 16,
+      "name": "IMAGE_VIEW_MIN_LOD",
+      "source": "README.md",
+      "branch": "Drivers: VK_EXT_image_view_min_lod is recommended, not required"
+    },
+    {
+      "index": 17,
+      "name": "MUTABLE_DESCRIPTOR_TYPE",
+      "source": "README.md",
+      "branch": "Drivers: EXT_mutable_descriptor_type or VALVE alias highly recommended, not mandatory; reports extension presence only"
+    },
+    {
+      "index": 18,
+      "name": "DESCRIPTOR_BUFFER",
+      "source": "README.md",
+      "branch": "Drivers: EXT_descriptor_buffer highly recommended, not mandatory; observes extension and feature"
+    },
+    {
+      "index": 19,
+      "name": "GUEST_FL11_DIMENSION",
+      "source": "https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-feature-levels",
+      "branch": "FL11_0 texture dimension16384 compared with current guest4096; separate from Vulkan prerequisite profile"
+    },
+    {
+      "index": 20,
+      "name": "GUEST_BUDGET",
+      "source": "lightning/direct3d12-umd/adapter.rs",
+      "branch": "Guest allocation budget accounting absent; physical heap bytes are not guest-budget evidence"
+    },
+    {
+      "index": 21,
+      "name": "NATIVE_TRANSLATOR",
+      "source": "lightning/direct3d12-umd/adapter_abi.c",
+      "branch": "Empty supported DDI versions and CreateDevice E_NOINTERFACE; translator not integrated"
+    },
+    {
+      "index": 22,
+      "name": "LOGICAL_DEVICE",
+      "source": "lightning/direct3d12-umd/adapter.rs",
+      "branch": "Per-adapter logical device rule is unobserved before initialization, satisfied only after actual selected vkCreateDevice and queue/timeline owner initialization, missing after cached initialization failure; descriptor-buffer runtime path remains absent"
+    }
+  ],
+  "alternatives": [
+    "Per-stage sampled/storage image/storage buffer limits are conditional on actual descriptor-buffer runtime use; feature availability alone yields unobserved alternative initialization",
+    "No million-descriptor UBO rule: upstream permits an SSBO fallback",
+    "EXT and VALVE mutable descriptor type names satisfy the optional extension inventory recommendation"
+  ],
+  "warnings": [
+    "Passing all_checked_hard_requirements_met proves only this selected startup inventory",
+    "The separate private conservative Vulkan initializer and empty-submit timeline path do not prove complete translator queue/format/feature/descriptor requirements, shaders, native DDI tables, resources, OS fences or end-to-end budgets",
+    "profile_complete and native_ddi_implemented always remain zero"
+  ]
+}

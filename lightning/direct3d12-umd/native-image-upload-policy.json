@@ -1,0 +1,36 @@
+{
+  "module": "lightning.direct3d12_umd.native_image_upload_policy",
+  "created": "2026-10-25",
+  "architecture": "Rust owns genuine resource/footprint/sequence policy and exact read leases; C snapshots official WDK inputs and issues actual Vulkan copies.",
+  "public_native_interface_ready": false,
+  "subset": {
+    "genuine_callback": "Additive original R0 PFND3D12DDI_COPYTEXTUREREGION_0003; source physical pitched placement, destination SELECT_SUBRESOURCE0 with zero XYZ. Only active input arms are snapshotted; unused destination pLayout and unsupported non-null source box are never dereferenced.",
+    "sequence": "Exactly RENDER_TARGET->COPY_DEST, one full-image upload, then COPY_DEST->RENDER_TARGET on the same initialized RGBA8, BGRA8, RGB10A2, RGBA16_FLOAT or RGBA16_UNORM image. No hidden image transition, open-ended stream or persistent inter-list state.",
+    "source": "Actual admitted native custom L0/WRITE_BACK + COPY_SOURCE buffer owner, unmapped and same native device generation. Standard WRITE_COMBINE UPLOAD-heap/cache admission remains unsupported; no WDDM page/cache/segment registration is inferred.",
+    "footprint": "RGBA8, BGRA8, RGB10A2, RGBA16_FLOAT or RGBA16_UNORM matching the exact retained image format and extent and the exact depth, one destination subresource and zero XYZ, source offset512 aligned, row Pitch256 aligned and at least Width*BytesPerTexel bytes, exact SlicePitch=Pitch*Height checked. Checked Offset+(Depth-1)*SlicePitch+(Height-1)*Pitch+Width*BytesPerTexel must fit logical source Resource.Width, not larger Heap.ByteSize. Unused final-row pitch padding is neither required nor read; synchronization uses the same checked active span.",
+    "ownership": "A non-Copy UploadLease pins exact live native resource cookie/backend token/adapter. Read-only image-upload lists and ordinary COPY source leases may share in either acquisition order. Every map, operating source, stale/wrong-device/wrong-kind source and counter overflow refuses acquisition. Only its exact release decrements its own reference; existing exclusive READBACK write ownership remains unchanged.",
+    "pending": "Recording and completed-unreset lists keep source/image/allocator leases. Actual accepted or unknown attempts keep all owners through failed observation/drain. Own observed completion or safe drain alone permits detached cleanup; reset/reused generations cannot be changed by old completion. Failed terminal work is never reported as successful upload.",
+    "vulkan": "Actual selected-device vkCmdCopyBufferToImage uses validated source placement/row length and the exact retained image. HOST_WRITE and prior memory access become transfer source reads; COPY_DEST image write barriers bracket the copy and restore color-attachment availability. Post-copy buffer dependency permits later host writing after actual completion and final lease release.",
+    "remaining": "Source boxes, format conversion, other dimensions/mips/layers, partial destination updates, generalized states/commands, shader sampling, standard UPLOAD cache semantics, automatic arbitrary runtime fence adoption, public readiness and selected Windows/Venus runtime acceptance remain incomplete."
+  },
+  "implementation_credit": "Only newly connected bounded native buffer-to-image upload, not prior source mapping, images, barriers, queue, draw or readback.",
+  "testing_credit": 0,
+  "genuine_upload_persistent_mapping": {
+    "scope": "Genuine R0 MapHeap exposes nested persistent CPU mappings of admitted coherent UPLOAD buffers without treating read-only command ownership or pending GPU reads as an implicit map/unmap fence. Frozen private version1 MapHeap remains exclusive; READBACK CPU/GPU write exclusions are unchanged.",
+    "ownership": "Map counts and exact backing ownership remain distinct from command/descriptor leases. First genuine UPLOAD Map sets an internal read-compatible permission; nested calls share the actual VkMapMemory address, have a bounded independent count, and preserve caller output on quota/failure. Mixing public read-compatible and private exclusive live maps rejects without reclassifying the owner. The last Unmap releases the CPU mapping without waiting for GPU readers; neither CPU nor GPU pins alone may free backing still owned by the other.",
+    "reads": "Genuine mapped UPLOAD sources flow through retained physical CBV/raw/structured SRV ranges, true CBV table descriptor consumption, vertex/index views, unified buffer copies and buffer-to-image uploads. Backing read admission permits only that genuine UPLOAD map mode while retaining independent pending/uncertain GPU execution guards. Destinations, UAV stores, READBACK writes, retirement and older private maps keep their existing guards.",
+    "synchronization": "Map and Unmap do not synchronize GPU work. Applications must finish CPU writes before the dependent ExecuteCommandLists and must observe their own GPU completion before overwriting bytes still in use. Existing actual host-write/read barriers and coherent memory admission provide visibility; no copied staging pointer, fabricated fence completion, CPU-read result or map-time drain replaces real GPU execution.",
+    "evidence": "All31 isolated ABI/model regressions pass. Current fixtures exercise actual uniform/physical reads, R16/R32 indices, vertex fetches, whole/region copies and image-upload/readback bytes with CPU mappings open, nested 1024-map quota/failure output preservation, post-Close mapped writes and completed replay, first actual Map/Unmap during an accepted pending copy, and detached reset/caller retirement. The preserved pre-fix DLL fails the new mapped-index draw. These checks do not qualify the Windows public runtime or native GPU.",
+    "remaining": "Complete public D3D12 runtime negotiation and GPU qualification; broader resources/heaps including full READBACK persistent-map semantics, general placed/reserved mapping, broader concurrency and full shader/descriptor/command support remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12resource-map",
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceHeaps.html",
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/readback-data-using-heaps"
+    ],
+    "native_windows_acceptance": false,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  }
+}

@@ -1,0 +1,74 @@
+/* Module: lightning.manager.appearance
+ * Purpose: Give the native GTK 3 workspace a clear, spacious visual hierarchy.
+ * Created: 2026-10-08
+ * Architecture: Styling only; widgets and behavior live in the Rust UI modules.
+ */
+
+window.qemu-ui { background: #f7f7f9; color: #272433; }
+.qemu-ui headerbar { background: #ffffff; border-bottom: 1px solid #e6e4eb; box-shadow: none; padding: 10px 16px; }
+.qemu-ui headerbar .title { font-weight: 700; }
+.qemu-ui .sidebar { background: #f0eff4; border-right: 1px solid #e3e0e9; }
+.qemu-ui .sidebar list { background: transparent; }
+.qemu-ui .sidebar row { border-radius: 12px; margin: 3px 12px; padding: 13px; }
+.qemu-ui .sidebar row:selected { background: #e8e0ee; color: #38264b; }
+.qemu-ui .sidebar row:hover { background: #e9e6ee; }
+.qemu-ui .sidebar-heading { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: #7c7187; }
+.qemu-ui .hero { font-size: 29px; font-weight: 800; color: #282230; }
+.qemu-ui .subtitle { color: #7c7384; font-size: 12px; }
+.qemu-ui .card { background: #ffffff; border: 1px solid #e8e5ed; border-radius: 15px; padding: 24px; }
+.qemu-ui .metric { font-size: 24px; font-weight: 700; color: #38264b; }
+.qemu-ui .card-title { font-size: 14px; font-weight: 700; }
+.qemu-ui .section-title { font-size: 17px; font-weight: 700; }
+.qemu-ui .brand { font-size: 20px; font-weight: 800; color: #5e2750; }
+.qemu-ui .brand-subtitle { font-size: 11px; font-weight: 600; color: #876781; }
+.qemu-ui .running { background: #e2f1e9; color: #28754d; border-radius: 12px; padding: 5px 12px; font-weight: 700; }
+.qemu-ui .stopped { background: #ebe8f0; color: #70667d; border-radius: 12px; padding: 5px 12px; }
+.qemu-ui .suggested-action { background: #e95420; color: white; border-color: #d94a19; text-shadow: none; box-shadow: none; font-weight: 700; }
+.qemu-ui .suggested-action:hover { background: #f26732; }
+.qemu-ui button:not(.titlebutton),
+.qemu-ui.qemu-dialog button.qemu-dialog-action { border-radius: 9px; padding: 6px 10px; min-height: 18px; box-shadow: none; }
+.qemu-ui entry, .qemu-ui spinbutton, .qemu-ui combobox button { border-radius: 8px; padding: 5px; }
+.qemu-ui switch:checked { background: #e95420; border-color: #d94a19; }
+.qemu-ui notebook { background: transparent; }
+.qemu-ui notebook > header { background: transparent; border: none; }
+.qemu-ui notebook > header tab { padding: 12px 16px; }
+.qemu-ui notebook > header tab:checked { border-color: #e95420; }
+.qemu-ui .empty { font-size: 26px; font-weight: 700; }
+.qemu-ui .notice { background: #fff3df; color: #835420; padding: 12px; border-radius: 10px; }
+.qemu-ui textview { font-family: monospace; font-size: 12px; }
+.qemu-ui .actions > flowboxchild { padding: 0; }
+.qemu-ui .usb-choice { padding: 4px 0; }
+.qemu-ui .usb-choice check { margin-right: 8px; }
+.qemu-ui .console-pane { background: transparent; border: none; }
+.qemu-ui .console-split > separator { background: transparent; background-image: none; border: none; box-shadow: none; }
+.qemu-ui .vm-operations { border: 1px solid #e3e0e9; border-radius: 10px; padding: 12px; }
+.qemu-ui .vm-operations > border { border: none; }
+.qemu-ui .console-placeholder { background: #000; }
+.qemu-ui .console-placeholder label { color: #aeb1b8; padding: 16px; }
+.qemu-ui .resource-spin { color: #38264b; font-size: 22px; font-weight: 700; background: #fbfaff; border: 1px solid #ded7e8; border-radius: 10px; padding: 0; }
+.qemu-ui .resource-spin entry { color: #38264b; font-size: 22px; font-weight: 700; padding: 6px; min-width: 0; }
+.qemu-ui .resource-spin button { background: transparent; color: #765391; border: none; border-radius: 0; padding: 4px; min-width: 16px; min-height: 18px; }
+.qemu-ui .resource-spin button:hover { background: #ece5f4; }
+.qemu-ui .resource-spin:focus { border-color: #ad91c4; }
+
+
+/* Dialog actions use measured button sizes and a padded, separate footer. */
+.qemu-ui.qemu-dialog .dialog-action-area { margin: 0; }
+.qemu-ui.qemu-dialog button.qemu-dialog-action {
+    border: 1px solid #cfcfcf;
+    background-image: none;
+    background-color: #fff;
+    -gtk-outline-radius: 7px;
+    outline-offset: -3px;
+}
+.qemu-ui.qemu-dialog button.qemu-dialog-action:hover { background-color: #f6f6f8; }
+.qemu-ui.qemu-dialog button.qemu-dialog-action:active { background-color: #eeeaf2; }
+.qemu-ui.qemu-dialog .message-area { margin: 12px; }
+
+.qemu-ui .device-list { background: #fff; }
+.qemu-ui .device-list row { border-bottom: 1px solid #eeeaf2; }
+.qemu-ui .device-list row:selected { background: #e8e0ee; color: #38264b; }
+
+.qemu-ui .dialog-heading { font-weight: 700; font-size: 16px; }
+
+.qemu-ui .notice-error-icon { color: #d8484c; }

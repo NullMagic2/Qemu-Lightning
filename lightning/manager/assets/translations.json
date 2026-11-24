@@ -1,0 +1,1227 @@
+{
+  "Language": [
+    "Idioma",
+    "Γλώσσα",
+    "Idioma"
+  ],
+  "New machine": [
+    "Nova máquina",
+    "Νέα μηχανή",
+    "Nueva máquina"
+  ],
+  "Open VM…": [
+    "Abrir VM…",
+    "Άνοιγμα VM…",
+    "Abrir VM…"
+  ],
+  "Open": [
+    "Abrir",
+    "Άνοιγμα",
+    "Abrir"
+  ],
+  "All files": [
+    "Todos os arquivos",
+    "Όλα τα αρχεία",
+    "Todos los archivos"
+  ],
+  "Qemu definitions and disk images": [
+    "Definições do Qemu e imagens de disco",
+    "Ορισμοί Qemu και εικόνες δίσκου",
+    "Definiciones de Qemu e imágenes de disco"
+  ],
+  "A little space for something new.": [
+    "Um espaço para algo novo.",
+    "Χώρος για κάτι καινούριο.",
+    "Un espacio para algo nuevo."
+  ],
+  "Create a virtual machine. Keep your experiments, work and worlds together.": [
+    "Crie uma máquina virtual. Reúna seus projetos, trabalho e experiências.",
+    "Δημιουργήστε μια εικονική μηχανή. Συγκεντρώστε τα πειράματα, τη δουλειά και τους κόσμους σας.",
+    "Crea una máquina virtual. Reúne tus experimentos, trabajo y mundos."
+  ],
+  "Find a machine…": [
+    "Encontrar uma máquina…",
+    "Εύρεση μηχανής…",
+    "Buscar una máquina…"
+  ],
+  "VIRTUAL MACHINES": [
+    "MÁQUINAS VIRTUAIS",
+    "ΕΙΚΟΝΙΚΕΣ ΜΗΧΑΝΕΣ",
+    "MÁQUINAS VIRTUALES"
+  ],
+  "VM display": [
+    "Tela da VM",
+    "Οθόνη VM",
+    "Pantalla de la VM"
+  ],
+  "VM display area": [
+    "Área da tela da VM",
+    "Περιοχή οθόνης VM",
+    "Área de pantalla de la VM"
+  ],
+  "VM operations": [
+    "Operações da VM",
+    "Λειτουργίες VM",
+    "Operaciones de la VM"
+  ],
+  "Start a machine to view its display here.": [
+    "Inicie uma máquina para ver sua tela aqui.",
+    "Εκκινήστε μια μηχανή για να δείτε την οθόνη της εδώ.",
+    "Inicia una máquina para ver su pantalla aquí."
+  ],
+  "This computer": [
+    "Este computador",
+    "Αυτός ο υπολογιστής",
+    "Este equipo"
+  ],
+  "Direct QEMU · Rust management": [
+    "QEMU direto · Gerenciamento em Rust",
+    "Άμεσο QEMU · Διαχείριση σε Rust",
+    "QEMU directo · Gestión en Rust"
+  ],
+  "Change workspace": [
+    "Alterar espaço de trabalho",
+    "Αλλαγή χώρου εργασίας",
+    "Cambiar espacio de trabajo"
+  ],
+  "Start": [
+    "Iniciar",
+    "Εκκίνηση",
+    "Iniciar"
+  ],
+  "Pause": [
+    "Pausar",
+    "Παύση",
+    "Pausar"
+  ],
+  "Resume": [
+    "Retomar",
+    "Συνέχιση",
+    "Reanudar"
+  ],
+  "Reconnect": [
+    "Reconectar",
+    "Επανασύνδεση",
+    "Reconectar"
+  ],
+  "Reset": [
+    "Reiniciar",
+    "Επανεκκίνηση",
+    "Reiniciar"
+  ],
+  "Shut down": [
+    "Desligar",
+    "Τερματισμός",
+    "Apagar"
+  ],
+  "Enter fullscreen": [
+    "Entrar em tela cheia",
+    "Πλήρης οθόνη",
+    "Entrar en pantalla completa"
+  ],
+  "Exit fullscreen": [
+    "Sair da tela cheia",
+    "Έξοδος από πλήρη οθόνη",
+    "Salir de pantalla completa"
+  ],
+  "Enter fullscreen · Ctrl+Alt+F": [
+    "Tela cheia · Ctrl+Alt+F",
+    "Πλήρης οθόνη · Ctrl+Alt+F",
+    "Pantalla completa · Ctrl+Alt+F"
+  ],
+  "CTRL + ALT: release keyboard\nCTRL + ALT + F: toggle fullscreen": [
+    "CTRL + ALT: liberar teclado\nCTRL + ALT + F: alternar tela cheia",
+    "CTRL + ALT: αποδέσμευση πληκτρολογίου\nCTRL + ALT + F: εναλλαγή πλήρους οθόνης",
+    "CTRL + ALT: liberar teclado\nCTRL + ALT + F: alternar pantalla completa"
+  ],
+  "Connecting to display…": [
+    "Conectando à tela…",
+    "Σύνδεση με την οθόνη…",
+    "Conectando a la pantalla…"
+  ],
+  "Connecting to workspace…": [
+    "Conectando ao espaço de trabalho…",
+    "Σύνδεση στον χώρο εργασίας…",
+    "Conectando al espacio de trabajo…"
+  ],
+  "Display disconnected. Use Reconnect to try again.": [
+    "Tela desconectada. Use Reconectar para tentar novamente.",
+    "Η οθόνη αποσυνδέθηκε. Επιλέξτε Επανασύνδεση για νέα προσπάθεια.",
+    "Pantalla desconectada. Usa Reconectar para volver a intentarlo."
+  ],
+  "Settings…": [
+    "Configurações…",
+    "Ρυθμίσεις…",
+    "Configuración…"
+  ],
+  "Applications": [
+    "Aplicativos",
+    "Εφαρμογές",
+    "Aplicaciones"
+  ],
+  "Files": [
+    "Arquivos",
+    "Αρχεία",
+    "Archivos"
+  ],
+  "Overview": [
+    "Visão geral",
+    "Επισκόπηση",
+    "Resumen"
+  ],
+  "Snapshots": [
+    "Snapshots",
+    "Στιγμιότυπα",
+    "Instantáneas"
+  ],
+  "Activity": [
+    "Atividade",
+    "Δραστηριότητα",
+    "Actividad"
+  ],
+  "PROCESSOR": [
+    "PROCESSADOR",
+    "ΕΠΕΞΕΡΓΑΣΤΗΣ",
+    "PROCESADOR"
+  ],
+  "MEMORY": [
+    "MEMÓRIA",
+    "ΜΝΗΜΗ",
+    "MEMORIA"
+  ],
+  "STORAGE": [
+    "ARMAZENAMENTO",
+    "ΑΠΟΘΗΚΕΥΣΗ",
+    "ALMACENAMIENTO"
+  ],
+  "KVM hardware acceleration": [
+    "Aceleração por hardware KVM",
+    "Επιτάχυνση υλικού KVM",
+    "Aceleración por hardware KVM"
+  ],
+  "Software emulation": [
+    "Emulação por software",
+    "Εξομοίωση λογισμικού",
+    "Emulación por software"
+  ],
+  "Assigned to this machine": [
+    "Atribuída a esta máquina",
+    "Εκχωρημένη σε αυτή τη μηχανή",
+    "Asignada a esta máquina"
+  ],
+  "Powered off": [
+    "Desligada",
+    "Απενεργοποιημένη",
+    "Apagada"
+  ],
+  "Running": [
+    "Em execução",
+    "Σε λειτουργία",
+    "En ejecución"
+  ],
+  "Paused": [
+    "Pausada",
+    "Σε παύση",
+    "Pausada"
+  ],
+  "Needs attention": [
+    "Precisa de atenção",
+    "Χρειάζεται προσοχή",
+    "Requiere atención"
+  ],
+  "Disconnected": [
+    "Desconectado",
+    "Αποσυνδεδεμένο",
+    "Desconectado"
+  ],
+  "Connect network": [
+    "Conectar rede",
+    "Σύνδεση δικτύου",
+    "Conectar red"
+  ],
+  "Disconnect network": [
+    "Desconectar rede",
+    "Αποσύνδεση δικτύου",
+    "Desconectar red"
+  ],
+  "Mute sound": [
+    "Silenciar áudio",
+    "Σίγαση ήχου",
+    "Silenciar sonido"
+  ],
+  "Unmute sound": [
+    "Ativar áudio",
+    "Ενεργοποίηση ήχου",
+    "Activar sonido"
+  ],
+  "Sound unavailable until the display connects": [
+    "Áudio indisponível até a tela conectar",
+    "Ο ήχος δεν είναι διαθέσιμος μέχρι να συνδεθεί η οθόνη",
+    "Sonido no disponible hasta conectar la pantalla"
+  ],
+  "Cancel": [
+    "Cancelar",
+    "Ακύρωση",
+    "Cancelar"
+  ],
+  "Close": [
+    "Fechar",
+    "Κλείσιμο",
+    "Cerrar"
+  ],
+  "Continue": [
+    "Continuar",
+    "Συνέχεια",
+    "Continuar"
+  ],
+  "Apply": [
+    "Aplicar",
+    "Εφαρμογή",
+    "Aplicar"
+  ],
+  "Choose": [
+    "Escolher",
+    "Επιλογή",
+    "Elegir"
+  ],
+  "Choose a path": [
+    "Escolher um caminho",
+    "Επιλογή διαδρομής",
+    "Elegir una ruta"
+  ],
+  "Create a virtual machine": [
+    "Criar uma máquina virtual",
+    "Δημιουργία εικονικής μηχανής",
+    "Crear una máquina virtual"
+  ],
+  "Create machine": [
+    "Criar máquina",
+    "Δημιουργία μηχανής",
+    "Crear máquina"
+  ],
+  "Virtual machine settings": [
+    "Configurações da máquina virtual",
+    "Ρυθμίσεις εικονικής μηχανής",
+    "Configuración de la máquina virtual"
+  ],
+  "Save changes": [
+    "Salvar alterações",
+    "Αποθήκευση αλλαγών",
+    "Guardar cambios"
+  ],
+  "Name": [
+    "Nome",
+    "Όνομα",
+    "Nombre"
+  ],
+  "Notes": [
+    "Observações",
+    "Σημειώσεις",
+    "Notas"
+  ],
+  "CPU cores": [
+    "Núcleos de CPU",
+    "Πυρήνες CPU",
+    "Núcleos de CPU"
+  ],
+  "Memory · MiB": [
+    "Memória · MiB",
+    "Μνήμη · MiB",
+    "Memoria · MiB"
+  ],
+  "Boot firmware": [
+    "Firmware de inicialização",
+    "Υλικολογισμικό εκκίνησης",
+    "Firmware de arranque"
+  ],
+  "Hardware CPU acceleration": [
+    "Aceleração de CPU por hardware",
+    "Επιτάχυνση CPU μέσω υλικού",
+    "Aceleración de CPU por hardware"
+  ],
+  "Basics": [
+    "Básico",
+    "Βασικά",
+    "Básico"
+  ],
+  "Storage": [
+    "Armazenamento",
+    "Αποθήκευση",
+    "Almacenamiento"
+  ],
+  "Network": [
+    "Rede",
+    "Δίκτυο",
+    "Red"
+  ],
+  "Acceleration": [
+    "Aceleração",
+    "Επιτάχυνση",
+    "Aceleración"
+  ],
+  "Installation ISO": [
+    "ISO de instalação",
+    "ISO εγκατάστασης",
+    "ISO de instalación"
+  ],
+  "Existing system disk": [
+    "Disco de sistema existente",
+    "Υπάρχων δίσκος συστήματος",
+    "Disco de sistema existente"
+  ],
+  "Existing disk format": [
+    "Formato do disco existente",
+    "Μορφή υπάρχοντος δίσκου",
+    "Formato del disco existente"
+  ],
+  "New disk size · GiB": [
+    "Tamanho do novo disco · GiB",
+    "Μέγεθος νέου δίσκου · GiB",
+    "Tamaño del disco nuevo · GiB"
+  ],
+  "Legacy BIOS": [
+    "BIOS legado",
+    "Παλιό BIOS",
+    "BIOS heredado"
+  ],
+  "Windows 11 · Secure Boot": [
+    "Windows 11 · Inicialização segura",
+    "Windows 11 · Ασφαλής εκκίνηση",
+    "Windows 11 · Arranque seguro"
+  ],
+  "Shared internet · NAT": [
+    "Internet compartilhada · NAT",
+    "Κοινόχρηστο διαδίκτυο · NAT",
+    "Internet compartido · NAT"
+  ],
+  "Restricted network": [
+    "Rede restrita",
+    "Περιορισμένο δίκτυο",
+    "Red restringida"
+  ],
+  "Host bridge": [
+    "Bridge do host",
+    "Γέφυρα κεντρικού υπολογιστή",
+    "Puente del anfitrión"
+  ],
+  "Bridge name": [
+    "Nome do bridge",
+    "Όνομα γέφυρας",
+    "Nombre del puente"
+  ],
+  "Port forwarding": [
+    "Encaminhamento de portas",
+    "Προώθηση θυρών",
+    "Reenvío de puertos"
+  ],
+  "Paravirtualized disk & network": [
+    "Disco e rede paravirtualizados",
+    "Παραεικονικός δίσκος και δίκτυο",
+    "Disco y red paravirtualizados"
+  ],
+  "VirtIO disk & network": [
+    "Disco e rede VirtIO",
+    "Δίσκος και δίκτυο VirtIO",
+    "Disco y red VirtIO"
+  ],
+  "VirtIO devices · Windows needs the matching guest drivers.": [
+    "Dispositivos VirtIO · O Windows precisa dos drivers correspondentes.",
+    "Συσκευές VirtIO · Τα Windows χρειάζονται τα αντίστοιχα προγράμματα οδήγησης.",
+    "Dispositivos VirtIO · Windows necesita los controladores correspondientes."
+  ],
+  "USB devices": [
+    "Dispositivos USB",
+    "Συσκευές USB",
+    "Dispositivos USB"
+  ],
+  "No USB devices found.": [
+    "Nenhum dispositivo USB encontrado.",
+    "Δεν βρέθηκαν συσκευές USB.",
+    "No se encontraron dispositivos USB."
+  ],
+  "Loading devices…": [
+    "Carregando dispositivos…",
+    "Φόρτωση συσκευών…",
+    "Cargando dispositivos…"
+  ],
+  "Capture": [
+    "Capturar",
+    "Δέσμευση",
+    "Capturar"
+  ],
+  "Release": [
+    "Liberar",
+    "Αποδέσμευση",
+    "Liberar"
+  ],
+  "Refresh": [
+    "Atualizar",
+    "Ανανέωση",
+    "Actualizar"
+  ],
+  "Save startup selection": [
+    "Salvar seleção de inicialização",
+    "Αποθήκευση επιλογής εκκίνησης",
+    "Guardar selección de inicio"
+  ],
+  "Hardware settings": [
+    "Configurações de hardware",
+    "Ρυθμίσεις υλικού",
+    "Configuración de hardware"
+  ],
+  "Clone machine": [
+    "Clonar máquina",
+    "Κλωνοποίηση μηχανής",
+    "Clonar máquina"
+  ],
+  "Export definition": [
+    "Exportar definição",
+    "Εξαγωγή ορισμού",
+    "Exportar definición"
+  ],
+  "Advanced configuration": [
+    "Configuração avançada",
+    "Ρυθμίσεις για προχωρημένους",
+    "Configuración avanzada"
+  ],
+  "Advanced machine configuration": [
+    "Configuração avançada da máquina",
+    "Προχωρημένες ρυθμίσεις μηχανής",
+    "Configuración avanzada de la máquina"
+  ],
+  "QMP monitor": [
+    "Monitor QMP",
+    "Παρακολούθηση QMP",
+    "Monitor QMP"
+  ],
+  "QMP command · advanced": [
+    "Comando QMP · Avançado",
+    "Εντολή QMP · Για προχωρημένους",
+    "Comando QMP · Avanzado"
+  ],
+  "Force power off": [
+    "Forçar desligamento",
+    "Αναγκαστική απενεργοποίηση",
+    "Forzar apagado"
+  ],
+  "Force power off?": [
+    "Forçar desligamento?",
+    "Αναγκαστική απενεργοποίηση;",
+    "¿Forzar apagado?"
+  ],
+  "Restart immediately?": [
+    "Reiniciar imediatamente?",
+    "Άμεση επανεκκίνηση;",
+    "¿Reiniciar inmediatamente?"
+  ],
+  "Unsaved work inside this guest can be lost.": [
+    "O trabalho não salvo nesta VM pode ser perdido.",
+    "Μπορεί να χαθεί μη αποθηκευμένη εργασία στη μηχανή.",
+    "El trabajo no guardado en esta VM puede perderse."
+  ],
+  "Remove from library": [
+    "Remover da biblioteca",
+    "Αφαίρεση από τη βιβλιοθήκη",
+    "Quitar de la biblioteca"
+  ],
+  "Remove from this library?": [
+    "Remover desta biblioteca?",
+    "Αφαίρεση από αυτή τη βιβλιοθήκη;",
+    "¿Quitar de esta biblioteca?"
+  ],
+  "The machine must be shut down. Disk images and snapshots will be preserved.": [
+    "A máquina deve estar desligada. As imagens de disco e os snapshots serão preservados.",
+    "Η μηχανή πρέπει να είναι απενεργοποιημένη. Οι εικόνες δίσκου και τα στιγμιότυπα θα διατηρηθούν.",
+    "La máquina debe estar apagada. Se conservarán las imágenes de disco y las instantáneas."
+  ],
+  "Show snapshots": [
+    "Mostrar snapshots",
+    "Εμφάνιση στιγμιότυπων",
+    "Mostrar instantáneas"
+  ],
+  "Create snapshot": [
+    "Criar snapshot",
+    "Δημιουργία στιγμιότυπου",
+    "Crear instantánea"
+  ],
+  "Delete snapshot": [
+    "Excluir snapshot",
+    "Διαγραφή στιγμιότυπου",
+    "Eliminar instantánea"
+  ],
+  "Restore": [
+    "Restaurar",
+    "Επαναφορά",
+    "Restaurar"
+  ],
+  "Keep a point to come back to": [
+    "Guarde um ponto para voltar",
+    "Κρατήστε ένα σημείο επιστροφής",
+    "Guarda un punto al que volver"
+  ],
+  "A clear view of what happened": [
+    "Veja o que aconteceu",
+    "Δείτε τι συνέβη",
+    "Consulta lo que ocurrió"
+  ],
+  "Open activity log": [
+    "Abrir registro de atividades",
+    "Άνοιγμα αρχείου δραστηριότητας",
+    "Abrir registro de actividad"
+  ],
+  "Live disk statistics": [
+    "Estatísticas de disco em tempo real",
+    "Στατιστικά δίσκου σε πραγματικό χρόνο",
+    "Estadísticas de disco en tiempo real"
+  ],
+  "Inspect QEMU output, serial boot messages and live block statistics.": [
+    "Veja a saída do QEMU, as mensagens de inicialização serial e as estatísticas de disco.",
+    "Δείτε την έξοδο QEMU, τα μηνύματα σειριακής εκκίνησης και τα στατιστικά δίσκου.",
+    "Consulta la salida de QEMU, los mensajes de arranque serie y las estadísticas de disco."
+  ],
+  "Machine definition · copy to export": [
+    "Definição da máquina · Copie para exportar",
+    "Ορισμός μηχανής · Αντιγραφή για εξαγωγή",
+    "Definición de máquina · Copiar para exportar"
+  ],
+  "Keep this machine's identity unchanged.": [
+    "Mantenha a identidade desta máquina.",
+    "Διατηρήστε την ταυτότητα αυτής της μηχανής.",
+    "Mantén la identidad de esta máquina."
+  ],
+  "Enter the snapshot name. Use letters, digits, underscores or hyphens.": [
+    "Digite o nome do snapshot. Use letras, números, sublinhados ou hífens.",
+    "Εισαγάγετε όνομα στιγμιότυπου με γράμματα, ψηφία, κάτω παύλες ή παύλες.",
+    "Introduce el nombre de la instantánea. Usa letras, números, guiones bajos o guiones."
+  ],
+  "This changes the selected snapshot or the VM's active disk configuration.": [
+    "Isso altera o snapshot selecionado ou a configuração de disco ativa da VM.",
+    "Αυτό αλλάζει το επιλεγμένο στιγμιότυπο ή την ενεργή ρύθμιση δίσκου της VM.",
+    "Esto cambia la instantánea seleccionada o la configuración activa de discos de la VM."
+  ],
+  "Creates independent copies of all disks. The source must be shut down.": [
+    "Cria cópias independentes de todos os discos. A máquina de origem deve estar desligada.",
+    "Δημιουργεί ανεξάρτητα αντίγραφα όλων των δίσκων. Η αρχική μηχανή πρέπει να είναι απενεργοποιημένη.",
+    "Crea copias independientes de todos los discos. La máquina original debe estar apagada."
+  ],
+  "Connect to a workspace": [
+    "Conectar a um espaço de trabalho",
+    "Σύνδεση σε χώρο εργασίας",
+    "Conectar a un espacio de trabajo"
+  ],
+  "Connection": [
+    "Conexão",
+    "Σύνδεση",
+    "Conexión"
+  ],
+  "Workspace details": [
+    "Detalhes do espaço de trabalho",
+    "Λεπτομέρειες χώρου εργασίας",
+    "Detalles del espacio de trabajo"
+  ],
+  "Remote manager location": [
+    "Local do gerenciador remoto",
+    "Τοποθεσία απομακρυσμένης διαχείρισης",
+    "Ubicación del gestor remoto"
+  ],
+  "Remote library location": [
+    "Local da biblioteca remota",
+    "Τοποθεσία απομακρυσμένης βιβλιοθήκης",
+    "Ubicación de la biblioteca remota"
+  ],
+  "Absolute path to qemu-lightning-manager on the remote host.": [
+    "Caminho absoluto do qemu-lightning-manager no host remoto.",
+    "Απόλυτη διαδρομή του qemu-lightning-manager στον απομακρυσμένο υπολογιστή.",
+    "Ruta absoluta de qemu-lightning-manager en el anfitrión remoto."
+  ],
+  "Absolute path to the remote VM library.": [
+    "Caminho absoluto da biblioteca remota de VMs.",
+    "Απόλυτη διαδρομή της απομακρυσμένης βιβλιοθήκης VM.",
+    "Ruta absoluta de la biblioteca remota de VMs."
+  ],
+  "Path to an existing disk or Qemu definition on the remote host.": [
+    "Caminho de um disco existente ou definição do Qemu no host remoto.",
+    "Διαδρομή υπάρχοντος δίσκου ή ορισμού Qemu στον απομακρυσμένο υπολογιστή.",
+    "Ruta de un disco existente o definición de Qemu en el anfitrión remoto."
+  ],
+  "Leave empty for this computer, or enter user@host for SSH. Remote hosts need the same Qemu manager installed and working SSH keys.": [
+    "Deixe vazio para este computador ou digite usuário@host para SSH. O host remoto precisa do mesmo gerenciador Qemu e de chaves SSH funcionais.",
+    "Αφήστε κενό για αυτόν τον υπολογιστή ή εισαγάγετε χρήστης@υπολογιστής για SSH. Ο απομακρυσμένος υπολογιστής χρειάζεται την ίδια διαχείριση Qemu και λειτουργικά κλειδιά SSH.",
+    "Déjalo vacío para este equipo o escribe usuario@anfitrión para SSH. El anfitrión remoto necesita el mismo gestor Qemu y claves SSH funcionales."
+  ],
+  "The management worker has stopped.": [
+    "O serviço de gerenciamento parou.",
+    "Η υπηρεσία διαχείρισης σταμάτησε.",
+    "El servicio de gestión se ha detenido."
+  ],
+  "The console could not be opened": [
+    "Não foi possível abrir o console",
+    "Δεν ήταν δυνατό το άνοιγμα της κονσόλας",
+    "No se pudo abrir la consola"
+  ],
+  "Files · Qemu": [
+    "Arquivos · Qemu",
+    "Αρχεία · Qemu",
+    "Archivos · Qemu"
+  ],
+  "Files between host and guest": [
+    "Arquivos entre host e VM",
+    "Αρχεία μεταξύ κεντρικού υπολογιστή και VM",
+    "Archivos entre anfitrión y VM"
+  ],
+  "Attach guest tools": [
+    "Anexar ferramentas da VM",
+    "Σύνδεση εργαλείων VM",
+    "Adjuntar herramientas de la VM"
+  ],
+  "Guest helper connected": [
+    "Auxiliar da VM conectado",
+    "Ο βοηθός της VM συνδέθηκε",
+    "Asistente de la VM conectado"
+  ],
+  "Waiting for the Windows helper": [
+    "Aguardando o auxiliar do Windows",
+    "Αναμονή για τον βοηθό των Windows",
+    "Esperando al asistente de Windows"
+  ],
+  "Waiting for the Windows helper…": [
+    "Aguardando o auxiliar do Windows…",
+    "Αναμονή για τον βοηθό των Windows…",
+    "Esperando al asistente de Windows…"
+  ],
+  "Waiting for the Windows helper and application-sharing permission…": [
+    "Aguardando o auxiliar do Windows e a permissão para compartilhar aplicativos…",
+    "Αναμονή για τον βοηθό των Windows και άδεια κοινής χρήσης εφαρμογών…",
+    "Esperando al asistente de Windows y el permiso para compartir aplicaciones…"
+  ],
+  "Drop files to send →": [
+    "Solte arquivos para enviar →",
+    "Αποθέστε αρχεία για αποστολή →",
+    "Suelta archivos para enviar →"
+  ],
+  "Received from Windows": [
+    "Recebidos do Windows",
+    "Παραλήφθηκαν από τα Windows",
+    "Recibidos de Windows"
+  ],
+  "No files received yet.": [
+    "Nenhum arquivo recebido ainda.",
+    "Δεν έχουν ληφθεί αρχεία ακόμη.",
+    "Aún no se han recibido archivos."
+  ],
+  "Refresh received files": [
+    "Atualizar arquivos recebidos",
+    "Ανανέωση ληφθέντων αρχείων",
+    "Actualizar archivos recibidos"
+  ],
+  "Transfer files with the Windows helper on this host.": [
+    "Transfira arquivos com o auxiliar do Windows neste host.",
+    "Μεταφέρετε αρχεία με τον βοηθό των Windows σε αυτόν τον υπολογιστή.",
+    "Transfiere archivos con el asistente de Windows en este anfitrión."
+  ],
+  "Seamless applications": [
+    "Aplicativos integrados",
+    "Ενσωματωμένες εφαρμογές",
+    "Aplicaciones integradas"
+  ],
+  "Open apps in Windows, then enable the ones to show on Linux.": [
+    "Abra aplicativos no Windows e ative os que deseja mostrar no Linux.",
+    "Ανοίξτε εφαρμογές στα Windows και ενεργοποιήστε όσες θέλετε να εμφανίζονται στο Linux.",
+    "Abre aplicaciones en Windows y activa las que quieras mostrar en Linux."
+  ],
+  "Connected · choose up to four applications": [
+    "Conectado · Escolha até quatro aplicativos",
+    "Συνδεδεμένο · Επιλέξτε έως τέσσερις εφαρμογές",
+    "Conectado · Elige hasta cuatro aplicaciones"
+  ],
+  "Choose a local path. For a remote workspace, type its host path.": [
+    "Escolha um caminho local. Para um espaço remoto, digite o caminho no host.",
+    "Επιλέξτε τοπική διαδρομή. Για απομακρυσμένο χώρο εργασίας, πληκτρολογήστε τη διαδρομή στον υπολογιστή του.",
+    "Elige una ruta local. Para un espacio remoto, escribe la ruta en su anfitrión."
+  ],
+  "Windows 11 uses UEFI Secure Boot and TPM 2.0. TPM requires swtpm on the host.": [
+    "O Windows 11 usa UEFI com inicialização segura e TPM 2.0. O TPM requer swtpm no host.",
+    "Τα Windows 11 χρησιμοποιούν UEFI Secure Boot και TPM 2.0. Το TPM απαιτεί swtpm στον κεντρικό υπολογιστή.",
+    "Windows 11 usa UEFI Secure Boot y TPM 2.0. El TPM requiere swtpm en el anfitrión."
+  ],
+  "Applies at next start. Shut down before changing this setting.": [
+    "Aplicado na próxima inicialização. Desligue antes de alterar esta configuração.",
+    "Εφαρμόζεται στην επόμενη εκκίνηση. Τερματίστε τη μηχανή πριν αλλάξετε αυτή τη ρύθμιση.",
+    "Se aplica en el próximo inicio. Apaga la máquina antes de cambiar esta opción."
+  ],
+  "Change disk and network drivers?": [
+    "Alterar drivers de disco e rede?",
+    "Αλλαγή προγραμμάτων οδήγησης δίσκου και δικτύου;",
+    "¿Cambiar controladores de disco y red?"
+  ],
+  "Change guest drivers?": [
+    "Alterar drivers da VM?",
+    "Αλλαγή προγραμμάτων οδήγησης της VM;",
+    "¿Cambiar controladores de la VM?"
+  ],
+  "Install the destination disk and network drivers first. A controller change may prevent an existing guest from booting.": [
+    "Instale primeiro os drivers de disco e rede de destino. A troca do controlador pode impedir a inicialização da VM.",
+    "Εγκαταστήστε πρώτα τα νέα προγράμματα οδήγησης δίσκου και δικτύου. Η αλλαγή ελεγκτή μπορεί να εμποδίσει την εκκίνηση της VM.",
+    "Instala primero los controladores de disco y red de destino. Cambiar el controlador puede impedir que la VM arranque."
+  ],
+  "The guest must have the destination drivers installed. Keep a snapshot before changing its boot controller.": [
+    "A VM precisa dos drivers de destino instalados. Guarde um snapshot antes de alterar o controlador de inicialização.",
+    "Η VM πρέπει να έχει εγκατεστημένα τα νέα προγράμματα οδήγησης. Κρατήστε στιγμιότυπο πριν αλλάξετε τον ελεγκτή εκκίνησης.",
+    "La VM debe tener los controladores de destino instalados. Guarda una instantánea antes de cambiar el controlador de arranque."
+  ],
+  "The experimental transport is included automatically. GPU rendering and the Windows graphics driver are not implemented yet.": [
+    "O transporte experimental é incluído automaticamente. A renderização por GPU e o driver gráfico do Windows ainda não estão implementados.",
+    "Η πειραματική μεταφορά συμπεριλαμβάνεται αυτόματα. Η απόδοση μέσω GPU και το πρόγραμμα οδήγησης γραφικών των Windows δεν έχουν υλοποιηθεί ακόμη.",
+    "El transporte experimental se incluye automáticamente. El renderizado por GPU y el controlador gráfico de Windows aún no están implementados."
+  ],
+  "Use protocol:host_port:guest_port for each forward": [
+    "Use protocolo:porta_host:porta_vm para cada encaminhamento",
+    "Χρησιμοποιήστε πρωτόκολλο:θύρα_host:θύρα_vm για κάθε προώθηση",
+    "Usa protocolo:puerto_host:puerto_vm para cada reenvío"
+  ],
+  "Qemu": [
+    "Qemu",
+    "Qemu",
+    "Qemu"
+  ],
+  "Lightning": [
+    "Lightning",
+    "Lightning",
+    "Lightning"
+  ],
+  "USB": [
+    "USB",
+    "USB",
+    "USB"
+  ],
+  "UEFI": [
+    "UEFI",
+    "UEFI",
+    "UEFI"
+  ],
+  "TPM 2.0": [
+    "TPM 2.0",
+    "TPM 2.0",
+    "TPM 2.0"
+  ],
+  "QCOW2": [
+    "QCOW2",
+    "QCOW2",
+    "QCOW2"
+  ],
+  "CTRL + ALT + DEL": [
+    "CTRL + ALT + DEL",
+    "CTRL + ALT + DEL",
+    "CTRL + ALT + DEL"
+  ],
+  "Raw": [
+    "Raw",
+    "Raw",
+    "Raw"
+  ],
+  "Attach / update guest tools": [
+    "Anexar ou atualizar ferramentas da VM",
+    "Σύνδεση ή ενημέρωση εργαλείων VM",
+    "Adjuntar o actualizar herramientas de la VM"
+  ],
+  "Drop files here to send to Windows Downloads\\Qemu. Drop files into the Windows helper to send them back. Drag received files below into a host folder. Up to 1 GiB per file; archive folders first.": [
+    "Solte arquivos aqui para enviar a Downloads\\Qemu no Windows. Solte arquivos no auxiliar do Windows para enviá-los de volta. Arraste os recebidos abaixo para uma pasta do host. Até 1 GiB por arquivo; compacte pastas primeiro.",
+    "Αποθέστε αρχεία εδώ για αποστολή στο Downloads\\Qemu των Windows. Αποθέστε αρχεία στον βοηθό των Windows για επιστροφή. Σύρετε τα ληφθέντα σε φάκελο του κεντρικού υπολογιστή. Έως 1 GiB ανά αρχείο· συμπιέστε πρώτα τους φακέλους.",
+    "Suelta archivos aquí para enviarlos a Downloads\\Qemu en Windows. Suéltalos en el asistente de Windows para devolverlos. Arrastra los recibidos a una carpeta del anfitrión. Hasta 1 GiB por archivo; comprime las carpetas primero."
+  ],
+  "Example: tcp:2222:22, tcp:3389:3389. Host ports bind to localhost. Bridge mode requires an existing bridge and host bridge-helper permissions.": [
+    "Exemplo: tcp:2222:22, tcp:3389:3389. As portas do host usam localhost. O modo bridge requer uma ponte existente e permissões do bridge-helper no host.",
+    "Παράδειγμα: tcp:2222:22, tcp:3389:3389. Οι θύρες του κεντρικού υπολογιστή δεσμεύονται στο localhost. Η γέφυρα απαιτεί υπάρχουσα γέφυρα και δικαιώματα bridge-helper.",
+    "Ejemplo: tcp:2222:22, tcp:3389:3389. Los puertos del anfitrión usan localhost. El modo puente requiere un puente existente y permisos de bridge-helper."
+  ],
+  "Experimental · install updated tools with QemuGuestSetup.exe from the guest tools CD, then enable application sharing in the helper. Ordinary desktop apps only; elevated, protected and some GPU windows may not work. Closing a Linux view stops sharing that app; it does not quit the Windows app.": [
+    "Experimental · Instale as ferramentas atualizadas com QemuGuestSetup.exe no CD da VM e ative o compartilhamento de aplicativos no auxiliar. Apenas aplicativos comuns; janelas elevadas, protegidas e algumas que usam GPU podem não funcionar. Fechar a visualização no Linux interrompe o compartilhamento, sem encerrar o aplicativo no Windows.",
+    "Πειραματικό · Εγκαταστήστε ενημερωμένα εργαλεία με το QemuGuestSetup.exe από το CD εργαλείων και ενεργοποιήστε την κοινή χρήση εφαρμογών στον βοηθό. Μόνο απλές εφαρμογές· παράθυρα με αυξημένα δικαιώματα, προστασία ή ορισμένες GPU μπορεί να μη λειτουργούν. Το κλείσιμο της προβολής Linux σταματά την κοινή χρήση, όχι την εφαρμογή Windows.",
+    "Experimental · Instala las herramientas actualizadas con QemuGuestSetup.exe desde el CD y activa el uso compartido de aplicaciones en el asistente. Solo aplicaciones normales; algunas ventanas con privilegios, protegidas o con GPU pueden no funcionar. Cerrar la vista de Linux deja de compartirla, sin cerrar la aplicación de Windows."
+  ],
+  "Faster storage and networking. Install the VirtIO drivers in Windows before enabling this for an existing installation. A disk-controller change can prevent booting.": [
+    "Armazenamento e rede mais rápidos. Instale os drivers VirtIO no Windows antes de ativar em uma instalação existente. Mudar o controlador de disco pode impedir a inicialização.",
+    "Ταχύτερη αποθήκευση και δίκτυο. Εγκαταστήστε τα προγράμματα οδήγησης VirtIO στα Windows πριν από την ενεργοποίηση σε υπάρχουσα εγκατάσταση. Η αλλαγή ελεγκτή δίσκου μπορεί να εμποδίσει την εκκίνηση.",
+    "Almacenamiento y red más rápidos. Instala los controladores VirtIO en Windows antes de activarlo en una instalación existente. Cambiar el controlador de disco puede impedir el arranque."
+  ],
+  "Leave the existing disk empty to create a new sparse QCOW2 image. Shared folders use 9p and need guest support. Additional disks are available in Advanced configuration.": [
+    "Deixe o disco existente vazio para criar uma imagem QCOW2 esparsa. Pastas compartilhadas usam 9p e precisam de suporte na VM. Discos adicionais estão na Configuração avançada.",
+    "Αφήστε κενό τον υπάρχοντα δίσκο για να δημιουργήσετε αραιή εικόνα QCOW2. Οι κοινόχρηστοι φάκελοι χρησιμοποιούν 9p και απαιτούν υποστήριξη από τη VM. Πρόσθετοι δίσκοι διατίθενται στις ρυθμίσεις για προχωρημένους.",
+    "Deja vacío el disco existente para crear una imagen QCOW2 dispersa. Las carpetas compartidas usan 9p y requieren soporte en la VM. Hay discos adicionales en Configuración avanzada."
+  ],
+  "Offline snapshots include every disk, UEFI variables, TPM state and VM settings. Shut down first. Restoring creates new disks and preserves the current ones; RAM is not captured.": [
+    "Snapshots offline incluem todos os discos, variáveis UEFI, estado do TPM e configurações da VM. Desligue primeiro. A restauração cria novos discos e preserva os atuais; a RAM não é capturada.",
+    "Τα στιγμιότυπα εκτός λειτουργίας περιλαμβάνουν όλους τους δίσκους, μεταβλητές UEFI, κατάσταση TPM και ρυθμίσεις VM. Τερματίστε πρώτα τη μηχανή. Η επαναφορά δημιουργεί νέους δίσκους διατηρώντας τους τρέχοντες· η RAM δεν αποθηκεύεται.",
+    "Las instantáneas sin conexión incluyen todos los discos, variables UEFI, estado TPM y configuración de la VM. Apaga primero. Restaurar crea discos nuevos y conserva los actuales; no se captura la RAM."
+  ],
+  "Shut down the guest, then attach the tools CD. In Windows, open QEMU_TRANSFERS and run QemuGuestSetup.exe to install or update. Close any running helper first. Guest tools start at sign-in; keep Qemu open on the host. Shared internet (NAT) is required.": [
+    "Desligue a VM e anexe o CD de ferramentas. No Windows, abra QEMU_TRANSFERS e execute QemuGuestSetup.exe para instalar ou atualizar. Feche o auxiliar antes. As ferramentas iniciam no login; mantenha o Qemu aberto no host. É necessária internet compartilhada (NAT).",
+    "Τερματίστε τη VM και συνδέστε το CD εργαλείων. Στα Windows ανοίξτε το QEMU_TRANSFERS και εκτελέστε το QemuGuestSetup.exe για εγκατάσταση ή ενημέρωση. Κλείστε πρώτα τον βοηθό. Τα εργαλεία ξεκινούν κατά τη σύνδεση· κρατήστε το Qemu ανοιχτό στον κεντρικό υπολογιστή. Απαιτείται κοινόχρηστο διαδίκτυο (NAT).",
+    "Apaga la VM y adjunta el CD de herramientas. En Windows, abre QEMU_TRANSFERS y ejecuta QemuGuestSetup.exe para instalar o actualizar. Cierra antes el asistente. Las herramientas se inician al entrar en sesión; mantén Qemu abierto en el anfitrión. Se requiere internet compartido (NAT)."
+  ],
+  "Missing execute field": [
+    "Campo execute ausente",
+    "Λείπει το πεδίο execute",
+    "Falta el campo execute"
+  ],
+  "Another manager is already using this library.": [
+    "Outro gerenciador já está usando esta biblioteca.",
+    "Μια άλλη διαχείριση χρησιμοποιεί ήδη αυτή τη βιβλιοθήκη.",
+    "Otro gestor ya está usando esta biblioteca."
+  ],
+  "cores": [
+    "núcleos",
+    "πυρήνες",
+    "núcleos"
+  ],
+  "disk": [
+    "disco",
+    "δίσκος",
+    "disco"
+  ],
+  "disks": [
+    "discos",
+    "δίσκοι",
+    "discos"
+  ],
+  "Display": [
+    "Tela",
+    "Οθόνη",
+    "Pantalla"
+  ],
+  "Network unavailable until a machine is running": [
+    "Rede indisponível até que uma máquina esteja em execução",
+    "Το δίκτυο δεν είναι διαθέσιμο μέχρι να εκκινηθεί μια μηχανή",
+    "Red no disponible hasta que una máquina esté en ejecución"
+  ],
+  "Sound": [
+    "Som",
+    "Ήχος",
+    "Sonido"
+  ],
+  "core": [
+    "núcleo",
+    "πυρήνας",
+    "núcleo"
+  ],
+  "Edit…": [
+    "Editar…",
+    "Επεξεργασία…",
+    "Editar…"
+  ],
+  "Edit processor": [
+    "Editar processador",
+    "Επεξεργασία επεξεργαστή",
+    "Editar procesador"
+  ],
+  "Edit memory": [
+    "Editar memória",
+    "Επεξεργασία μνήμης",
+    "Editar memoria"
+  ],
+  "Edit storage": [
+    "Editar armazenamento",
+    "Επεξεργασία αποθήκευσης",
+    "Editar almacenamiento"
+  ],
+  "Processor and memory": [
+    "Processador e memória",
+    "Επεξεργαστής και μνήμη",
+    "Procesador y memoria"
+  ],
+  "Changes apply the next time you start the machine.": [
+    "As alterações serão aplicadas na próxima inicialização da máquina.",
+    "Οι αλλαγές εφαρμόζονται την επόμενη φορά που θα εκκινήσετε τη μηχανή.",
+    "Los cambios se aplicarán la próxima vez que inicie la máquina."
+  ],
+  "Shut down the machine to change its hardware.": [
+    "Desligue a máquina para alterar seu hardware.",
+    "Τερματίστε τη μηχανή για να αλλάξετε το υλικό της.",
+    "Apague la máquina para cambiar su hardware."
+  ],
+  "CPU CORES": [
+    "NÚCLEOS DA CPU",
+    "ΠΥΡΗΝΕΣ CPU",
+    "NÚCLEOS DE CPU"
+  ],
+  "MEMORY · GiB": [
+    "MEMÓRIA · GiB",
+    "ΜΝΗΜΗ · GiB",
+    "MEMORIA · GiB"
+  ],
+  "Memory · GiB": [
+    "Memória · GiB",
+    "Μνήμη · GiB",
+    "Memoria · GiB"
+  ],
+  "Apply changes": [
+    "Aplicar alterações",
+    "Εφαρμογή αλλαγών",
+    "Aplicar cambios"
+  ],
+  "Discard": [
+    "Descartar",
+    "Απόρριψη",
+    "Descartar"
+  ],
+  "Shared folder · read/write": [
+    "Pasta compartilhada · Leitura e escrita",
+    "Κοινόχρηστος φάκελος · Ανάγνωση/εγγραφή",
+    "Carpeta compartida · Lectura y escritura"
+  ],
+  "HDDs": [
+    "HDDs",
+    "HDD",
+    "HDD"
+  ],
+  "SSDs": [
+    "SSDs",
+    "SSD",
+    "SSD"
+  ],
+  "CDs/DVDs": [
+    "CDs/DVDs",
+    "CD/DVD",
+    "CD/DVD"
+  ],
+  "Floppies": [
+    "Disquetes",
+    "Δισκέτες",
+    "Disquetes"
+  ],
+  "Add HDD": [
+    "Adicionar HDD",
+    "Προσθήκη HDD",
+    "Añadir HDD"
+  ],
+  "Add SSD": [
+    "Adicionar SSD",
+    "Προσθήκη SSD",
+    "Añadir SSD"
+  ],
+  "Add CD/DVD": [
+    "Adicionar CD/DVD",
+    "Προσθήκη CD/DVD",
+    "Añadir CD/DVD"
+  ],
+  "Add floppy": [
+    "Adicionar disquete",
+    "Προσθήκη δισκέτας",
+    "Añadir disquete"
+  ],
+  "Read only": [
+    "Somente leitura",
+    "Μόνο ανάγνωση",
+    "Solo lectura"
+  ],
+  "Remove detaches the device. Image files are kept.": [
+    "Remover desconecta o dispositivo. Os arquivos de imagem são mantidos.",
+    "Η αφαίρεση αποσυνδέει τη συσκευή. Τα αρχεία εικόνας διατηρούνται.",
+    "Quitar desconecta el dispositivo. Los archivos de imagen se conservan."
+  ],
+  "Create a system disk when no disk is attached": [
+    "Criar disco do sistema quando não houver disco conectado",
+    "Δημιουργία δίσκου συστήματος όταν δεν υπάρχει συνδεδεμένος δίσκος",
+    "Crear un disco del sistema si no hay discos conectados"
+  ],
+  "New system disk · GiB": [
+    "Novo disco do sistema · GiB",
+    "Νέος δίσκος συστήματος · GiB",
+    "Nuevo disco del sistema · GiB"
+  ],
+  "Up to two floppy drives (A: and B:).": [
+    "Até duas unidades de disquete (A: e B:).",
+    "Έως δύο μονάδες δισκέτας (A: και B:).",
+    "Hasta dos unidades de disquete (A: y B:)."
+  ],
+  "Shared folders": [
+    "Pastas compartilhadas",
+    "Κοινόχρηστοι φάκελοι",
+    "Carpetas compartidas"
+  ],
+  "Shared folders use 9p and need guest support.": [
+    "Pastas compartilhadas usam 9p e precisam de suporte no sistema convidado.",
+    "Οι κοινόχρηστοι φάκελοι χρησιμοποιούν 9p και απαιτούν υποστήριξη στο φιλοξενούμενο σύστημα.",
+    "Las carpetas compartidas usan 9p y requieren compatibilidad en el sistema invitado."
+  ],
+  "Disk already in use": [
+    "Disco já está em uso",
+    "Ο δίσκος χρησιμοποιείται ήδη",
+    "El disco ya está en uso"
+  ],
+  "Review disk settings": [
+    "Revisar configurações dos discos",
+    "Έλεγχος ρυθμίσεων δίσκων",
+    "Revisar configuración de discos"
+  ],
+  "Another VM is using this image, possibly as a snapshot base. Shut down that VM, or review the disk settings and choose an independent image. No disk has been changed.": [
+    "Outra VM está usando esta imagem, possivelmente como base de um snapshot. Desligue essa VM ou revise as configurações dos discos e escolha uma imagem independente. Nenhum disco foi alterado.",
+    "Μια άλλη VM χρησιμοποιεί αυτή την εικόνα, πιθανώς ως βάση στιγμιοτύπου. Τερματίστε εκείνη τη VM ή ελέγξτε τις ρυθμίσεις δίσκων και επιλέξτε μια ανεξάρτητη εικόνα. Κανένας δίσκος δεν άλλαξε.",
+    "Otra VM está usando esta imagen, posiblemente como base de una instantánea. Apague esa VM o revise la configuración de discos y elija una imagen independiente. No se ha modificado ningún disco."
+  ],
+  "No machine selected": [
+    "Nenhuma máquina selecionada",
+    "Δεν έχει επιλεγεί μηχανή",
+    "Ninguna máquina seleccionada"
+  ],
+  "Storage device": [
+    "Dispositivo de armazenamento",
+    "Συσκευή αποθήκευσης",
+    "Dispositivo de almacenamiento"
+  ],
+  "No devices attached": [
+    "Nenhum dispositivo conectado",
+    "Δεν υπάρχουν συνδεδεμένες συσκευές",
+    "Ningún dispositivo conectado"
+  ],
+  "Image file": [
+    "Arquivo de imagem",
+    "Αρχείο εικόνας",
+    "Archivo de imagen"
+  ],
+  "Image format": [
+    "Formato da imagem",
+    "Μορφή εικόνας",
+    "Formato de imagen"
+  ],
+  "Add": [
+    "Adicionar",
+    "Προσθήκη",
+    "Añadir"
+  ],
+  "Edit": [
+    "Editar",
+    "Επεξεργασία",
+    "Editar"
+  ],
+  "A process holds a lock on this disk or one of its backing images. It may belong to another workspace or a manager window that was closed. Shut down that VM, or review the disk settings and choose an independent image. No disk has been changed.": [
+    "Um processo mantém um bloqueio neste disco ou em uma de suas imagens base. Ele pode pertencer a outro espaço de trabalho ou a uma janela do gerenciador que foi fechada. Desligue essa VM ou revise as configurações dos discos e escolha uma imagem independente. Nenhum disco foi alterado.",
+    "Μια διεργασία κρατά κλείδωμα σε αυτόν τον δίσκο ή σε μια βασική εικόνα του. Μπορεί να ανήκει σε άλλο χώρο εργασίας ή σε παράθυρο διαχείρισης που έκλεισε. Τερματίστε εκείνη τη VM ή ελέγξτε τις ρυθμίσεις δίσκων και επιλέξτε μια ανεξάρτητη εικόνα. Κανένας δίσκος δεν άλλαξε.",
+    "Un proceso mantiene un bloqueo en este disco o en una de sus imágenes base. Puede pertenecer a otro espacio de trabajo o a una ventana del administrador que se cerró. Apague esa VM o revise la configuración de discos y elija una imagen independiente. No se ha modificado ningún disco."
+  ],
+  "Shut down VMs and close?": [
+    "Desligar as VMs e fechar?",
+    "Τερματισμός των VM και κλείσιμο;",
+    "¿Apagar las VM y cerrar?"
+  ],
+  "The running VMs in this workspace will receive a normal shutdown request. Qemu will stay open until they exit.": [
+    "As VMs em execução neste espaço de trabalho receberão uma solicitação de desligamento normal. O Qemu permanecerá aberto até elas encerrarem.",
+    "Οι VM που εκτελούνται σε αυτόν τον χώρο εργασίας θα λάβουν αίτημα κανονικού τερματισμού. Το Qemu θα παραμείνει ανοιχτό μέχρι να κλείσουν.",
+    "Las VM en ejecución en este espacio de trabajo recibirán una solicitud de apagado normal. Qemu permanecerá abierto hasta que terminen."
+  ],
+  "Some guests did not respond to normal shutdown. Powering them off immediately can lose unsaved guest data. Cancel keeps the manager open.": [
+    "Alguns sistemas convidados não responderam ao desligamento normal. Desligá-los imediatamente pode causar a perda de dados não salvos. Cancelar mantém o gerenciador aberto.",
+    "Ορισμένα συστήματα επισκέπτη δεν ανταποκρίθηκαν στον κανονικό τερματισμό. Ο άμεσος τερματισμός μπορεί να χάσει μη αποθηκευμένα δεδομένα. Η ακύρωση κρατά τη διαχείριση ανοιχτή.",
+    "Algunos sistemas invitados no respondieron al apagado normal. Apagarlos inmediatamente puede perder datos sin guardar. Cancelar mantiene el administrador abierto."
+  ],
+  "Wait for the current operation to finish before closing.": [
+    "Aguarde a conclusão da operação atual antes de fechar.",
+    "Περιμένετε να ολοκληρωθεί η τρέχουσα ενέργεια πριν κλείσετε.",
+    "Espere a que termine la operación actual antes de cerrar."
+  ],
+  "Shut down the VMs in this workspace before changing workspace.": [
+    "Desligue as VMs deste espaço de trabalho antes de mudar de espaço de trabalho.",
+    "Τερματίστε τις VM σε αυτόν τον χώρο εργασίας πριν αλλάξετε χώρο εργασίας.",
+    "Apague las VM de este espacio de trabajo antes de cambiar de espacio de trabajo."
+  ],
+  "Shutting down…": [
+    "Desligando…",
+    "Τερματισμός…",
+    "Apagando…"
+  ],
+  "Powering off…": [
+    "Desligando à força…",
+    "Άμεσος τερματισμός…",
+    "Forzando el apagado…"
+  ],
+  "Waiting for QEMU and its helper processes to exit.": [
+    "Aguardando o encerramento do QEMU e de seus processos auxiliares.",
+    "Αναμονή για τον τερματισμό του QEMU και των βοηθητικών διεργασιών του.",
+    "Esperando a que QEMU y sus procesos auxiliares terminen."
+  ],
+  "Waiting for the guest to shut down (up to {seconds} seconds). If it does not respond, a power-off choice will appear.": [
+    "Aguardando o desligamento do sistema convidado (até {seconds} segundos). Se ele não responder, aparecerá uma opção para forçar o desligamento.",
+    "Αναμονή για τον τερματισμό του συστήματος επισκέπτη (έως {seconds} δευτερόλεπτα). Αν δεν ανταποκριθεί, θα εμφανιστεί επιλογή άμεσου τερματισμού.",
+    "Esperando a que el sistema invitado se apague (hasta {seconds} segundos). Si no responde, aparecerá una opción para forzar el apagado."
+  ],
+  "Guest did not shut down": [
+    "O sistema convidado não desligou",
+    "Το σύστημα επισκέπτη δεν τερματίστηκε",
+    "El sistema invitado no se apagó"
+  ],
+  "The guest did not respond to normal shutdown. Recovery environments may ignore the power button. Power-off stops this VM immediately and can lose unsaved guest data.": [
+    "O sistema convidado não respondeu ao desligamento normal. Ambientes de recuperação podem ignorar o botão de energia. Forçar o desligamento interrompe esta VM imediatamente e pode causar perda de dados não salvos.",
+    "Το σύστημα επισκέπτη δεν ανταποκρίθηκε στον κανονικό τερματισμό. Τα περιβάλλοντα αποκατάστασης μπορεί να αγνοούν το κουμπί τροφοδοσίας. Ο άμεσος τερματισμός σταματά αυτή τη VM και μπορεί να χάσει μη αποθηκευμένα δεδομένα.",
+    "El sistema invitado no respondió al apagado normal. Los entornos de recuperación pueden ignorar el botón de encendido. Forzar el apagado detiene esta VM inmediatamente y puede perder datos sin guardar."
+  ],
+  "Power off": [
+    "Forçar desligamento",
+    "Άμεσος τερματισμός",
+    "Forzar apagado"
+  ],
+  "Shut down VM?": [
+    "Desligar a VM?",
+    "Τερματισμός της VM;",
+    "¿Apagar la VM?"
+  ],
+  "This immediately powers off this VM. Unsaved guest data will be lost.": [
+    "Isso desliga a VM imediatamente. Dados não salvos no sistema convidado serão perdidos.",
+    "Αυτό απενεργοποιεί αμέσως τη VM. Τα μη αποθηκευμένα δεδομένα του επισκέπτη θα χαθούν.",
+    "Esto apaga la VM inmediatamente. Los datos del sistema invitado que no se hayan guardado se perderán."
+  ],
+  "This immediately powers off the running VMs in this workspace. Unsaved guest data will be lost.": [
+    "Isso desliga imediatamente as VMs em execução neste espaço de trabalho. Dados não salvos nos sistemas convidados serão perdidos.",
+    "Αυτό απενεργοποιεί αμέσως τις VM που εκτελούνται σε αυτόν τον χώρο εργασίας. Τα μη αποθηκευμένα δεδομένα των επισκεπτών θα χαθούν.",
+    "Esto apaga inmediatamente las VM en ejecución en este espacio de trabajo. Los datos de los sistemas invitados que no se hayan guardado se perderán."
+  ],
+  "Power off VM?": [
+    "Desligar a VM?",
+    "Απενεργοποίηση της VM;",
+    "¿Apagar la VM?"
+  ],
+  "Power off VMs?": [
+    "Desligar as VMs?",
+    "Απενεργοποίηση των VM;",
+    "¿Apagar las VM?"
+  ],
+  "This immediately powers off this VM. Unsaved guest data will be lost. The manager stays open.": [
+    "Isso desliga a VM imediatamente. Dados não salvos no sistema convidado serão perdidos. O gerenciador permanece aberto.",
+    "Αυτό απενεργοποιεί αμέσως τη VM. Τα μη αποθηκευμένα δεδομένα του επισκέπτη θα χαθούν. Ο διαχειριστής παραμένει ανοιχτός.",
+    "Esto apaga la VM inmediatamente. Los datos del sistema invitado que no se hayan guardado se perderán. El administrador permanece abierto."
+  ],
+  "This immediately powers off the running VMs in this workspace. Unsaved guest data will be lost. The manager stays open.": [
+    "Isso desliga imediatamente as VMs em execução neste espaço de trabalho. Dados não salvos nos sistemas convidados serão perdidos. O gerenciador permanece aberto.",
+    "Αυτό απενεργοποιεί αμέσως τις VM που εκτελούνται σε αυτόν τον χώρο εργασίας. Τα μη αποθηκευμένα δεδομένα των επισκεπτών θα χαθούν. Ο διαχειριστής παραμένει ανοιχτός.",
+    "Esto apaga inmediatamente las VM en ejecución en este espacio de trabajo. Los datos de los sistemas invitados que no se hayan guardado se perderán. El administrador permanece abierto."
+  ],
+  "Audio": [
+    "Áudio",
+    "Ήχος",
+    "Audio"
+  ],
+  "Microphone passthrough": [
+    "Compartilhar microfone",
+    "Διέλευση μικροφώνου",
+    "Compartir micrófono"
+  ],
+  "Host input source": [
+    "Fonte de entrada do host",
+    "Πηγή εισόδου κεντρικού συστήματος",
+    "Fuente de entrada del anfitrión"
+  ],
+  "System default": [
+    "Padrão do sistema",
+    "Προεπιλογή συστήματος",
+    "Predeterminado del sistema"
+  ],
+  "Share the host microphone with this VM at its next start. Requires the local accelerated display.": [
+    "Compartilhe o microfone do host com esta VM na próxima inicialização. Requer a janela local com aceleração.",
+    "Κοινή χρήση του μικροφώνου με αυτή την εικονική μηχανή στην επόμενη εκκίνηση. Απαιτεί το τοπικό παράθυρο με επιτάχυνση.",
+    "Comparta el micrófono del anfitrión con esta VM en su próximo inicio. Requiere la ventana local con aceleración."
+  ],
+  "Optional PulseAudio or PipeWire source name. Leave empty for the default microphone.": [
+    "Nome opcional da fonte PulseAudio ou PipeWire. Deixe vazio para usar o microfone padrão.",
+    "Προαιρετικό όνομα πηγής PulseAudio ή PipeWire. Αφήστε κενό για το προεπιλεγμένο μικρόφωνο.",
+    "Nombre opcional de la fuente PulseAudio o PipeWire. Déjelo vacío para usar el micrófono predeterminado."
+  ]
+}

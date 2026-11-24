@@ -1,0 +1,67 @@
+--- a/src/gallium/drivers/zink/zink_types.h
++++ b/src/gallium/drivers/zink/zink_types.h
+@@ -979,6 +979,7 @@
+    uint32_t line_stipple_pattern;
+    float viewport_scale[2];
+    float line_width;
++   uint32_t fbfetch_alpha1;
+ };
+ 
+ /* The order of the enums MUST match the order of the zink_gfx_push_constant
+@@ -993,6 +994,7 @@
+    ZINK_GFX_PUSHCONST_LINE_STIPPLE_PATTERN,
+    ZINK_GFX_PUSHCONST_VIEWPORT_SCALE,
+    ZINK_GFX_PUSHCONST_LINE_WIDTH,
++   ZINK_GFX_PUSHCONST_FBFETCH_ALPHA1,
+    ZINK_GFX_PUSHCONST_MAX
+ };
+ 
+--- a/src/gallium/drivers/zink/zink_compiler.c
++++ b/src/gallium/drivers/zink/zink_compiler.c
+@@ -107,6 +107,7 @@
+    PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_LINE_STIPPLE_PATTERN, line_stipple_pattern);
+    PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_VIEWPORT_SCALE, viewport_scale);
+    PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_LINE_WIDTH, line_width);
++   PUSHCONST_MEMBER(ZINK_GFX_PUSHCONST_FBFETCH_ALPHA1, fbfetch_alpha1);
+ 
+    pushconst = nir_variable_create(nir, nir_var_mem_push_const,
+                                    glsl_struct_type(fields, ZINK_GFX_PUSHCONST_MAX, "struct", false),
+@@ -1683,6 +1684,17 @@
+                                        .image_dim = dim, .image_array = false,
+                                        .access = var->data.access,
+                                        .dest_type = nir_get_nir_type_for_glsl_base_type(base_type));
++   /* Vulkan attachment views require identity swizzles. Supply the GL
++    * implicit alpha for logical RGB/X views independently of the backing
++    * image alpha, including dynamically indexed framebuffer-fetch arrays.
++    */
++   nir_def *alpha1 = nir_load_push_constant_zink(b, 1, 32,
++      nir_imm_int(b, ZINK_GFX_PUSHCONST_FBFETCH_ALPHA1));
++   nir_def *has_alpha1 = nir_ine_imm(b,
++      nir_iand_imm(b, nir_ushr(b, alpha1, index), 1), 0);
++   nir_def *one = base_type == GLSL_TYPE_FLOAT ? nir_imm_float(b, 1.0) : nir_imm_int(b, 1);
++   load = nir_vector_insert_imm(b, load,
++      nir_bcsel(b, has_alpha1, one, nir_channel(b, load, 3)), 3);
+    nir_def_rewrite_uses(&intr->def, load);
+    return true;
+ }
+--- a/src/gallium/drivers/zink/zink_draw.cpp
++++ b/src/gallium/drivers/zink/zink_draw.cpp
+@@ -809,6 +809,18 @@
+        ctx->curr_program->base.dd.bindless)
+       zink_descriptors_update_bindless(ctx);
+ 
++   if (ctx->gfx_stages[MESA_SHADER_FRAGMENT] &&
++       ctx->gfx_stages[MESA_SHADER_FRAGMENT]->info.fs.uses_fbfetch_output) {
++      uint32_t alpha1 = 0;
++      for (unsigned rt = 0; rt < ctx->fb_state.nr_cbufs; rt++) {
++         if (ctx->fb_state.cbufs[rt].texture &&
++             util_format_has_alpha1(ctx->fb_state.cbufs[rt].format))
++            alpha1 |= BITFIELD_BIT(rt);
++      }
++      VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
++                             offsetof(struct zink_gfx_push_constant, fbfetch_alpha1), sizeof(alpha1), &alpha1);
++   }
++
+    if (reads_basevertex) {
+       unsigned draw_mode_is_indexed = index_size > 0;
+       VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,

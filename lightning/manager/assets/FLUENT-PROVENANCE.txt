@@ -1,0 +1,19 @@
+Module: lightning.manager.fluent_provenance
+Purpose: Identify bundled Fluent artwork and custom companions.
+Created: 2026-10-08
+Architecture: SVG assets embedded by icons.rs; native window decorations use the desktop theme.
+
+Microsoft Fluent UI System Color Icons, MIT license (see FLUENT-LICENSE).
+Upstream: https://github.com/microsoft/fluentui-system-icons
+Imported from Iconify icon-sets fluent-color catalog version 1.1.343:
+https://github.com/iconify/icon-sets/blob/master/json/fluent-color.json
+Original Microsoft artwork: settings, files, network, new, workspace,
+import, log, stats, snapshots, restore-snapshot, delete, reset.
+network-off adds a project-authored disconnected-state badge to the Fluent globe.
+Project-authored companion SVGs: applications, reconnect, usb, pause, sound,
+sound-off, play, power, fullscreen, restore, back. These are not official Microsoft
+icons. Applications and Reconnect follow the user's selected preview designs.
+
+computer.svg uses Microsoft Fluent Desktop Mac 24 Filled with a project-authored
+blue screen and case gradient, selected by the user. Original MIT-licensed path:
+https://github.com/microsoft/fluentui-system-icons/blob/main/assets/Desktop%20Mac/SVG/ic_fluent_desktop_mac_24_filled.svg

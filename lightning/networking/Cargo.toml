@@ -1,0 +1,36 @@
+# Module: lightning.networking.package
+# Purpose: Build the Rust user-mode network backend for QEMU Lightning virtual machines.
+# Created: 2026-10-16
+# Architecture: Independent Rust workspace; QEMU attaches through -netdev stream and the
+# manager spawns one unprivileged backend per VM (see DESIGN.md).
+[package]
+name = "lightning-networking"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "GPL-2.0-or-later"
+publish = false
+
+[workspace]
+
+[lib]
+name = "lightning_networking"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lightning-network"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+mio = { version = "1.2", features = ["os-poll", "os-ext", "net"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+
+[profile.release]
+debug = 0
+strip = "debuginfo"
+
+[dev-dependencies]
+tempfile = "3"

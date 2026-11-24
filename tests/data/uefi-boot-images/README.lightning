@@ -1,0 +1,4 @@
+QEMU's generated firmware-test disk images are omitted from this distribution.
+For the ACPI firmware tests, restore the images from this directory in upstream
+QEMU tag v11.1.2. The block I/O golden outputs 150.out.{raw,qcow2} and
+178.out.{raw,qcow2} are available from tests/qemu-iotests in the same tag.

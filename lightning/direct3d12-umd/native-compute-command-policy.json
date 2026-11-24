@@ -1,0 +1,110 @@
+{
+  "module": "lightning.direct3d12_umd.native_compute_command_policy",
+  "created": "2026-10-24",
+  "public_native_interface_ready": false,
+  "private_bundle": "QemuLightningInternalGetNativeComputeCommandFunctions version1/exact size, separate from unchanged COPY bundle layout",
+  "genuine_callbacks": [
+    "R0 queue/list private size, Create/Destroy, Close and ExecuteCommandLists",
+    "PFND3D12DDI_SET_PIPELINE_STATE",
+    "PFND3D12DDI_SET_ROOT_SIGNATURE for SetComputeRootSignature",
+    "PFND3D12DDI_DISPATCH"
+  ],
+  "admitted_workflow": "Genuine R0 records up to8 resource-free dispatches with independently bound exact PSO/root snapshots; state may change between or after consumed dispatches. Private version1 remains one fixed1x1x1 dispatch.",
+  "binding_contract": [
+    "SetPipelineState retains a typed non-Copy PSO lease and does not bind any root.",
+    "SetComputeRootSignature holds an independent non-Copy empty-root lease and does not choose any PSO.",
+    "Dispatch requires both bindings and exact authoritative native device/root storage generations to match; two equal empty descriptors do not imply identical roots.",
+    "Pre-dispatch replacement acquires new ownership outside policy lock, replaces while list operating lease pins it, then releases previous ownership outside lock. Failed setters preserve existing live leases until list retirement.",
+    "Bindings remain immutable within each recorded Dispatch. Optional original R0 Reset starts a fresh recording and clears implicit bindings; the next Dispatch still requires independent explicit PSO/root setters."
+  ],
+  "actual_execution": "Preflight every selected physical pipeline and count limit before recording; bind and dispatch every snapshot in order in one primary actual VkCommandBuffer from the retained allocator pool, then one actual queue receipt. Resource-free compute operations need no inter-dispatch resource barriers.",
+  "lifetime": [
+    "Default admission permits one queue per adapter across COPY, COMPUTE and DIRECT. Explicit attachment of every prior queue to the owned-fence scheduler permits bounded logical queues; queue/list kinds and native generations must match.",
+    "Recording PSO/root/allocator owners stay retained in the live recording or in detached pending queue storage through any actual attempted submission.",
+    "Each queue retains its own known-accepted submission target; actual observed completion or explicit safe drain releases pending command storage. Unknown acceptance never completes from counters alone.",
+    "Safe drain grants cleanup without changing the original failed work result into success. Failed ordinary drain retains all real owners for retry.",
+    "Unreset pending list retirement stays BUSY. Optional Reset may replace/retire/reuse list runtime storage while detached old queue work retains its exact old typed leases; old completion cannot alter replacement state.",
+    "All new void callbacks hold exact-generation copied runtime callback leases and use existing guarded SetError delivery outside locks."
+  ],
+  "failure_outputs": "Failed create and completion outputs stay unchanged. Missing real compute command prerequisites before submission permit retry of the same closed list after restoration; attempted errors retain ownership.",
+  "explicit_gaps": [
+    "No public native DDI advertisement, complete mandatory tables or real Windows runtime acceptance.",
+    "No descriptors, constants, nonempty root binding, storage/uniform resources or visible compute output contract.",
+    "Resource-bound/indirect compute, unbounded/mixed general command streams, nondefault reset slots or marker flags, bundles and complete public multi-list scheduling remain unfinished.",
+    "No complete native synchronization/memory semantics, attachment/draw or presentation. The separate native fence bundle connects attached queues to owned KMT mappings. Separate bounded DIRECT state-command execution is connected.",
+    "Guest KMD allocation/context/segment/page/cache/residency/budgets/GPUVA and complete Windows heap creation contracts remain incomplete."
+  ],
+  "implementation_credit": "Partial genuine resource-free fixed COMPUTE dispatch and real owner/error/completion lifetimes only; complete compute or public D3D12 usability remains unclaimed.",
+  "testing_credit": 0,
+  "reset_extension": "Separate original R0 Reset bundle shares the actual typed recording/epoch/detached-submission owner implementation with COPY. Repeated opaque ID values are allowed; Slot0/NONE-only, transactional failed-reset preservation and exact-generation void error delivery remain explicit.",
+  "genuine_dispatch_arguments": {
+    "scope": "Unified genuine R0 Dispatch accepts all x/y/z counts0..65535. Zero in any axis is a no-work dispatch. Old private version1 COMPUTE bundle remains fixed1x1x1; newer increased1D dispatch caps are not advertised.",
+    "snapshot": "Three-u32 DispatchArguments is internal and moves with exact recording owners. No host product of dimensions, expansion or pointer retention is used. Typed compute PSO and root must match before the payload commits.",
+    "admission": "Check selected backend parent status then atomically commit under exact native device generation/fault admission and list phase ownership. Confirmed loss refuses new counts and preserves typed cleanup.",
+    "selected_limits": "Cache actual selected VkPhysicalDeviceLimits.maxComputeWorkGroupCount in backend/device owners. Before any native buffer recording, verify all three limits are nonzero and every count fits. Unsupported or malformed evidence returns E_NOINTERFACE with no attempt; Vulkan minimums are never substituted for actual reported limits.",
+    "execution": "Pass exact x/y/z through retained native submit/platform/queue into real vkCmdDispatch with one actual command buffer/receipt. No-attempt failures retain closed payload for retry. Pending reset and caller retirement detach old groups and owners until observed completion/safe drain.",
+    "compatibility": "Existing private bundle sizes and signatures remain unchanged. Corrected the internal C native graphics-constructor declaration to include the already-implemented BlendPlan parameter.",
+    "remaining": "Resource-bound and indirect compute, unbounded/mixed streams, complete public scheduling/feature levels and native Windows/GPU qualification remain incomplete.",
+    "testing_credit": 0
+  },
+  "compute_stream": {
+    "limit": 8,
+    "private_abi_unchanged": true,
+    "owners": "Each consumed command owns independent unique typed PSO/root references; changing current bindings never rewrites historical commands. Metadata used to reacquire leases is copyable; leases are not. Exact payload/history moves with recording/pending ownership and clears on reset.",
+    "preflight": "All pipeline views and selected physical count limits are verified before any real command buffer or submission attempt. Missing prerequisites retain whole closed stream for retry.",
+    "retirement": "Uncertain and accepted failed work retains every command owner until observed completion or safe drain. Failed drain preserves all references. A pending reset detaches history from reusable caller storage.",
+    "testing_credit": 0
+  },
+  "genuine_default_initial_states": {
+    "scope": "Genuine R0 committed DEFAULT buffer creation, private-size calculation and actual allocation requirements admit supported nonzero read-only GENERIC_READ-subset initial states and exclusive UNORDERED_ACCESS, preserving the original exact initial state in the resource owner. Existing COPY_SOURCE/COPY_DEST support remains. COMMON promotion is still unfinished.",
+    "admission": "A distinct genuine public planner extends only DEFAULT L1/CPU-unavailable initial-state admission, without changing shape layout, logical width, memory/capacity/alignment/flags/node checks or selected actual Vulkan representation. Private version1 size/create/planner contracts remain frozen. Read/write mixed states, unknown bits and unsupported COMMON state refuse without publishing caller cookies or fake backing; added DEFAULT states never imply host-visible memory.",
+    "execution": "Real nonzero UPLOAD data reaches initial CBV/GENERIC_READ DEFAULT backing through exact closed DIRECT read/COPY_DEST/read transactions. Both C normalization and Rust policy accept the same read-state combinations; DIRECT buffer-copy recordings can restore their shader/read initial state without admitting mixed graphics commands or broadening COPY-queue state rules. Existing selected uniform descriptors and barriers consume that initial read state without invented transitions. An independent initial-UAV compute recording executes actual SDK literal stores with no redundant initial transition, then a closed UAV/COPY_SOURCE/UAV DIRECT copy exposes exact output through normal READBACK.",
+    "ownership": "Only actual initialized selected backing, WDDM allocation association and acknowledged exact OS mappings publish resource owners. Failed private/genuine size/create paths preserve outputs. Existing command/range/state/descriptor owners, replay/reset, pending/drain and retirement protections remain. Creation in INDEX/shader/UAV/indirect-only state does not falsely qualify a CBV shader read.",
+    "evidence": "All31 isolated regressions pass. Nine additional initial-state classes cover matching allocation/sizes/create, frozen private controls, host-map refusal and exact retirement. Initial CBV/GENERIC_READ tests compare nonzero uploaded uniform words; the initial-UAV case replaces poisoned READBACK with independent SPIR-V-derived literal stores and checks neighboring bytes. The preserved pre-fix DLL fails genuine size admission. Compiler and independent Vulkan model are unchanged. This is not public Windows runtime/native GPU qualification.",
+    "remaining": "COMMON implicit promotion/decay and general persistent resource-state coordination, broader heap/resource flags/types/placements, full public runtime integration, complete command/shader/table support and native GPU qualification remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_common_explicit_buffer_states": {
+    "scope": "Genuine R0 committed DEFAULT buffers may start in COMMON(0). Genuine allocation requirements, private-size calculation and creation agree, while private version1 admission stays frozen. Explicit supported COMMON/read/copy/UAV transitions use exact generation-owned state transactions. Implicit promotion/decay remains unfinished.",
+    "admission": "COMMON extends only public DEFAULT L1/CPU-unavailable state admission. Existing selected real initialized backing, logical width, memory/alignment/flags/node checks and acknowledged OS mapping remain required. Read/write mixtures and unknown bits still refuse without publishing caller storage. COMMON DEFAULT does not become CPU-visible and does not silently acquire a shader-read or write role.",
+    "execution": "Matching C and Rust buffer-barrier normalization admits COMMON before/after states. Genuine COPY queues retain copy-only role validation; DIRECT supports the existing read/UAV and copy state transactions, and COMPUTE supports explicit COMMON/UAV/COMMON dispatch. Every supported recording returns each exact resource to its retained initial state. Existing real selected copy, uniform-read and shader-write barriers execute the resource accesses; no synthetic GPU work, fake resource state or map-time synchronization substitutes for them.",
+    "proof": "Initial COMMON buffers receive nonzero uploaded data through closed explicit COMMON/COPY_DEST/COMMON transactions, then actual CBV-table reads use COMMON/VERTEX_AND_CONSTANT_BUFFER/COMMON snapshots. Genuine COPY and DIRECT queues both run whole/non-word/region copy chains with COMMON DEFAULT intermediates and exact bytes/padding/order/retry checks; pre-existing COPY_DEST scenarios remain. An independent COMMON/UAV/COMMON compute recording stores actual SDK literals and COMMON/COPY_SOURCE/COMMON normal readback replaces poison with exact output and neighboring bytes.",
+    "ownership": "Existing per-command descriptor-table state points, exact state/range/slot owners, no-attempt rollback, replay and pending reset/caller-retirement protections apply unchanged. The malformed allocation-info control now uses an actual mixed read/write state instead of classifying valid COMMON creation as malformed.",
+    "evidence": "All31 isolated ABI/model regressions pass; the compiler and independent Vulkan model are unchanged. The preserved pre-fix DLL fails the COMMON genuine size/create workflow. These are isolated production ABI checks, not Windows native GPU or full public-runtime qualification.",
+    "remaining": "Implicit COMMON promotion/decay and general resource-state coordination across command lists/queues, additional barriers/resources/heaps and full public runtime/command/shader/table coverage and native GPU qualification remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_common_buffer_promotions": {
+    "scope": "Genuine admitted DEFAULT buffers in COMMON may implicitly enter supported read, COPY_SOURCE/COPY_DEST and UAV access roles. COMMON-created buffers may finish a recording in a supported promotable state and decay after actual Execute completion. Non-COMMON initial states retain the prior bounded closed-transaction rule; general state coordination remains unfinished.",
+    "state_contract": "One Rust buffer-state predicate covers exact tracked state or DEFAULT COMMON eligibility for the actual selected access role. Read-only root CBV/raw/structured SRV, vertex/index and late CBV-table consumption use it, as do genuine buffer-copy source/destination and compute UAV snapshots. Explicit incompatible state points still refuse: COMMON eligibility never overrides a captured UAV or other wrong read state. Private version1 copy/resource creation remains frozen.",
+    "barriers_and_decay": "COMMON promotion requires no synthetic GPU transition or CPU fence wait. The existing selected Vulkan per-access host/copy/uniform/shader dependencies execute real accesses. Explicit barriers may identify a promotable BeforeState while the exact resource is COMMON. COPY transactions may first retain a COMMON state owner after an implicit copy, while non-COMMON restrictions stay intact. Buffer readiness permits COMMON-created resources to end in a promotable state; only actual accepted receipt completion or safe drain permits GPU-owner cleanup. Reset and failed/no-attempt work never manufacture completion or decay.",
+    "execution": "Actual nonzero implicit upload copies feed true uniform tables and a physical root CBV. Independent SDK compute stores use implicit COMMON/UAV access followed by implicit COPY_SOURCE normal readback that replaces poison with literal and neighboring bytes. COPY and DIRECT whole/region chains exercise no-opening/no-closing promotion, subsequent promotable BeforeState barriers, exact bytes/padding/order, no-attempt retry and pending ownership. Prior explicit COMMON, initial UAV and COPY_DEST cases remain.",
+    "evidence": "All31 isolated ABI/model regressions pass. The final draw proof checks recording and submission errors before accepting any completion result, so a stale prior receipt cannot qualify a failed implicit copy. The preserved pre-fix DLL fails that copy proof. Exact explicit UAV-at-draw state refuses incompatible CBV-table reads before any draw/submit. Compiler and independent Vulkan model remain unchanged. These are not Windows native GPU or full public runtime qualification.",
+    "remaining": "General decay/state coordination for non-COMMON-created resources and arbitrary command-list batches/queues, broader barriers/heaps/resources, complete command/shader/table coverage and full public Windows runtime/native GPU qualification remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  }
+}

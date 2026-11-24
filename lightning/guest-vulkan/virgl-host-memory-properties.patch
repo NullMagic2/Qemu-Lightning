@@ -1,0 +1,97 @@
+diff --git a/src/venus/vkr_context.c b/src/venus/vkr_context.c
+index e309d76..bbc66a7 100644
+--- a/src/venus/vkr_context.c
++++ b/src/venus/vkr_context.c
+@@ -300,7 +300,10 @@ vkr_context_create_resource_from_shm(struct vkr_context *ctx,
+    *out_blob = (struct virgl_context_blob){
+       .type = VIRGL_RESOURCE_FD_SHM,
+       .u.fd = fd,
+-      .map_info = VIRGL_RENDERER_MAP_CACHE_CACHED,
++      .map_info = VIRGL_RENDERER_MAP_CACHE_CACHED |
++                  VIRGL_RENDERER_MAP_HOST_PROPERTIES_VALID |
++                  (VIRGL_RENDERER_HOST_MEMORY_MASK <<
++                   VIRGL_RENDERER_MAP_HOST_PROPERTIES_SHIFT),
+    };
+ 
+    return true;
+diff --git a/src/venus/vkr_device_memory.c b/src/venus/vkr_device_memory.c
+index bd92ff4..1d3a1f5 100644
+--- a/src/venus/vkr_device_memory.c
++++ b/src/venus/vkr_device_memory.c
+@@ -603,6 +603,15 @@ vkr_device_memory_export_blob(struct vkr_device_memory *mem,
+       }
+    }
+ 
++   /* Lightning: propagate verified host allocation properties through the
++    * existing render-server reply, preserving its ABI and low cache-mode bits. */
++   STATIC_ASSERT(VIRGL_RENDERER_HOST_MEMORY_VISIBLE == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
++   STATIC_ASSERT(VIRGL_RENDERER_HOST_MEMORY_COHERENT == VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
++   STATIC_ASSERT(VIRGL_RENDERER_HOST_MEMORY_CACHED == VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
++   map_info |= VIRGL_RENDERER_MAP_HOST_PROPERTIES_VALID |
++               ((mem->property_flags & VIRGL_RENDERER_HOST_MEMORY_MASK) <<
++                VIRGL_RENDERER_MAP_HOST_PROPERTIES_SHIFT);
++
+    mem->exported = true;
+ 
+    *out_blob = (struct virgl_context_blob){
+diff --git a/src/virglrenderer.c b/src/virglrenderer.c
+index bcb47ca..6fe7c33 100644
+--- a/src/virglrenderer.c
++++ b/src/virglrenderer.c
+@@ -1320,7 +1320,27 @@ int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info
+        VIRGL_RENDERER_MAP_CACHE_NONE)
+       return -EINVAL;
+ 
+-   *map_info = res->map_info;
++   /* Keep the public cache-mode ABI unchanged. Verified allocation metadata
++    * is available only through the explicit host-memory property accessor. */
++   *map_info = res->map_info & VIRGL_RENDERER_MAP_CACHE_MASK;
++   return 0;
++}
++
++int
++virgl_renderer_resource_get_host_memory_properties(uint32_t res_handle,
++                                                  uint32_t *property_flags)
++{
++   TRACE_FUNC();
++   if (!property_flags)
++      return -EINVAL;
++   *property_flags = 0;
++   struct virgl_resource *res = virgl_resource_lookup(res_handle);
++   if (!res)
++      return -EINVAL;
++   if (!(res->map_info & VIRGL_RENDERER_MAP_HOST_PROPERTIES_VALID))
++      return -ENODATA;
++   *property_flags = (res->map_info >> VIRGL_RENDERER_MAP_HOST_PROPERTIES_SHIFT) &
++                    VIRGL_RENDERER_HOST_MEMORY_MASK;
+    return 0;
+ }
+ 
+diff --git a/src/virglrenderer.h b/src/virglrenderer.h
+index c7ce4e2..8d7f9bd 100644
+--- a/src/virglrenderer.h
++++ b/src/virglrenderer.h
+@@ -430,6 +430,23 @@ VIRGL_EXPORT int virgl_renderer_resource_unmap(uint32_t res_handle);
+ #define VIRGL_RENDERER_MAP_CACHE_UNCACHED  0x02
+ #define VIRGL_RENDERER_MAP_CACHE_WC        0x03
+ 
++/* Lightning native guest aperture metadata. The cache mode remains in the
++ * existing low nibble. These properties come from the actual host allocation,
++ * never from client-provided blob flags or the guessed cache mapping mode. */
++#define VIRGL_RENDERER_HOST_MEMORY_VISIBLE  0x02
++#define VIRGL_RENDERER_HOST_MEMORY_COHERENT 0x04
++#define VIRGL_RENDERER_HOST_MEMORY_CACHED   0x08
++#define VIRGL_RENDERER_HOST_MEMORY_MASK    0x0e
++#define VIRGL_RENDERER_MAP_HOST_PROPERTIES_SHIFT 8
++#define VIRGL_RENDERER_MAP_HOST_PROPERTIES_VALID (1u << 31)
++
++/* Returns Vulkan-compatible host memory property bits for a known Venus
++ * allocation or shared RAM resource. Unknown resource types return -ENODATA.
++ * Coherent host memory does not prove a downstream guest mapping is coherent;
++ * the consumer must establish compatible cache attributes and synchronization. */
++VIRGL_EXPORT int virgl_renderer_resource_get_host_memory_properties(
++   uint32_t res_handle, uint32_t *property_flags);
++
+ VIRGL_EXPORT int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info);
+ 
+ #define VIRGL_RENDERER_BLOB_FD_TYPE_DMABUF        0x0001

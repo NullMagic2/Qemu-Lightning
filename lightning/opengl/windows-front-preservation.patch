@@ -1,0 +1,77 @@
+--- a/src/gallium/frontends/wgl/stw_st.c
++++ b/src/gallium/frontends/wgl/stw_st.c
+@@ -54,6 +54,8 @@
+    struct pipe_resource *msaa_textures[ST_ATTACHMENT_COUNT];
+    struct pipe_resource *back_texture;
+    bool needs_fake_front;
++   /* Single-buffer GL contents outlive each acquired presentation image. */
++   struct pipe_resource *present_texture;
+    unsigned texture_width, texture_height;
+    unsigned texture_mask;
+ };
+@@ -191,6 +193,7 @@
+          pipe_resource_reference(&stwfb->textures[i], NULL);
+       }
+       pipe_resource_reference(&stwfb->back_texture, NULL);
++      pipe_resource_reference(&stwfb->present_texture, NULL);
+ 
+       if (stwfb->fb->winsys_framebuffer) {
+          templ.nr_samples = templ.nr_storage_samples = 1;
+@@ -268,6 +271,23 @@
+ 
+             struct kopper_loader_info loader_info;
+             void *data;
++
++            if (i == ST_ATTACHMENT_FRONT_LEFT &&
++                !(stwfb->stvis.buffer_mask & ST_ATTACHMENT_BACK_LEFT_MASK)) {
++               /* QueuePresent releases ownership of the drawable image. Keep
++                * the logical GL front buffer in ordinary GPU storage so a
++                * later partial draw, clear or fetch sees the previous pixels.
++                */
++               stw_st_fill_private_loader_data(stwfb, &loader_info);
++               pipe_resource_reference(&stwfb->present_texture, NULL);
++               stwfb->present_texture =
++                  stw_dev->screen->resource_create_drawable(stw_dev->screen,
++                                                           &templ, &loader_info);
++               templ.bind &= ~PIPE_BIND_DISPLAY_TARGET;
++               stwfb->textures[i] =
++                  stw_dev->screen->resource_create(stw_dev->screen, &templ);
++               continue;
++            }
+ 
+             if (bind & PIPE_BIND_DISPLAY_TARGET) {
+                stw_st_fill_private_loader_data(stwfb, &loader_info);
+@@ -452,7 +472,8 @@
+ 
+    assert(stw_own_mutex(&stwfb->fb->mutex));
+ 
+-   resource = stwfb->textures[statt];
++   resource = statt == ST_ATTACHMENT_FRONT_LEFT && stwfb->present_texture ?
++      stwfb->present_texture : stwfb->textures[statt];
+    bool ret = false;
+    if (resource) {
+       ret = stw_framebuffer_present_locked(hdc, stwfb->fb, resource);
+@@ -499,8 +520,13 @@
+       stwfb->fb->winsys_framebuffer->flush_frontbuffer(stwfb->fb->winsys_framebuffer, pipe);
+    }
+ 
+-   if (stwfb->textures[flush_statt])
+-      pipe->flush_resource(pipe, stwfb->textures[flush_statt]);
++   struct pipe_resource *present = stwfb->textures[flush_statt];
++   if (stwfb->present_texture) {
++      stw_pipe_blit(pipe, stwfb->present_texture, present);
++      present = stwfb->present_texture;
++   }
++   if (present)
++      pipe->flush_resource(pipe, present);
+ 
+    pipe->flush(pipe, NULL, 0);
+ 
+@@ -562,6 +588,7 @@
+       pipe_resource_reference(&stwfb->textures[i], NULL);
+    }
+    pipe_resource_reference(&stwfb->back_texture, NULL);
++   pipe_resource_reference(&stwfb->present_texture, NULL);
+ 
+    /* Notify the st manager that the framebuffer interface is no
+     * longer valid.

@@ -1,0 +1,29 @@
+Module: lightning.guest_vulkan.mesa_queue_lifetime
+Purpose: Keep the queue finish barrier alive until all worker callbacks return.
+Created: 2026-10-11
+Architecture: Applied to both pinned Mesa trees by build_windows_icd.rs.
+
+diff --git a/src/util/u_queue.c b/src/util/u_queue.c
+--- a/src/util/u_queue.c
++++ b/src/util/u_queue.c
+@@ -519,8 +519,7 @@
+ util_queue_finish_execute(void *data, void *gdata, int num_thread)
+ {
+    util_barrier *barrier = data;
+-   if (util_barrier_wait(barrier))
+-      util_barrier_destroy(barrier);
++   util_barrier_wait(barrier);
+ }
+ 
+ void
+@@ -724,6 +723,10 @@
+       util_queue_fence_destroy(&fences[i]);
+    }
+ 
++   /* Every worker has returned from the barrier before its fence signals.
++    * The queue owner can now destroy the Windows mutex and condition variable.
++    */
++   util_barrier_destroy(&barrier);
+    free(fences);
+ }
+ 

@@ -1,0 +1,13 @@
+# Module: qemu_lightning.opengl.reused_policy_build
+# Purpose: Rebuild the unchanged no_std transport dependency for i386.
+# Created: 2026-10-21
+# Architecture: New integration remains C++; this manifest reuses existing Rust source.
+[package]
+name = "lightning-reactos-reused-policy"
+version = "0.0.0"
+edition = "2021"
+[lib]
+path = "@QL_GUEST_ROOT@/windows_library.rs"
+crate-type = ["staticlib"]
+[profile.release]
+panic = "abort"

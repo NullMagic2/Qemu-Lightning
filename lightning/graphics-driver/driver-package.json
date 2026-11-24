@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "version": "0.1.0.928",
+  "hardware_id": "PCI\\VEN_1234&DEV_11F1",
+  "installer": "setup.exe",
+  "setup_engine": "Install-QemuLightning.ps1",
+  "files": [
+    "QemuLightningGraphics.sys",
+    "QemuLightningGraphics.inf",
+    "QemuLightningVulkan.dll",
+    "QemuLightningVulkan.json",
+    "QemuLightningD3D10.dll",
+    "QemuLightningD3D12Bootstrap.dll",
+    "QemuLightningShader.dll",
+    "vulkan-1.dll"
+  ],
+  "optional_files": [
+    "vulkan-1.dll",
+    "direct3d/d3d11.dll",
+    "direct3d/dxgi.dll",
+    "QemuLightningD3D12Probe.exe",
+    "QemuLightningD3D10-x86.dll",
+    "QemuLightningVulkan-x86.dll",
+    "QemuLightningVulkan-x86.json",
+    "vulkan-1-x86.dll"
+  ],
+  "signing": "Development signing on the target: the installer creates a self-signed code-signing certificate, trusts it on that machine, signs the files and catalog with the WDK signtool and Inf2Cat, and requires test signing to be enabled. No production signature is claimed.",
+  "scope": "Native Windows WDDM display adapter with a driver-local Vulkan loader, Venus ICD and Direct3D 10/11 UMD. The native D3D12 DLL is registered in the DX12 loader slot and negotiates R0; full feature-level support and public D3D12 device acceptance remain unfinished.",
+  "singleDisplayHandoff": "Keep firmware BASICDISPLAY enabled through driver updates. Detach only its desktop path after healthy Lightning activation; never persistently disable the fallback device.",
+  "startupRepair": "Keep the firmware fallback available during installation. WDDM 2.2 publishes the CPU-visible local segment and a cache-coherent system-memory aperture. Scanout primaries use local memory; CPU-lockable images use the aperture."
+}

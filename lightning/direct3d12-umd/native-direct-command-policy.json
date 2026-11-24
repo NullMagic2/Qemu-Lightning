@@ -1,0 +1,29 @@
+{
+  "module": "lightning.direct3d12_umd.native_direct_command_policy",
+  "created": "2026-10-24",
+  "status": "experimental separate genuine R0 DIRECT graphics state-command execution",
+  "public_interface_ready": false,
+  "admitted_shape": {
+    "queue_and_allocator": "Genuine DIRECT Type and QueueFlag3D, same selected graphics-capable device/family. Default one queue per adapter; explicit attachment to the owned-fence scheduler permits bounded COPY/COMPUTE/DIRECT logical queues over one physical submission.",
+    "bindings": "Actual same-device KindGraphics pipeline and separately selected exact identical empty root; no implicit root binding.",
+    "topology": "TRIANGLELIST only, consumed by the existing baked triangle-list PSO. No dynamic-topology feature is invented.",
+    "viewport": "One immutable finite nonnegative D3D viewport, strictly positive size, precise f64 endpoints <=4096, ordered depth within[0,1]. This is the conservative guaranteed Vulkan floor, not a queried physical maximum.",
+    "scissor": "One immutable nonnegative nonempty rectangle with endpoints <=4096.",
+    "close": "Requires valid graphics pipeline/root identity and every explicit topology/viewport/scissor state.",
+    "execution": "Actual retained native allocator command buffer records GRAPHICS pipeline bind and Vulkan viewport/scissor, then real submission/timeline observation. Vulkan viewport receives y+height and negative height; depth passes unchanged."
+  },
+  "ownership": "Distinct non-Copy Compute/Graphics pipeline leases preserve stage kind. Root binding is independent. Candidate/previous owners release outside common lock, and final native-fault admission is atomic with each state swap and Close. Reset detaches old pending owners; matching runtime cookie and independent recording generation protect replacement storage from stale completion.",
+  "completion": "One own accepted target, or explicit actual safe drain, controls release. Every attempted negative/uncertain submission retains pipeline/root/actual pool. Failed drain retains owners; cleanup permission never asserts successful work. No-attempt command prerequisite failure permits same closed-list retry.",
+  "unsupported": [
+    "No render pass/dynamic rendering scope, render-target binding, image/RTV, clear, DrawInstanced, rasterized output/readback, or presentation.",
+    "No general graphics state dimensions, vertex buffers, descriptors, resources, extra shaders or full stage semantics.",
+    "No public native versions/CreateDevice/mandatory table advertisement or completed WDDM KMD/segment/page/cache/residency/budget/GPUVA contracts."
+  ],
+  "primary_references": [
+    "https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBindPipeline.html",
+    "https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetViewport.html",
+    "https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetScissor.html",
+    "Pinned WDK10.0.28000.0 original R0 d3d12umddi.h callbacks and descriptors."
+  ],
+  "testing_credit": 0
+}

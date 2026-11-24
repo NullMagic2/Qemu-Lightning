@@ -1,0 +1,12 @@
+; Module: qemu_lightning.opengl.reactos_sync_imports
+; Purpose: Link the existing Mesa synchronization calls to ReactOS's helper DLL.
+; Created: 2026-10-21
+; Architecture: i386 stdcall argument sizes; dlltool --kill-at preserves real export names.
+LIBRARY kernel32_vista.dll
+EXPORTS
+AcquireSRWLockExclusive@4
+AcquireSRWLockShared@4
+InitOnceExecuteOnce@16
+InitializeSRWLock@4
+ReleaseSRWLockExclusive@4
+ReleaseSRWLockShared@4

@@ -1,0 +1,50 @@
+{
+  "upstream": "https://gitlab.freedesktop.org/virgl/virglrenderer",
+  "commit": "500b41d5c8638f9b80dd558f4044f3301c7457a4",
+  "actual_source_archive_includes_patches": true,
+  "private_patches": [
+    "actual Vulkan memory properties accessor",
+    "glibc native C11 threads compatibility with explicit feature and allocator includes",
+    "actual host UUID single GPU and real singleton-group binding",
+    "shared opaque Vulkan resource import; supplied virgl-host-shared-import.patch"
+  ],
+  "options": {
+    "platforms": [],
+    "minigbm_allocation": false,
+    "venus": true,
+    "venus-validate": false,
+    "vulkan-dload": true,
+    "vulkan-preload": false,
+    "check-gl-errors": true,
+    "drm-renderers": [],
+    "render-server": false,
+    "render-server-worker": "process",
+    "video": false,
+    "tests": false,
+    "fuzzer": false,
+    "valgrind": false,
+    "tracing": "none",
+    "unstable-apis": false
+  },
+  "native_windows_application_verified": false,
+  "effective_configuration": {
+    "ENABLE_VENUS": true,
+    "ENABLE_RENDER_SERVER": true,
+    "ENABLE_RENDER_SERVER_WORKER_PROCESS": true,
+    "note": "Pinned upstream derives render-server support from enabled Venus; the legacy render-server option is not the effective switch."
+  },
+  "device_binding": {
+    "environment": "QLG_VENUS_DEVICE_UUID",
+    "encoding": "32 hexadecimal actual host VkPhysicalDeviceIDProperties.deviceUUID digits",
+    "default_policy": "last nonCPU AMD device with maximal discrete predicate, matching image renderer",
+    "device_count": 1,
+    "groups": "one actual host singleton group; missing or ambiguous group rejected",
+    "properties_or_features_rewritten": false
+  },
+  "patch_sha256": {
+    "virgl-host-memory-properties.patch": "b816ff41e5f484b598411418f52400dd0695173dcfbb096a7217d326ffdcb304",
+    "virgl-host-device-binding.patch": "056e0d2f8938c3f42a1d9d082dbe79d07a16fb8e4ceb9013c7272e9e3f45a421",
+    "virgl-host-c11-threads.patch": "0822cf2a2c908bbd4bb3d9dbf0d21e53c0f412b9beb067a72fd159fe3154a2cc",
+    "virgl-host-shared-import.patch": "723a626d7a0fa0a2adb8a99e06537dba5f63f9048d130da2d765151574ddd42d"
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "module": "lightning.direct3d12_umd.native_images",
+  "created": "2026-10-24",
+  "status": "experimental_private_connected_subset",
+  "version": 1,
+  "genuine_contracts": [
+    "D3D12DDIARG_CREATERESOURCE_0003",
+    "D3D12DDIARG_CREATEHEAP_0001",
+    "PFND3D12DDI_CHECKRESOURCEALLOCATIONINFO_0003",
+    "D3D12DDI_RESOURCE_ALLOCATION_INFO",
+    "PFND3D12DDI_CREATEHEAPANDRESOURCE_0003",
+    "PFND3D12DDI_DESTROYHEAPANDRESOURCE"
+  ],
+  "primary_layout_contract": "https://microsoft.github.io/DirectX-Specs/d3d/ResourceHeaps.html",
+  "admitted_resource": {
+    "types": [
+      "Texture1D with Height=1",
+      "Texture2D",
+      "Texture3D with one 3D mip and checked depth"
+    ],
+    "extent_texels": "Nonempty Texture1D/Texture2D extents through 16,384, Texture3D extents through 2,048; selected framebuffer and exact Vulkan image-type/format limits remain mandatory.",
+    "array_size": "One for Texture3D. Texture1D and Texture2D admit 1 through the lesser of 2048 and the exact Vulkan image-type and format layer limit, subject to total allocation limits",
+    "mip_levels": 1,
+    "formats": [
+      "DXGI_FORMAT_R8G8B8A8_UNORM",
+      "DXGI_FORMAT_B8G8R8A8_UNORM",
+      "DXGI_FORMAT_R10G10B10A2_UNORM",
+      "DXGI_FORMAT_R16G16B16A16_FLOAT",
+      "DXGI_FORMAT_R16G16B16A16_UNORM"
+    ],
+    "sample_counts": "1 for all supported dimensions. Texture2D also admits 2, 4, 8 or 16 when both selected Vulkan format and framebuffer sample masks permit it.",
+    "bytes_per_texel": "Eight for both RGBA16 formats and four for the other supported color formats.",
+    "clear_range": "Finite binary16 range for RGBA16_FLOAT and [0, 1] for UNORM targets.",
+    "sample_quality": 0,
+    "resource_flags": "RENDER_TARGET only",
+    "initial_state": "RENDER_TARGET",
+    "query_input_layout": "D3D12DDI_TL_UNDEFINED",
+    "resolved_and_create_layout": "D3D12DDI_TL_DEVICE_DEPENDENT_SWIZZLE_0 (0x100), private same-device opaque layout",
+    "heap": "L1, CPU_NOT_AVAILABLE, RT_DS_TEXTURES, one selected node",
+    "heap_alignment_bytes": 65536,
+    "heap_data_size": "checked 64KiB round-up of real same-shape VkImage memory requirements; compatible nonzero power-of-two raw alignment no larger than 64KiB",
+    "optimized_clear_values": "unsupported; creation requires null",
+    "multisample_resolve": "Private complete resolve records on an otherwise empty render-target command list. Source has multiple samples, destination one. The same format, extent and valid array layers are required. Both initialized resources enter and leave in RENDER_TARGET. Retained image leases survive pending completion and failed drain.",
+    "initialization": "actual GPU clear of all admitted texels across every layer to zero, transition to render-target layout, own accepted timeline target observed before runtime cookies publish"
+  },
+  "query_ownership": [
+    "No storage key or fake native child is allocated for a requirements/size query.",
+    "A non-Copy DeviceQueryLease pins exact native device generation and selected adapter while external requirements query executes outside policy locks.",
+    "Backend uses the exact Vulkan image type, format, extent and usage for real image requirements, selects an actual discrete device-local memory type and reports raw requirement facts.",
+    "Native terminal fault admission is rechecked before staged result publication.",
+    "A single admitted extent avoids claiming an unproven cross-dimension Vulkan requirement monotonicity property."
+  ],
+  "creation_and_cleanup": [
+    "Global HEAP/RESOURCE claims precede actual backing allocation and exclude keys owned by buffers and every other native object kind.",
+    "A hidden Creating pair and internal backend image token own actual image/memory before GPU initialization is attempted.",
+    "Only a successful own accepted nonzero target actually observed complete plus fault-aware native child publication may expose heap/resource cookies.",
+    "Every attempted negative or unobserved initialization remains hidden Rollback with original error, image memory, work and claims retained until scoped actual safe drain grants cleanup.",
+    "Failed drain retains ownership and original creation error; safe cleanup never converts failed creation into success.",
+    "RetireDevice collects hidden image owners before its child-count check.",
+    "Successful live destruction is retryable if backend cleanup is temporarily unavailable.",
+    "No raw Vulkan owner, mapped address or backend token is exposed by metadata queries.",
+    "A non-Copy initialized ImageLease pins the exact live native resource and backend token for actual RTV image-view ownership. Recorded and pending DIRECT commands retain the exact RTV generation, indirectly retaining that image lease. Image retirement rejects retained views; actual view destruction precedes consuming the image reference."
+  ],
+  "explicit_gaps": [
+    "Public native CreateDevice and full resource/capability tables remain gated.",
+    "KMD allocation registration, native GPU virtual addresses and Windows residency mapping are incomplete.",
+    "A separate bounded native draw bundle rasterizes one procedural triangle into this initialized RTV. The private presentation route checks the source and destination blit capabilities independently. A separate original R0 bundle now copies one full initialized image into a validated native READBACK footprint between explicit transitions. The bounded DIRECT render-target mode now supports one optional actual OM binding and one independent explicit full-target or at most16-input-rectangle clear of initialized RTVs.",
+    "No image Map, CPU layout/row pitch, standard or 64KiB tile swizzle claim, allocation-padding zero guarantee, placed/reserved/aliased/shared resources.",
+    "Mip chains, additional formats, other initial states and resource flags, and optimized clear values remain outside the implemented image contract.",
+    "Typed image borrowing currently serves the bounded CPU RTV image-view consumer; exact RTV references retain that view and image across recording, detached pending work, reset and actual completion or safe drain. An RTV clear can target a contiguous array or W-slice range. Draw without a Layer shader output uses the first slice of the view. Texture3D uses a Vulkan 2D-compatible render view and whole-mip barriers.",
+    "No installed driver, VM or physical GPU validation is implied by private modeled or CPU Vulkan checks."
+  ],
+  "testing_progress_credit": 0,
+  "native_transition_prerequisite": {
+    "genuine_callback": "PFND3D12DDI_RESOURCEBARRIER_0003, original R0 ABI",
+    "subset": "Separate DIRECT bundle accepts exactly two single transition callbacks on one initialized same-device image: RENDER_TARGET -> COPY_SOURCE then COPY_SOURCE -> RENDER_TARGET, the same subresource or ALL on both barriers, flags NONE. Close rejects an open sequence.",
+    "execution": "Actual retained allocator command buffer emits two ordered synchronization2 image layout/access barriers. Completion returns to the existing admitted render-target boundary state; no inter-list state persistence is implemented.",
+    "ownership": "A unique initialized ImageLease is independent of any RTV. Recording, no-attempt retry, unknown/accepted pending work, reset detachment, same-address reuse, observed completion and actual safe drain preserve exact owners. Failed/uncertain work is terminal/unknown; safe drain permits cleanup without claiming successful state rollback.",
+    "remaining": "The transition-only bundle preserves its two-barrier ABI. Separate image-readback and image-upload bundles insert one genuine full-image CopyTextureRegion between explicit COPY_SOURCE or COPY_DEST transitions respectively. General source boxes, formats/subresources and persistent inter-list states remain unsupported."
+  },
+  "native_readback_subset": {
+    "genuine_callback": "PFND3D12DDI_COPYTEXTUREREGION_0003, original R0 ABI; additive private exact-size bundle preserves transition-only bundle.",
+    "recording": "Exactly RT->COPY_SOURCE barrier, one full-subresource copy, then explicit reverse barrier on the same initialized resource/cookie/device. Close rejects an unmatched transaction or missing copy. No draw, PSO, root or RTV binding is required.",
+    "source": "SELECT_SUBRESOURCE with UMD resource and the UMD offset as the subresource index. Texture3D addresses the entire mip at index zero. Its inactive pLayout is ignored. No source box, conversion, alternate mip selection or other layouts.",
+    "destination": "Same-device native committed unmapped READBACK buffer; physical RGBA8, BGRA8, RGB10A2, RGBA16_FLOAT or RGBA16_UNORM footprint matching the exact image format and extent and depth, with zero XYZ. Offset must align512 bytes; Pitch must align256 bytes and cover Width*BytesPerTexel active bytes per row; SlicePitch must exactly equal checked Pitch*Height. Checked Offset+(Depth-1)*SlicePitch+(Height-1)*Pitch+Width*BytesPerTexel must fit the logical resource extent, not just larger backing. The unused final-row pitch padding is neither required nor touched; synchronization uses the same checked active span.",
+    "ownership": "An exclusive non-Copy READBACK write lease rejects every preexisting resource reference or map. Recording/completed-unreset and pending/detached owners keep both image and buffer plus allocator alive. Native Map/retire returns BUSY until all references release; observed completion plus list reset/retirement permits Map. Failed/uncertain attempts preserve terminal outcome and references through failed drain. A private exclusive-write flag excludes later ordinary COPY-bundle acquisition as well as the reverse order. Ordinary COPY leases retain their prior sharing rules when this flag is absent. Exact readback lease release checks cookie/token/adapter, sole reference and flag before clearing only that ownership.",
+    "execution": "Actual vkCmdCopyImageToBuffer consumes bufferRowLength=Pitch/BytesPerTexel and bufferImageHeight=Height between ordered image layout/access barriers. Buffer barriers order prior memory use, transfer writes and subsequent HOST_READ. Coherent host mapping exposes copied bytes; opaque image allocation layout is never described as CPU row pitch.",
+    "remaining": "Readback bundle stays readback-only. A separate bounded upload bundle now connects the reverse buffer-to-image direction. General copies/source boxes/formats, automatic arbitrary runtime fence adoption, persistent inter-list state, public readiness and selected Windows/Venus acceptance remain incomplete."
+  },
+  "native_upload_subset": {
+    "genuine_callback": "Additive original R0 PFND3D12DDI_COPYTEXTUREREGION_0003; source physical pitched placement, destination SELECT_SUBRESOURCE selects one admitted subresource with zero XYZ. Only active input arms are snapshotted; unused destination pLayout and unsupported non-null source box are never dereferenced.",
+    "sequence": "Exactly RENDER_TARGET->COPY_DEST, one full-subresource upload, then COPY_DEST->RENDER_TARGET on the same initialized subresource in an RGBA8, BGRA8, RGB10A2, RGBA16_FLOAT or RGBA16_UNORM image. No hidden image transition, open-ended stream or persistent inter-list state.",
+    "source": "Actual admitted native custom L0/WRITE_BACK + COPY_SOURCE buffer owner, unmapped and same native device generation. Standard WRITE_COMBINE UPLOAD-heap/cache admission remains unsupported; no WDDM page/cache/segment registration is inferred.",
+    "footprint": "RGBA8, BGRA8, RGB10A2, RGBA16_FLOAT or RGBA16_UNORM matching the exact retained image format and extent and depth, an in-range destination subresource and zero XYZ, source offset512 aligned, row Pitch256 aligned and at least Width*BytesPerTexel bytes, exact SlicePitch=Pitch*Height checked. Checked Offset+(Depth-1)*SlicePitch+(Height-1)*Pitch+Width*BytesPerTexel must fit logical source Resource.Width, not larger Heap.ByteSize. Unused final-row pitch padding is neither required nor read; synchronization uses the same checked active span.",
+    "ownership": "A non-Copy UploadLease pins exact live native resource cookie/backend token/adapter. Read-only image-upload lists and ordinary COPY source leases may share in either acquisition order. Every map, operating source, stale/wrong-device/wrong-kind source and counter overflow refuses acquisition. Only its exact release decrements its own reference; existing exclusive READBACK write ownership remains unchanged.",
+    "pending": "Recording and completed-unreset lists keep source/image/allocator leases. Actual accepted or unknown attempts keep all owners through failed observation/drain. Own observed completion or safe drain alone permits detached cleanup; reset/reused generations cannot be changed by old completion. Failed terminal work is never reported as successful upload.",
+    "vulkan": "Actual selected-device vkCmdCopyBufferToImage uses validated source placement/row length and the exact retained image. HOST_WRITE and prior memory access become transfer source reads; COPY_DEST image write barriers bracket the copy and restore color-attachment availability. Post-copy buffer dependency permits later host writing after actual completion and final lease release.",
+    "remaining": "Source boxes, format conversion, other dimensions/mips/layers, partial destination updates, generalized states/commands, shader sampling, standard UPLOAD cache semantics, automatic arbitrary runtime fence adoption, public readiness and selected Windows/Venus runtime acceptance remain incomplete."
+  },
+  "native_depth_subset": {
+    "formats": [
+      "DXGI_FORMAT_D16_UNORM",
+      "DXGI_FORMAT_D32_FLOAT",
+      "DXGI_FORMAT_D24_UNORM_S8_UINT",
+      "DXGI_FORMAT_D32_FLOAT_S8X24_UINT"
+    ],
+    "types": [
+      "Texture1D",
+      "Texture2D"
+    ],
+    "initial_state": "DEPTH_WRITE",
+    "samples": "Intersect selected depth and, for stencil formats, stencil framebuffer sample counts with exact format masks. Multisampling is Texture2D only.",
+    "views": "Separately typed CPU_VISIBLE DSV heaps retain exact initialized images and contiguous view ranges. Genuine READ_ONLY_DEPTH and READ_ONLY_STENCIL flags survive snapshot, native view ownership and command leases.",
+    "clear": "One independent full clear or up to 16 snapshotted signed rectangles, clipped to the retained view. Depth, stencil and combined flags preserve the other aspect and pixels outside the rectangles. An explicitly empty clipped list uses LOAD and never becomes a full clear. Active depth must be finite and normalized; stencil is UINT8.",
+    "ownership": "Exact native DSV generation, Vulkan view, image and allocator references survive recording, pending submission, reset and uncertain work until own completion or safe drain",
+    "caps": "Actual selected depth image allocation and quality queries do not add color render-target or shader sampling format bits",
+    "remaining": [
+      "General public resource states and command streams",
+      "Depth/stencil resolves",
+      "Native Windows/Venus qualification"
+    ],
+    "testing_implementation_credit": 0,
+    "draw": "Bounded procedural DrawInstanced retains an atomic RTV/DSV snapshot with exact PSO depth format and equal extents/layer counts/samples. Actual Vulkan depth comparisons and optional writes run in paired color/depth LOAD/STORE scopes; stencil stays preserved. Stencil-capable images support front/back stencil tests and operation/mask state; read-only stencil views require no stencil writes on active faces.",
+    "read_only": "Clears reject a protected aspect before submission. Depth-writing PSOs reject a read-only depth view. Private clears and draws transition from DEPTH_WRITE boundary layout to the appropriate mixed or combined read-only Vulkan layout, then restore that boundary layout. An inactive stencil flag has no effect on a depth-only format."
+  },
+  "native_resource_limits": {
+    "maximum_1d_2d_extent": 16384,
+    "maximum_3d_extent": 2048,
+    "maximum_resource_requirements_bytes": 1073741824,
+    "native_resident_budget_bytes": 1065353216,
+    "selected_device_limits": "Exact Vulkan image-type/format/framebuffer, sample, memory-type and allocation-count limits remain authoritative",
+    "query_create_boundary": "Requirements queries do not consume the resident budget. Native create reports E_OUTOFMEMORY before allocation/publication if total owned bytes cannot fit the paired VidMm segment.",
+    "public_feature_level_advertised": false,
+    "installed_runtime_changed": false
+  },
+  "public_deallocation": {
+    "callback": "PFND3DDDI_DEALLOCATE2CB, copied from pKTCallbacks->pfnDeallocate2Cb",
+    "flags": [
+      "AssumeNotInUse",
+      "SynchronousDestroy"
+    ],
+    "reserved_and_system_only_flags": 0,
+    "required_for": "Public mapped R0 device path (also diagnostic profile5)",
+    "legacy_compatibility": "Diagnostic shared profiles3/4 may retain the original DeallocateCb if no Deallocate2Cb is provided.",
+    "ownership": "Unconfirmed or failed destroy retains the exact OS allocation and Vulkan backing. Only S_OK releases the allocation; subsequent paging-queue cleanup is separately acknowledged. Pending mapping cancellation keeps the mapped fence and queue alive until deallocation acknowledgement.",
+    "public_runtime_qualification": false
+  },
+  "public_texture_layout_reporting": {
+    "status": "implemented for supported single-subresource color textures",
+    "device_path": "Public mapped R0 uses Vulkan linear images. Original diagnostic image bundles and older R0 profiles retain optimal tiling.",
+    "GetCaps_TEXTURE_LAYOUT": "One device-dependent layout (0x100), using predefined ROW_MAJOR swizzle for both R0 mip ranges. No custom bit-interleave patterns or standard 64KiB swizzle are claimed.",
+    "CheckSubresourceInfo": "Retains actual Vulkan offset and rowPitch; uses actual depthPitch for 3D and a single-slice stride for non-3D. No pitch is guessed for optimal tiling.",
+    "allocation_and_creation": "Query and create use the same selected linear image contract; actual returned layout metadata must agree before a native object publishes.",
+    "format_reporting": "Selected linear format/image/framebuffer limits govern public support and sample-quality queries.",
+    "remaining": [
+      "Arrays, depth/stencil and multisampling on the public layout path",
+      "General row-major texture layout sets, mip chains, sampling, placed and shared resources",
+      "Native Windows and physical GPU qualification"
+    ],
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceHeaps.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkSubresourceLayout.html"
+    ]
+  }
+}

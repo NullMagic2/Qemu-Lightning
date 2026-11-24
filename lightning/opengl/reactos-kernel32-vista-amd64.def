@@ -1,0 +1,12 @@
+; Module: qemu_lightning.opengl.reactos_sync_imports_amd64
+; Purpose: Link the existing Mesa synchronization calls to ReactOS AMD64's helper DLL.
+; Created: 2026-10-24
+; Architecture: x64 has one calling convention and undecorated names; same exports as i386.
+LIBRARY kernel32_vista.dll
+EXPORTS
+AcquireSRWLockExclusive
+AcquireSRWLockShared
+InitOnceExecuteOnce
+InitializeSRWLock
+ReleaseSRWLockExclusive
+ReleaseSRWLockShared

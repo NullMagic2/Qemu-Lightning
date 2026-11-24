@@ -1,0 +1,304 @@
+diff --git a/src/venus/vkr_physical_device.c b/src/venus/vkr_physical_device.c
+index ea72d7b..4fcc1a4 100644
+--- a/src/venus/vkr_physical_device.c
++++ b/src/venus/vkr_physical_device.c
+@@ -98,6 +98,141 @@ vkr_physical_device_destroy(struct vkr_context *ctx,
+    vkr_context_remove_object(ctx, &physical_dev->base);
+ }
+ 
++/* Lightning exposes one real host GPU through one guest adapter/node.  The
++ * renderer worker uses this same UUID and default AMD selection policy.  Never
++ * change host properties or manufacture a device group to satisfy that model.
++ */
++#define VKR_LIGHTNING_ENUMERATION_ATTEMPTS 4
++#define VKR_LIGHTNING_AMD_VENDOR_ID 0x1002
++#define VKR_LIGHTNING_UUID_HEX_LENGTH (VK_UUID_SIZE * 2)
++
++static bool
++vkr_lightning_parse_uuid(const char *value, uint8_t uuid[VK_UUID_SIZE])
++{
++   if (strlen(value) != VKR_LIGHTNING_UUID_HEX_LENGTH)
++      return false;
++   for (uint32_t i = 0; i < VK_UUID_SIZE; i++) {
++      uint8_t byte = 0;
++      for (uint32_t n = 0; n < 2; n++) {
++         const char digit = value[i * 2 + n];
++         uint8_t hex;
++         if (digit >= '0' && digit <= '9')
++            hex = digit - '0';
++         else if (digit >= 'a' && digit <= 'f')
++            hex = digit - 'a' + 10;
++         else if (digit >= 'A' && digit <= 'F')
++            hex = digit - 'A' + 10;
++         else
++            return false;
++         byte = (byte << 4) | hex;
++      }
++      uuid[i] = byte;
++   }
++   return true;
++}
++
++static VkResult
++vkr_lightning_select_device(struct vkr_instance *instance,
++                             uint32_t count,
++                             const VkPhysicalDevice *handles,
++                             VkPhysicalDevice *selected)
++{
++   PFN_vkGetPhysicalDeviceProperties2 get_properties =
++      (PFN_vkGetPhysicalDeviceProperties2)instance->get_proc_addr(
++         instance->base.handle.instance, "vkGetPhysicalDeviceProperties2");
++   const char *selection = getenv("QLG_VENUS_DEVICE_UUID");
++   uint8_t uuid[VK_UUID_SIZE];
++   if (!get_properties || (selection && !vkr_lightning_parse_uuid(selection, uuid))) {
++      vkr_log("Lightning host GPU UUID is invalid or host properties are unavailable");
++      return VK_ERROR_INITIALIZATION_FAILED;
++   }
++
++   uint32_t matches = 0;
++   bool selected_discrete = false;
++   *selected = VK_NULL_HANDLE;
++   for (uint32_t i = 0; i < count; i++) {
++      VkPhysicalDeviceIDProperties id = {
++         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES,
++      };
++      VkPhysicalDeviceProperties2 properties = {
++         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
++         .pNext = &id,
++      };
++      get_properties(handles[i], &properties);
++      const bool cpu = properties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
++      if (selection) {
++         if (memcmp(uuid, id.deviceUUID, VK_UUID_SIZE))
++            continue;
++         if (cpu) {
++            vkr_log("Lightning host GPU UUID identifies a CPU device");
++            return VK_ERROR_INITIALIZATION_FAILED;
++         }
++         matches++;
++         *selected = handles[i];
++      } else if (!cpu && properties.properties.vendorID == VKR_LIGHTNING_AMD_VENDOR_ID) {
++         /* Match gpu::new: maximum discrete predicate, last equal candidate. */
++         const bool discrete =
++            properties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
++         if (!*selected || discrete >= selected_discrete) {
++            *selected = handles[i];
++            selected_discrete = discrete;
++         }
++      }
++   }
++   if (!*selected || (selection && matches != 1)) {
++      vkr_log("Lightning host GPU selection is missing or ambiguous");
++      return VK_ERROR_INITIALIZATION_FAILED;
++   }
++   return VK_SUCCESS;
++}
++
++static VkResult
++vkr_lightning_host_group(struct vkr_instance *instance,
++                          VkPhysicalDevice selected,
++                          VkPhysicalDeviceGroupProperties *selected_group)
++{
++   struct vn_instance_proc_table *vk = &instance->proc_table;
++   for (uint32_t attempt = 0; attempt < VKR_LIGHTNING_ENUMERATION_ATTEMPTS; attempt++) {
++      uint32_t count = 0;
++      VkResult result = vk->EnumeratePhysicalDeviceGroups(
++         instance->base.handle.instance, &count, NULL);
++      if (result != VK_SUCCESS)
++         return result;
++      if (!count)
++         return VK_ERROR_INITIALIZATION_FAILED;
++      VkPhysicalDeviceGroupProperties *groups = calloc(count, sizeof(*groups));
++      if (!groups)
++         return VK_ERROR_OUT_OF_HOST_MEMORY;
++      for (uint32_t i = 0; i < count; i++)
++         groups[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
++      result = vk->EnumeratePhysicalDeviceGroups(
++         instance->base.handle.instance, &count, groups);
++      if (result == VK_INCOMPLETE) {
++         free(groups);
++         continue;
++      }
++      if (result != VK_SUCCESS) {
++         free(groups);
++         return result;
++      }
++      uint32_t matches = 0;
++      for (uint32_t i = 0; i < count; i++) {
++         if (groups[i].physicalDeviceCount == 1 &&
++             groups[i].physicalDevices[0] == selected) {
++            *selected_group = groups[i];
++            matches++;
++         }
++      }
++      free(groups);
++      if (matches != 1) {
++         vkr_log("Lightning host GPU must have one actual singleton device group");
++         return VK_ERROR_INITIALIZATION_FAILED;
++      }
++      return VK_SUCCESS;
++   }
++   return VK_ERROR_INITIALIZATION_FAILED;
++}
++
+ static VkResult
+ vkr_instance_enumerate_physical_devices(struct vkr_instance *instance)
+ {
+@@ -105,32 +240,47 @@ vkr_instance_enumerate_physical_devices(struct vkr_instance *instance)
+       return VK_SUCCESS;
+ 
+    struct vn_instance_proc_table *vk = &instance->proc_table;
+-   uint32_t count;
+-   VkResult result =
+-      vk->EnumeratePhysicalDevices(instance->base.handle.instance, &count, NULL);
+-   if (result != VK_SUCCESS)
+-      return result;
+-
+-   VkPhysicalDevice *handles = calloc(count, sizeof(*handles));
+-   struct vkr_physical_device **physical_devs = calloc(count, sizeof(*physical_devs));
+-   if (!handles || !physical_devs) {
+-      free(physical_devs);
+-      free(handles);
+-      return VK_ERROR_OUT_OF_HOST_MEMORY;
+-   }
+-
+-   result = vk->EnumeratePhysicalDevices(instance->base.handle.instance, &count, handles);
+-   if (result != VK_SUCCESS) {
+-      free(physical_devs);
+-      free(handles);
+-      return result;
++   for (uint32_t attempt = 0; attempt < VKR_LIGHTNING_ENUMERATION_ATTEMPTS; attempt++) {
++      uint32_t count = 0;
++      VkResult result =
++         vk->EnumeratePhysicalDevices(instance->base.handle.instance, &count, NULL);
++      if (result != VK_SUCCESS)
++         return result;
++      if (!count)
++         return VK_ERROR_INITIALIZATION_FAILED;
++      VkPhysicalDevice *handles = calloc(count, sizeof(*handles));
++      if (!handles)
++         return VK_ERROR_OUT_OF_HOST_MEMORY;
++      result = vk->EnumeratePhysicalDevices(instance->base.handle.instance, &count, handles);
++      if (result == VK_INCOMPLETE) {
++         free(handles);
++         continue;
++      }
++      if (result != VK_SUCCESS) {
++         free(handles);
++         return result;
++      }
++      VkPhysicalDevice selected;
++      result = vkr_lightning_select_device(instance, count, handles, &selected);
++      VkPhysicalDeviceGroupProperties group;
++      if (result == VK_SUCCESS)
++         result = vkr_lightning_host_group(instance, selected, &group);
++      if (result != VK_SUCCESS) {
++         free(handles);
++         return result;
++      }
++      struct vkr_physical_device **physical_devs = calloc(1, sizeof(*physical_devs));
++      if (!physical_devs) {
++         free(handles);
++         return VK_ERROR_OUT_OF_HOST_MEMORY;
++      }
++      handles[0] = selected;
++      instance->physical_device_count = 1;
++      instance->physical_device_handles = handles;
++      instance->physical_devices = physical_devs;
++      return VK_SUCCESS;
+    }
+-
+-   instance->physical_device_count = count;
+-   instance->physical_device_handles = handles;
+-   instance->physical_devices = physical_devs;
+-
+-   return VK_SUCCESS;
++   return VK_ERROR_INITIALIZATION_FAILED;
+ }
+ 
+ static struct vkr_physical_device *
+@@ -446,59 +596,38 @@ vkr_dispatch_vkEnumeratePhysicalDeviceGroups(
+    if (args->ret != VK_SUCCESS)
+       return;
+ 
+-   VkPhysicalDeviceGroupProperties *orig_props = args->pPhysicalDeviceGroupProperties;
+-   if (orig_props) {
+-      args->pPhysicalDeviceGroupProperties =
+-         calloc(*args->pPhysicalDeviceGroupCount, sizeof(*orig_props));
+-      if (!args->pPhysicalDeviceGroupProperties) {
+-         args->ret = VK_ERROR_OUT_OF_HOST_MEMORY;
+-         return;
+-      }
+-
+-      for (uint32_t i = 0; i < *args->pPhysicalDeviceGroupCount; i++) {
+-         args->pPhysicalDeviceGroupProperties[i].sType =
+-            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES;
+-      }
+-   }
+-
+-   struct vn_instance_proc_table *vk = &instance->proc_table;
+-   vn_replace_vkEnumeratePhysicalDeviceGroups_args_handle(args);
+-   args->ret =
+-      vk->EnumeratePhysicalDeviceGroups(args->instance, args->pPhysicalDeviceGroupCount,
+-                                        args->pPhysicalDeviceGroupProperties);
++   VkPhysicalDeviceGroupProperties host_group;
++   args->ret = vkr_lightning_host_group(
++      instance, instance->physical_device_handles[0], &host_group);
+    if (args->ret != VK_SUCCESS)
+       return;
+ 
+-   if (!orig_props)
++   if (!args->pPhysicalDeviceGroupProperties) {
++      *args->pPhysicalDeviceGroupCount = 1;
+       return;
++   }
++   if (!*args->pPhysicalDeviceGroupCount) {
++      args->ret = VK_INCOMPLETE;
++      return;
++   }
+ 
+-   /* TODO avoid requiring venus driver to call vkEnumeratePhysicalDevices first */
+-   /* replace VkPhysicalDevice handles by object ids */
+-   for (uint32_t i = 0; i < *args->pPhysicalDeviceGroupCount; i++) {
+-      const VkPhysicalDeviceGroupProperties *props =
+-         &args->pPhysicalDeviceGroupProperties[i];
+-      VkPhysicalDeviceGroupProperties *out = &orig_props[i];
+-
+-      out->physicalDeviceCount = props->physicalDeviceCount;
+-      out->subsetAllocation = props->subsetAllocation;
+-      for (uint32_t j = 0; j < props->physicalDeviceCount; j++) {
+-         const struct vkr_physical_device *physical_dev =
+-            vkr_instance_lookup_physical_device(instance, props->physicalDevices[j]);
+-         if (!physical_dev) {
+-            vkr_log("venus driver is required to call vkEnumeratePhysicalDevices first");
+-            args->ret = VK_ERROR_INITIALIZATION_FAILED;
+-            if (orig_props)
+-               free(args->pPhysicalDeviceGroupProperties);
+-            return;
+-         }
+-
+-         vkr_cs_handle_store_id((void **)&out->physicalDevices[j], physical_dev->base.id,
+-                                VK_OBJECT_TYPE_PHYSICAL_DEVICE);
+-      }
++   /* Keep the caller's sType and pNext intact; only return genuine host group
++    * fields and the already registered guest physical-device object ID.
++    */
++   const struct vkr_physical_device *physical_dev =
++      vkr_instance_lookup_physical_device(instance, host_group.physicalDevices[0]);
++   if (!physical_dev) {
++      vkr_log("venus driver is required to call vkEnumeratePhysicalDevices first");
++      args->ret = VK_ERROR_INITIALIZATION_FAILED;
++      return;
+    }
++   VkPhysicalDeviceGroupProperties *out = args->pPhysicalDeviceGroupProperties;
++   out->physicalDeviceCount = host_group.physicalDeviceCount;
++   out->subsetAllocation = host_group.subsetAllocation;
++   vkr_cs_handle_store_id((void **)&out->physicalDevices[0], physical_dev->base.id,
++                          VK_OBJECT_TYPE_PHYSICAL_DEVICE);
++   *args->pPhysicalDeviceGroupCount = 1;
+ 
+-   free(args->pPhysicalDeviceGroupProperties);
+-   args->pPhysicalDeviceGroupProperties = orig_props;
+ }
+ 
+ static void

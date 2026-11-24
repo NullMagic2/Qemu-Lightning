@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "generator": "lightning/opengl/CMakeLists.txt",
+  "created": "2026-10-21",
+  "architecture": "configured by QL_WINDOWS_ARCH",
+  "mesa_commit": "ed458ffac6f410e6f03e54d17f47e8aeb55fe3a1",
+  "mesa_dependency_patch": "zink-submit-wakeup.patch",
+  "mesa_dependency_patch_sha256": "e0ed455447d3576084fd61e17c347201f6ec4cd9649a4af3becb30313bfdfeac",
+  "mesa_frontend": "WGL",
+  "gallium_drivers": [
+    "zink"
+  ],
+  "software_rasterizers": [],
+  "icd": "QemuLightningOpenGL.dll",
+  "application_local_loader": "opengl32.dll",
+  "required_vulkan_manifest": "QemuLightningVulkan.json",
+  "required_native_stack": "Matching native Windows WDDM Venus ICD, Vulkan loader and host worker",
+  "launcher": "QemuLightningOpenGLRun.exe",
+  "installer": "QemuLightningOpenGLInstall.exe",
+  "deployment": "Separate paired amd64/x86 packages. Each installer validates payload bitness; existing application files are not replaced. Optional protected per-adapter AMD64/WOW64 ICD registration has separate durable backups and exact rollback.",
+  "demo": "wglgears64.exe",
+  "demo_source": "https://archive.mesa3d.org/demos/mesa-demos-9.0.0.tar.xz",
+  "demo_archive_sha256": "3046a3d26a7b051af7ebdd257a5f23bfeb160cad6ed952329cdff1e9f1ed496b",
+  "acceptance": "QemuLightningOpenGLAcceptance.exe",
+  "acceptance_checks": [
+    "Zink renderer",
+    "real WGL context",
+    "display lists",
+    "depth test",
+    "exact pixel readback",
+    "normal process exit",
+    "interactive station required for windowed tests",
+    "explicit native module unloading",
+    "live-context and loader-callout refusal",
+    "application-owned WGL recreation with new GPU resources",
+    "destroyed-window presentation failure",
+    "one-shot queue-barrier destruction ownership"
+  ],
+  "reactos_i386_supported": false,
+  "hardware_rendering_validation_passed": true,
+  "runtime_gpu_validation_completed": true,
+  "runtime_gpu_validation": {
+    "date": "2026-11-10",
+    "guest": "Windows 11 AMD64, Lightning WDDM 0.1.0.901",
+    "architectures": [
+      "amd64",
+      "x86"
+    ],
+    "result": "G12 native lifetime/recreation and 106 visible GPU frames passed",
+    "coverage": "Each architecture: 5 visible recovery frames, 32 GPU-only lifecycle frames and 16 full-HD FIFO frames; 5 repeated lifetime processes with 4 recreations and 5 exact readbacks each. Two native barrier modesets pass; original-code controls fail the intended ownership assertion.",
+    "scope": "Bounded native acceptance; no Khronos conformance or performance qualification",
+    "windowed_presentation_verified": true,
+    "software_fallback": false,
+    "msvc2022_tested": false,
+    "system_icd_discovery_after_reboot_tested": false,
+    "physical_gpu_reset_tested": false,
+    "module_lifetime": "Explicit native shutdown drains workers and thread hooks outside DllMain, then releases owned ICD/frontend references. Native acceptance unpins modules and verifies actual unloading. Legacy profiles without lifecycle exports retain their existing process-lifetime policy."
+  },
+  "license": "Preserve the pinned Mesa docs/license.rst and source license notices",
+  "supported_windows_architectures": [
+    "amd64",
+    "x86"
+  ],
+  "private_vulkan_loader": "QemuLightningVulkanLoader.dll",
+  "registration": {
+    "amd64": [
+      "OpenGLDriverName",
+      "OpenGLVersion",
+      "OpenGLFlags"
+    ],
+    "x86": [
+      "OpenGLDriverNameWow",
+      "OpenGLVersionWow",
+      "OpenGLFlagsWow"
+    ],
+    "restart": "Separate explicit user action; registration does not restart Windows or replace system loaders."
+  },
+  "historical_runtime_gpu_validation": {
+    "guest": "Windows 11 AMD64, Lightning WDDM 0.1.0.87",
+    "session": 0,
+    "result": "LIGHTNING_OPENGL_OFFSCREEN_PASS, process exit 0",
+    "renderer": "zink Vulkan 1.4(QEMU Lightning Venus (AMD Radeon RX 7900 XTX (RADV NAVI31)) (MESA_RADV))",
+    "reported_version": "OpenGL 4.6 Compatibility Profile",
+    "coverage": "32 consecutive 1920x1080 hardware-rendered frames with display lists, depth, exact pixel readback and normal process exit; default GPU submission",
+    "windowed_presentation_verified": false,
+    "windowed_validation_blocker": "Service desktop GDI StretchBlt returns ERROR_ACCESS_DENIED (5); visible gears testing requires Windows interactive sign-in",
+    "commands": {
+      "hardware_readback": "QemuLightningOpenGLAcceptance.exe --1080p --frames 32 --offscreen",
+      "interactive_presentation": "QemuLightningOpenGLAcceptance.exe --1080p --frames 32 --vsync 0",
+      "interactive_gears": "QemuLightningOpenGLRun.exe wglgears64.exe -info -geometry 1920x1080+0+0"
+    },
+    "software_fallback": false,
+    "gears_animation_verified": false,
+    "msvc2022_tested": false,
+    "module_lifetime": "Retain loaded driver modules until normal process exit; explicit unload deadlocks in upstream worker cleanup"
+  },
+  "historical_g11_runtime_gpu_validation": {
+    "date": "2026-11-10",
+    "guest": "Windows 11 AMD64, Lightning WDDM 0.1.0.901",
+    "architectures": [
+      "amd64",
+      "x86"
+    ],
+    "result": "96 native visible GPU frames passed",
+    "coverage": "32 lifecycle and 16 1920x1080 FIFO frames per architecture; exact GL and composed desktop pixels; zero guarded CPU WSI calls",
+    "scope": "Bounded native acceptance; no Khronos conformance or performance qualification",
+    "windowed_presentation_verified": true,
+    "software_fallback": false,
+    "msvc2022_tested": false,
+    "system_icd_discovery_after_reboot_tested": false,
+    "module_lifetime": "Retain driver modules until process exit; explicit unloading and general reset/recovery remain G12"
+  },
+  "runtime_lifecycle": {
+    "abi": 1,
+    "header": "include/windows_runtime_lifecycle.hpp",
+    "exports": [
+      "QemuLightningOpenGLGetStatus",
+      "QemuLightningOpenGLShutdown",
+      "QemuLightningOpenGLRecreate"
+    ],
+    "contract": [
+      "Callers retain a LoadLibrary reference, quiesce WGL/window-message users and destroy every context before shutdown or recreation.",
+      "Native workers hold releasable ICD/frontend references; the native acceptance path uses explicit shutdown rather than a permanent module pin.",
+      "Shutdown refuses live contexts/in-flight admitted work. All lifecycle control APIs refuse loader callouts.",
+      "Recreate initializes a clean WGL frontend; native GPU initialization is lazy and may fail on subsequent context creation. SCREEN status stays clear until actual screen creation.",
+      "Applications recreate their GL objects after a reset; prior object contents are not restored."
+    ],
+    "surface_loss": "Native window SwapBuffers rejects destroyed or mismatched window/DC identity.",
+    "barrier_ownership": "Only the final departing Windows queue-barrier participant receives one-shot destruction ownership.",
+    "gpu_reset_qualification": "No physical GPU TDR/reset was triggered; native destroyed-window recovery is qualified."
+  },
+  "lifecycle_acceptance": "QemuLightningOpenGLLifecycleAcceptance.exe"
+}

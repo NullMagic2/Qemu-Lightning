@@ -1,0 +1,1391 @@
+Module: lightning.guest_vulkan.mesa_d3d10_gallium
+Purpose: Zink changes the Direct3D UMD needs in the pinned Mesa 26.0.8.
+Created: 2026-10-16
+Architecture: Applied to the pinned d3d10 Mesa tree by build_windows_icd.rs after it
+overlays the owned frontend from lightning/direct3d-umd. Shared and scanout images,
+deferred fences, resource rebinding, D3D vertex IDs for TGSI shaders Zink
+translates itself, and the threaded-submit wakeup a map after an async flush waits
+for (zink_submit_wakeup_acceptance.c). The UMD hands Zink NIR (ShaderNIR.c), so
+tgsi_to_nir is unchanged.
+
+diff --git a/src/gallium/drivers/zink/nir_to_spirv/nir_to_spirv.c b/src/gallium/drivers/zink/nir_to_spirv/nir_to_spirv.c
+--- a/src/gallium/drivers/zink/nir_to_spirv/nir_to_spirv.c
++++ b/src/gallium/drivers/zink/nir_to_spirv/nir_to_spirv.c
+@@ -65,9 +65,7 @@
+    SpvId images[PIPE_MAX_SHADER_IMAGES];
+    struct hash_table image_types;
+    SpvId samplers[PIPE_MAX_SHADER_SAMPLER_VIEWS];
+-   SpvId bindless_samplers[2];
+    nir_variable *sampler_var[PIPE_MAX_SHADER_SAMPLER_VIEWS]; /* driver_location -> variable */
+-   nir_variable *bindless_sampler_var[2];
+    unsigned last_sampler;
+    unsigned bindless_set_idx;
+    nir_variable *image_var[PIPE_MAX_SHADER_IMAGES]; /* driver_location -> variable */
+@@ -1298,10 +1296,9 @@
+ 
+    _mesa_hash_table_insert(ctx->vars, var, (void *)(intptr_t)var_id);
+    if (is_sampler) {
+-      if (var->data.descriptor_set == ctx->bindless_set_idx) {
+-         assert(!ctx->bindless_samplers[index]);
+-         ctx->bindless_samplers[index] = var_id;
+-      } else {
++      /* Bindless descriptor aliases are keyed by variable in ctx->vars;
++       * the ordinary slot cache cannot represent their distinct types. */
++      if (var->data.descriptor_set != ctx->bindless_set_idx) {
+          assert(!ctx->samplers[index]);
+          ctx->samplers[index] = var_id;
+       }
+@@ -3655,6 +3652,7 @@
+       emit_load_uint_input(ctx, intr, &ctx->instance_id_var, "gl_InstanceId", SpvBuiltInInstanceIndex);
+       break;
+ 
++   case nir_intrinsic_load_first_vertex:
+    case nir_intrinsic_load_base_vertex:
+       emit_load_uint_input(ctx, intr, &ctx->base_vertex_var, "gl_BaseVertex", SpvBuiltInBaseVertex);
+       break;
+@@ -4823,7 +4821,8 @@
+       if (BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_INSTANCE_ID) ||
+           BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_DRAW_ID) ||
+           BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_BASE_INSTANCE) ||
+-          BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_BASE_VERTEX)) {
++          BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_BASE_VERTEX) ||
++          BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_FIRST_VERTEX)) {
+          if (sinfo->spirv_version < SPIRV_VERSION(1, 3))
+             spirv_builder_emit_extension(&ctx.builder, "SPV_KHR_shader_draw_parameters");
+          spirv_builder_emit_cap(&ctx.builder, SpvCapabilityDrawParameters);
+@@ -4998,9 +4997,7 @@
+       ctx.image_var[var->data.driver_location] = var;
+    nir_foreach_variable_with_modes(var, s, nir_var_uniform) {
+       if (glsl_type_is_sampler(glsl_without_array(var->type))) {
+-         if (var->data.descriptor_set == ctx.bindless_set_idx)
+-            ctx.bindless_sampler_var[var->data.driver_location] = var;
+-         else
++         if (var->data.descriptor_set != ctx.bindless_set_idx)
+             ctx.sampler_var[var->data.driver_location] = var;
+          ctx.last_sampler = MAX2(ctx.last_sampler, var->data.driver_location);
+       }
+
+diff --git a/src/gallium/drivers/zink/zink_batch.c b/src/gallium/drivers/zink/zink_batch.c
+--- a/src/gallium/drivers/zink/zink_batch.c
++++ b/src/gallium/drivers/zink/zink_batch.c
+@@ -7,6 +7,7 @@
+ #include "zink_resource.h"
+ #include "zink_screen.h"
+ #include "zink_surface.h"
++#include "util/timespec.h"
+ 
+ #ifdef VK_USE_PLATFORM_METAL_EXT
+ #include "QuartzCore/CAMetalLayer.h"
+@@ -654,7 +655,13 @@
+       bs->fence.batch_id = (uint32_t)p_atomic_inc_return(&screen->curr_batch);
+    bs->usage.usage = bs->fence.batch_id;
+    assert(bs->usage.usage);
++   /* Lightning: publish under the lock the unflushed waiter checks under, so
++    * the predicate and the broadcast below cannot slip between its check and
++    * its cnd_wait (a lost wakeup hung WebView2's GPU process).
++    */
++   mtx_lock(&bs->usage.mtx);
+    bs->usage.unflushed = false;
++   mtx_unlock(&bs->usage.mtx);
+ 
+    uint64_t batch_id = bs->fence.batch_id;
+    /* first submit is just for acquire waits since they have a separate array */
+@@ -843,7 +850,9 @@
+ 
+    bs->usage.submit_count++;
+ end:
++   mtx_lock(&bs->usage.mtx);
+    cnd_broadcast(&bs->usage.flush);
++   mtx_unlock(&bs->usage.mtx);
+ 
+    post_submit(bs, screen);
+ 
+@@ -1205,12 +1214,32 @@
+          ctx->base.flush(&ctx->base, NULL, PIPE_FLUSH_HINT_FINISH);
+          return true;
+       } else { //multi-context
++         /* Lightning: another context's batch that is still recording is only
++          * submitted when that context flushes, and nothing makes it flush while
++          * this thread waits (a D3D device's writes become visible to other
++          * devices only after it flushes). Waiting hung Solitaire's frame window
++          * in WddmPresent after a minimize. Wait only for queued batches.
++          */
++         struct zink_batch_state *owner =
++            (struct zink_batch_state *)((char *)u - offsetof(struct zink_batch_state, usage));
++         if (owner->ctx != ctx && p_atomic_read(&owner->ctx->bs) == owner)
++            return false;
+          mtx_lock(&u->mtx);
+          if (trywait) {
+             struct timespec ts = {0, 10000};
+             cnd_timedwait(&u->flush, &u->mtx, &ts);
+-         } else
+-            cnd_wait(&u->flush, &u->mtx);
++         } else {
++            /* Lightning: re-check the predicate under the lock, and stop once
++             * the batch state was submitted and recycled. The 1 ms timeout
++             * bounds any wakeup that is still missed to 1 ms instead of a hang.
++             */
++            while (u->unflushed && u->submit_count == submit_count) {
++               struct timespec now, deadline;
++               timespec_get(&now, TIME_UTC);
++               timespec_add_msec(&deadline, &now, 1);
++               cnd_timedwait(&u->flush, &u->mtx, &deadline);
++            }
++         }
+          mtx_unlock(&u->mtx);
+       }
+    }
+
+diff --git a/src/gallium/drivers/zink/zink_compiler.c b/src/gallium/drivers/zink/zink_compiler.c
+--- a/src/gallium/drivers/zink/zink_context.c
++++ b/src/gallium/drivers/zink/zink_context.c
+@@ -2482,13 +2482,14 @@
+    if (!bd)
+       return 0;
+ 
+-   bd->sampler = pctx->create_sampler_state(pctx, state);
+-   if (!bd->sampler) {
+-      free(bd);
+-      return 0;
+-   }
+-
+    bd->ds.is_buffer = res->base.b.target == PIPE_BUFFER;
++   if (!bd->ds.is_buffer) {
++      bd->sampler = pctx->create_sampler_state(pctx, state);
++      if (!bd->sampler) {
++         free(bd);
++         return 0;
++      }
++   }
+    pipe_resource_reference(&bd->pres, view->texture);
+    if (res->base.b.target == PIPE_BUFFER) {
+       bd->ds.db.format = view->format;
+@@ -2502,6 +2503,17 @@
+       bd->last_layer = view->u.tex.last_layer;
+    }
+    uint64_t handle = util_idalloc_alloc(&ctx->di.bindless[bd->ds.is_buffer].tex_slots);
++
++   /* The allocator may grow, but each Vulkan descriptor array is fixed-size.
++    * Retired IDs remain deferred until their GPU batch completes. */
++   if (handle >= ZINK_MAX_BINDLESS_HANDLES) {
++      util_idalloc_free(&ctx->di.bindless[bd->ds.is_buffer].tex_slots, handle);
++      pipe_resource_reference(&bd->pres, NULL);
++      if (bd->sampler)
++         pctx->delete_sampler_state(pctx, bd->sampler);
++      free(bd);
++      return 0;
++   }
+    if (bd->ds.is_buffer)
+       handle += ZINK_MAX_BINDLESS_HANDLES;
+    bd->handle = handle;
+@@ -4164,6 +4176,8 @@
+       res->fb_binds |= BITFIELD_BIT(PIPE_MAX_COLOR_BUFS);
+    }
+ 
++   if (ctx->gfx_pipeline_state.lightning_forced_samples > 1)
++      samples = ctx->gfx_pipeline_state.lightning_forced_samples;
+    ctx->fb_state.samples = MAX2(samples, 1);
+    if (ctx->fb_state.width != w || ctx->fb_state.height != h)
+       ctx->scissor_changed = true;
+@@ -4178,6 +4192,10 @@
+          ctx->gfx_pipeline_state.dirty = ctx->gfx_pipeline_state.mesh_dirty = true;
+    }
+    ctx->gfx_pipeline_state.rast_samples = rast_samples;
++   if (ctx->gfx_pipeline_state.lightning_forced_samples) {
++      ctx->blend_state_changed = true;
++      ctx->ds3_states |= BITFIELD_BIT(ZINK_DS3_BLEND_A2C);
++   }
+ 
+    /* this is an ideal time to oom flush since it won't split a renderpass */
+    if (ctx->oom_flush && !ctx->unordered_blitting)
+@@ -4247,8 +4265,9 @@
+    struct zink_screen *screen = zink_screen(ctx->base.screen);
+    VkSemaphore export_sem = VK_NULL_HANDLE;
+ 
+-   /* triggering clears will force state->has_work */
+-   if (!deferred && ctx->clears_enabled) {
++   /* A deferred fence must include clears recorded before its checkpoint.
++    * Encode them without submitting the batch so no-flush polls remain passive. */
++   if (ctx->clears_enabled && (!deferred || pfence)) {
+       /* if fbfetch outputs are active, disable them when flushing clears */
+       unsigned fbfetch_outputs = ctx->fbfetch_outputs;
+       if (fbfetch_outputs) {
+@@ -4577,7 +4596,50 @@
+          zink_resource_reference(&ctx->needs_present, res);
+       }
+       ctx->swapchain = res;
+-   } else if (res->dmabuf)
++   }
++#ifdef _WIN32
++   else if ((pres->bind & PIPE_BIND_SCANOUT) && res->obj->image) {
++      /* Lightning display imports a completed linear image through EGL. */
++      zink_batch_no_rp(ctx);
++      struct zink_screen *screen = zink_screen(pctx->screen);
++      screen->image_barrier(ctx, res, VK_IMAGE_LAYOUT_GENERAL,
++                            VK_ACCESS_MEMORY_READ_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
++      VkImageMemoryBarrier barrier;
++      zink_resource_image_barrier_init(&barrier, res, VK_IMAGE_LAYOUT_GENERAL,
++                                       0, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
++      barrier.srcQueueFamilyIndex = screen->gfx_queue;
++      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
++      VKCTX(CmdPipelineBarrier)(ctx->bs->cmdbuf, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
++                                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
++                                0, NULL, 0, NULL, 1, &barrier);
++      res->queue = VK_QUEUE_FAMILY_FOREIGN_EXT;
++      zink_batch_reference_resource_rw(ctx, res, false);
++      ctx->bs->has_work = true;
++   }
++#endif
++#ifdef _WIN32
++   else if ((pres->bind & PIPE_BIND_SHARED) && res->obj->image) {
++      if (res->queue == VK_QUEUE_FAMILY_EXTERNAL)
++         return; /* Already released; do not acquire just to release again. */
++      zink_batch_no_rp(ctx);
++      struct zink_screen *screen = zink_screen(pctx->screen);
++      screen->image_barrier(ctx, res, VK_IMAGE_LAYOUT_GENERAL,
++                            VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
++                            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
++      VkImageMemoryBarrier barrier;
++      zink_resource_image_barrier_init(&barrier, res, VK_IMAGE_LAYOUT_GENERAL,
++                                       0, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
++      barrier.srcQueueFamilyIndex = screen->gfx_queue;
++      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
++      VKCTX(CmdPipelineBarrier)(ctx->bs->cmdbuf, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
++                                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
++                                0, NULL, 0, NULL, 1, &barrier);
++      res->queue = VK_QUEUE_FAMILY_EXTERNAL;
++      zink_batch_reference_resource_rw(ctx, res, false);
++      ctx->bs->has_work = true;
++   }
++#endif
++   else if (res->dmabuf)
+       res->queue = VK_QUEUE_FAMILY_FOREIGN_EXT;
+ }
+ 
+@@ -4688,7 +4750,7 @@
+    if (res) {
+       res->obj->unordered_read = false;
+       res->obj->access |= VK_ACCESS_SHADER_READ_BIT;
+-      res->obj->access_stage |= mesa_to_vk_shader_stage(shader);
++      res->obj->access_stage |= zink_pipeline_flags_from_pipe_stage(shader);
+    }
+    ctx->invalidate_descriptor_state(ctx, shader, ZINK_DESCRIPTOR_TYPE_UBO, slot, 1);
+    return res;
+@@ -4711,7 +4773,7 @@
+    if (res) {
+       res->obj->unordered_read = false;
+       res->obj->access |= VK_ACCESS_SHADER_READ_BIT;
+-      res->obj->access_stage |= mesa_to_vk_shader_stage(shader);
++      res->obj->access_stage |= zink_pipeline_flags_from_pipe_stage(shader);
+       if (ctx->writable_ssbos[shader] & BITFIELD_BIT(slot)) {
+          res->obj->unordered_write = false;
+          res->obj->access |= VK_ACCESS_SHADER_WRITE_BIT;
+@@ -4735,7 +4797,7 @@
+    if (res) {
+       res->obj->unordered_read = false;
+       res->obj->access |= VK_ACCESS_SHADER_READ_BIT;
+-      res->obj->access_stage |= mesa_to_vk_shader_stage(shader);
++      res->obj->access_stage |= zink_pipeline_flags_from_pipe_stage(shader);
+    }
+    ctx->invalidate_descriptor_state(ctx, shader, ZINK_DESCRIPTOR_TYPE_SAMPLER_VIEW, slot, 1);
+    return res;
+@@ -4758,7 +4820,7 @@
+    if (res) {
+       res->obj->unordered_read = false;
+       res->obj->access |= VK_ACCESS_SHADER_READ_BIT;
+-      res->obj->access_stage |= mesa_to_vk_shader_stage(shader);
++      res->obj->access_stage |= zink_pipeline_flags_from_pipe_stage(shader);
+       if (image_view->base.access & PIPE_IMAGE_ACCESS_WRITE) {
+          res->obj->unordered_write = false;
+          res->obj->access |= VK_ACCESS_SHADER_WRITE_BIT;
+@@ -4910,6 +4972,12 @@
+                                      can_unorder ? ctx->bs->reordered_cmdbuf : zink_get_cmdbuf(ctx, src, dst);
+    ctx->bs->has_reordered_work |= can_unorder;
+    ctx->bs->has_unsync |= unsync;
++   /* A renamed, bound buffer can already carry this batch's usage without
++    * its current object being retained. Keep both copy objects alive until
++    * the batch completes, including unsynchronized uploads.
++    */
++   zink_batch_reference_resource(ctx, src);
++   zink_batch_reference_resource(ctx, dst);
+    zink_batch_reference_resource_rw(ctx, src, false);
+    zink_batch_reference_resource_rw(ctx, dst, true);
+    if (unlikely(zink_debug & ZINK_DEBUG_SYNC)) {
+@@ -5377,6 +5445,10 @@
+    if (res->base.b.target == PIPE_BUFFER) {
+       /* force counter buffer reset */
+       res->so_valid = false;
++
++      /* A discard replaces storage without changing the resource pointer. */
++      if (ctx->index_buffer == &res->base.b)
++         ctx->index_buffer = NULL;
+       return rebind_buffer(ctx, res, 0, 0) == res->bind_count[0] + res->bind_count[1];
+    }
+    rebind_image(ctx, res);
+
+diff --git a/src/gallium/drivers/zink/zink_fence.c b/src/gallium/drivers/zink/zink_fence.c
+--- a/src/gallium/drivers/zink/zink_fence.c
++++ b/src/gallium/drivers/zink/zink_fence.c
+@@ -200,6 +200,12 @@
+        (!fence->submitted && submit_diff))
+       return true;
+ 
++   /* A deferred fence can still name the current, unsubmitted batch.
++    * A zero-timeout observation must not turn timeline value zero into
++    * completion, or wait for a submission that the caller forbids flushing. */
++   if (!timeout_ns && !fence->submitted && !submit_diff)
++      return false;
++
+    return fence_wait(screen, fence, timeout_ns);
+ }
+ 
+
+diff --git a/src/gallium/drivers/zink/zink_resource.c b/src/gallium/drivers/zink/zink_resource.c
+--- a/src/gallium/drivers/zink/zink_resource.c
++++ b/src/gallium/drivers/zink/zink_resource.c
+@@ -914,6 +914,13 @@
+          UNREACHABLE("unknown handle type");
+    }
+    if (needs_export) {
++#ifdef _WIN32
++      /* Qemu Lightning: Windows imports are opaque Win32 handles. */
++      if (alloc_info->whandle) {
++         alloc_info->external = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
++         alloc_info->export_types |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
++      } else
++#endif
+       if (alloc_info->whandle && alloc_info->whandle->type == ZINK_EXTERNAL_MEMORY_HANDLE) {
+          alloc_info->external = ZINK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_BIT;
+       } else if (screen->info.have_EXT_external_memory_dma_buf) {
+@@ -931,6 +938,11 @@
+    /* we may export WINSYS_HANDLE_TYPE_FD handle which is dma-buf */
+    if (templ->bind & PIPE_BIND_SHARED && screen->info.have_EXT_external_memory_dma_buf)
+       alloc_info->export_types |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
++#ifdef _WIN32
++   /* Qemu Lightning: shared resources export Win32 opaque handles. */
++   if (templ->bind & PIPE_BIND_SHARED && screen->info.have_KHR_external_memory_win32)
++      alloc_info->export_types |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
++#endif
+    return true;
+ }
+ 
+@@ -1007,15 +1019,9 @@
+    };
+ 
+    if (alloc_info->whandle) {
+-      HANDLE source_target = GetCurrentProcess();
+-      HANDLE out_handle;
+-
+-      bool result = DuplicateHandle(source_target, alloc_info->whandle->handle, source_target, &out_handle, 0, false, DUPLICATE_SAME_ACCESS);
+-
+-      if (!result || !out_handle) {
+-         mesa_loge("ZINK: failed to DuplicateHandle with winerr: %08x\n", (int)GetLastError());
+-         return roc_fail_and_cleanup_object;
+-      }
++      /* Qemu Lightning: the handle is a host renderer id the Venus driver
++       * resolves, not a kernel object, so it is not duplicated. */
++      HANDLE out_handle = alloc_info->whandle->handle;
+ 
+       imfi.pNext = NULL;
+       imfi.handleType = alloc_info->external;
+@@ -1367,7 +1373,9 @@
+          idfmlci.drmFormatModifierCount = modifiers_count;
+          idfmlci.pDrmFormatModifiers = modifiers;
+          ici.pNext = &idfmlci;
+-      } else if (ici.tiling == VK_IMAGE_TILING_OPTIMAL) {
++      } else if (ici.tiling == VK_IMAGE_TILING_OPTIMAL &&
++                 !(alloc_info->export_types & VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT)) {
++         /* Opaque handles (Qemu Lightning) do support optimal tiling. */
+          alloc_info->shared = false;
+       }
+    } else if (alloc_info->user_mem) {
+@@ -2035,6 +2043,23 @@
+                  struct winsys_handle *whandle,
+                  unsigned usage)
+ {
++#ifdef _WIN32
++   /* Qemu Lightning: opaque Win32 imports keep the exporter's tiling; the
++    * template must match the exporter's image exactly. */
++   struct pipe_resource *imported = resource_create(pscreen, templ, whandle, usage,
++                                                    NULL, 0, NULL, NULL);
++   if (imported && imported->target != PIPE_BUFFER) {
++      struct zink_resource *res = zink_resource(imported);
++      /* The opaque image was released in GENERAL by the exporting device.
++       * Treating it as a DMA-BUF/PREINITIALIZED image loses tiled contents. */
++      res->dmabuf = false;
++      res->layout = VK_IMAGE_LAYOUT_GENERAL;
++      res->queue = VK_QUEUE_FAMILY_EXTERNAL;
++      res->valid = true;
++      res->obj->immutable_handle = true;
++   }
++   return imported;
++#endif
+ #ifdef ZINK_USE_DMABUF
+    if (whandle->modifier != DRM_FORMAT_MOD_INVALID &&
+        !zink_screen(pscreen)->info.have_EXT_image_drm_format_modifier)
+@@ -2420,6 +2445,8 @@
+                         (struct pipe_resource **)&trans->staging_res, (void **)&ptr);
+             trans->offset = offset;
+          }
++         if (!trans->staging_res)
++            goto fail;
+          res = zink_resource(trans->staging_res);
+          usage |= PIPE_MAP_UNSYNCHRONIZED;
+          map_offset = trans->offset;
+@@ -2430,12 +2457,16 @@
+       }
+    } else if (usage & ZINK_MAP_QBO) {
+       usage |= PIPE_MAP_UNSYNCHRONIZED;
+-   } else if (usage & PIPE_MAP_DONTBLOCK) {
+-      /* sparse/device-local will always need to wait since it has to copy */
+-      if (!res->obj->host_visible)
+-         goto success;
+-      if (!zink_resource_usage_check_completion(screen, res, ZINK_RESOURCE_ACCESS_WRITE))
+-         goto success;
++   } else if ((usage & PIPE_MAP_DONTBLOCK) &&
++              !zink_resource_usage_check_completion(screen, res,
++                  usage & PIPE_MAP_WRITE ? ZINK_RESOURCE_ACCESS_RW :
++                                           ZINK_RESOURCE_ACCESS_WRITE)) {
++      /* Qemu Lightning: fail only while the GPU still uses the buffer. An
++       * idle buffer that is not host-visible maps through staging below;
++       * failing it as well would make D3D DO_NOT_WAIT polls spin forever.
++       * Destroy the transfer: returning it with no mapping leaks it. */
++      goto fail;
++   } else if ((usage & PIPE_MAP_DONTBLOCK) && res->obj->host_visible) {
+       usage |= PIPE_MAP_UNSYNCHRONIZED;
+    } else if ((usage & PIPE_MAP_READ) && !(usage & PIPE_MAP_PERSISTENT) && !host_mem_type_check) {
+       /* any read, non-HV write, or unmappable that reaches this point needs staging */
+@@ -2548,6 +2579,13 @@
+    struct zink_resource *res = zink_resource(pres);
+    if (res->unflushed_transient)
+       res = res->transient;
++   /* Qemu Lightning: a nonblocking map of an image the GPU still uses fails
++    * instead of waiting (D3D DO_NOT_WAIT). */
++   if ((usage & PIPE_MAP_DONTBLOCK) && !(usage & PIPE_MAP_UNSYNCHRONIZED) &&
++       !zink_resource_usage_check_completion(screen, res,
++           usage & PIPE_MAP_WRITE ? ZINK_RESOURCE_ACCESS_RW :
++                                    ZINK_RESOURCE_ACCESS_WRITE))
++      return NULL;
+    struct zink_transfer *trans = create_transfer(ctx, pres, usage, box);
+    if (!trans)
+       return NULL;
+
+diff --git a/src/gallium/drivers/zink/zink_screen.c b/src/gallium/drivers/zink/zink_screen.c
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -3365,7 +3365,12 @@
+ 
+    u_trace_state_init();
+ 
++#if defined(_WIN32) && defined(QEMU_LIGHTNING_D3D_LOADER)
++   extern struct util_dl_library *qlg_d3d_load_vulkan(void);
++   screen->loader_lib = qlg_d3d_load_vulkan();
++#else
+    screen->loader_lib = util_dl_open(VK_LIBNAME);
++#endif
+    if (!screen->loader_lib) {
+       if (!screen->driver_name_is_inferred)
+          mesa_loge("ZINK: failed to load "VK_LIBNAME);
+
+diff --git a/src/gallium/drivers/zink/zink_types.h b/src/gallium/drivers/zink/zink_types.h
+--- a/src/gallium/drivers/zink/zink_types.h
++++ b/src/gallium/drivers/zink/zink_types.h
+@@ -347,9 +347,11 @@
+    unsigned pv_last:1;
+    unsigned line_stipple_enable:1;
+    unsigned clip_halfz:1;
++   unsigned rasterization_stream:2;
+ };
+ 
+ struct zink_rasterizer_state {
++   uint32_t lightning_forced_samples;
+    struct pipe_rasterizer_state base;
+    bool offset_fill;
+    float offset_units, offset_clamp, offset_scale;
+@@ -878,6 +880,7 @@
+    uint32_t rast_attachment_order : 1;
+    uint32_t custom_sample_locations : 1;
+    uint32_t rp_state : 16;
++   uint32_t lightning_forced_samples;
+    VkSampleMask sample_mask;
+    uint32_t blend_id;
+ 
+@@ -1068,6 +1071,7 @@
+    };
+ 
+    /* TODO: compress these */
++   uint32_t lightning_forced_samples;
+    VkSampleMask sample_mask;
+    uint32_t blend_id;
+    VkPipeline pipeline;
+@@ -1988,6 +1992,10 @@
+    bool rasterizer_discard_changed : 1;
+    bool rp_tc_info_updated : 1;
+    bool last_work_was_compute : 1;
++
++   /* Lightning: immediate D3D indexed-indirect binding offset. The target
++    * scopes this to one draw and invalidates the index binding cache. */
++   unsigned lightning_index_buffer_offset;
+ };
+ 
+ static inline struct zink_context *
+
+diff --git a/src/gallium/drivers/zink/zink_draw.cpp b/src/gallium/drivers/zink/zink_draw.cpp
+--- a/src/gallium/drivers/zink/zink_draw.cpp
++++ b/src/gallium/drivers/zink/zink_draw.cpp
+@@ -469,6 +469,8 @@
+    }
+ 
+    if (BATCH_CHANGED || ctx->rast_state_changed) {
++      if (zink_dynamic_rasterization_stream(screen))
++         VKCTX(CmdSetRasterizationStreamEXT)(bs->cmdbuf, rast_state->hw_state.rasterization_stream);
+       if (DYNAMIC_STATE != ZINK_NO_DYNAMIC_STATE) {
+          VKCTX(CmdSetFrontFace)(bs->cmdbuf, (VkFrontFace)ctx->gfx_pipeline_state.dyn_state1.front_face);
+          VKCTX(CmdSetCullMode)(bs->cmdbuf, ctx->gfx_pipeline_state.dyn_state1.cull_mode);
+@@ -507,6 +509,8 @@
+       if (ctx->gfx_pipeline_state.blend_state) {
+          if (ctx->ds3_states & BITFIELD_BIT(ZINK_DS3_BLEND_A2C))
+             VKCTX(CmdSetAlphaToCoverageEnableEXT)(bs->cmdbuf, ctx->gfx_pipeline_state.blend_state->alpha_to_coverage &&
++               !(ctx->gfx_pipeline_state.lightning_forced_samples && ctx->fb_state.nr_cbufs &&
++                 ctx->fb_state.samples == ctx->gfx_pipeline_state.lightning_forced_samples) &&
+                                                                         ctx->gfx_stages[MESA_SHADER_FRAGMENT]->info.outputs_written & BITFIELD_BIT(FRAG_RESULT_DATA0));
+          if (ctx->ds3_states & BITFIELD_BIT(ZINK_DS3_BLEND_A21))
+             VKCTX(CmdSetAlphaToOneEnableEXT)(bs->cmdbuf, ctx->gfx_pipeline_state.blend_state->alpha_to_one);
+@@ -574,7 +578,7 @@
+       zink_rebind_all_images(ctx);
+    }
+ 
+-   unsigned index_offset = 0;
++   unsigned index_offset = ctx->lightning_index_buffer_offset;
+    unsigned index_size = dinfo->index_size;
+    struct pipe_resource *index_buffer = NULL;
+    if (index_size > 0) {
+@@ -591,6 +595,11 @@
+       } else if (BATCH_CHANGED || ctx->index_buffer != dinfo->index.resource || ctx->index_size != dinfo->index_size) {
+          ctx->index_buffer = index_buffer = dinfo->index.resource;
+          ctx->index_size = dinfo->index_size;
++         /* Usage tracking alone does not own the current Vulkan buffer. An
++          * application may discard or release its index buffer before this
++          * batch is submitted, including when barrier emission is skipped.
++          */
++         zink_batch_reference_resource(ctx, zink_resource(index_buffer));
+          zink_batch_resource_usage_set(ctx->bs, zink_resource(index_buffer), false, true);
+       }
+       assert(index_size <= 4 && index_size != 3);
+
+diff --git a/src/gallium/drivers/zink/zink_screen.h b/src/gallium/drivers/zink/zink_screen.h
+--- a/src/gallium/drivers/zink/zink_screen.h
++++ b/src/gallium/drivers/zink/zink_screen.h
+@@ -37,6 +37,17 @@
+ zink_init_screen_pipeline_libs(struct zink_screen *screen);
+ 
+ 
++/* Qemu Lightning: only enabled features permit recording this dynamic state.
++ * Static pipelines, pipeline libraries and command replay use the same gate. */
++static inline bool
++zink_dynamic_rasterization_stream(const struct zink_screen *screen)
++{
++   return screen->info.have_EXT_transform_feedback &&
++          screen->info.tf_feats.transformFeedback && screen->info.tf_feats.geometryStreams &&
++          screen->info.have_EXT_extended_dynamic_state3 &&
++          screen->info.dynamic_state3_feats.extendedDynamicState3RasterizationStream;
++}
++
+ /* update last_finished to account for batch_id wrapping */
+ static inline void
+ zink_screen_update_last_finished(struct zink_screen *screen, uint64_t batch_id)
+
+diff --git a/src/gallium/drivers/zink/zink_pipeline.c b/src/gallium/drivers/zink/zink_pipeline.c
+--- a/src/gallium/drivers/zink/zink_pipeline.c
++++ b/src/gallium/drivers/zink/zink_pipeline.c
+@@ -38,6 +38,24 @@
+ 
+ #define GFX_INPUT_MESH 32
+ 
++/* Rust/native policy accepts only single-sample attachments in mixed mode.
++ * Both monolithic and output-library pipelines carry the actual attachment
++ * sample count instead of assuming it equals the rasterization sample count. */
++static void
++lightning_attachment_samples(const struct zink_gfx_pipeline_state *state,
++                            VkAttachmentSampleCountInfoNV *info,
++                            VkSampleCountFlagBits *colors)
++{
++   memset(info, 0, sizeof(*info));
++   info->sType = VK_STRUCTURE_TYPE_ATTACHMENT_SAMPLE_COUNT_INFO_NV;
++   info->pNext = &state->rendering_info;
++   info->colorAttachmentCount = state->rendering_info.colorAttachmentCount;
++   info->pColorAttachmentSamples = colors;
++   info->depthStencilAttachmentSamples = VK_SAMPLE_COUNT_1_BIT;
++   for (unsigned slot = 0; slot < info->colorAttachmentCount; ++slot)
++      colors[slot] = VK_SAMPLE_COUNT_1_BIT;
++}
++
+ VkPipeline
+ zink_create_gfx_pipeline(struct zink_screen *screen,
+                          struct zink_gfx_program *prog,
+@@ -117,7 +135,9 @@
+    ms_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    ms_state.rasterizationSamples = state->rast_samples + 1;
+    if (state->blend_state) {
+-      ms_state.alphaToCoverageEnable = state->blend_state->alpha_to_coverage;
++      ms_state.alphaToCoverageEnable = state->blend_state->alpha_to_coverage &&
++            !(state->lightning_forced_samples && state->rendering_info.colorAttachmentCount &&
++              state->rast_samples + 1 == state->lightning_forced_samples);
+       if (state->blend_state->alpha_to_one && !screen->info.feats.features.alphaToOne) {
+          static bool warned = false;
+          warn_missing_feature(warned, "alphaToOne");
+@@ -214,6 +234,8 @@
+       VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+    };
+    unsigned state_count = 4;
++   if (zink_dynamic_rasterization_stream(screen))
++      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT;
+    if (state->custom_sample_locations) {
+       dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT;
+       ms_state.pNext = &pslsci;
+@@ -369,6 +391,12 @@
+       pci.flags |= VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+    pci.layout = prog->base.layout;
+    pci.pNext = &state->rendering_info;
++   VkAttachmentSampleCountInfoNV mixed_samples;
++   VkSampleCountFlagBits color_samples[PIPE_MAX_COLOR_BUFS];
++   if (state->lightning_forced_samples > 1 && state->rendering_info.colorAttachmentCount) {
++      lightning_attachment_samples(state, &mixed_samples, color_samples);
++      pci.pNext = &mixed_samples;
++   }
+    if (!is_mesh) {
+       if (needs_vi)
+          pci.pVertexInputState = &vertex_input_state;
+@@ -515,6 +543,13 @@
+       VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT,
+    };
+ 
++   VkAttachmentSampleCountInfoNV mixed_samples;
++   VkSampleCountFlagBits color_samples[PIPE_MAX_COLOR_BUFS];
++   if (state->lightning_forced_samples > 1 && state->rendering_info.colorAttachmentCount) {
++      lightning_attachment_samples(state, &mixed_samples, color_samples);
++      gplci.pNext = &mixed_samples;
++   }
++
+    VkPipelineColorBlendStateCreateInfo blend_state = {0};
+    blend_state.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    if (state->rast_attachment_order)
+@@ -522,6 +557,7 @@
+ 
+    VkPipelineMultisampleStateCreateInfo ms_state = {0};
+    ms_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
++   ms_state.rasterizationSamples = state->rast_samples + 1;
+    if (state->force_persample_interp) {
+       ms_state.sampleShadingEnable = VK_TRUE;
+       ms_state.minSampleShading = 1.0;
+@@ -569,7 +605,9 @@
+          blend_state.logicOpEnable = state->blend_state->logicop_enable;
+          blend_state.logicOp = state->blend_state->logicop_func;
+ 
+-         ms_state.alphaToCoverageEnable = state->blend_state->alpha_to_coverage;
++         ms_state.alphaToCoverageEnable = state->blend_state->alpha_to_coverage &&
++            !(state->lightning_forced_samples && state->rendering_info.colorAttachmentCount &&
++              state->rast_samples + 1 == state->lightning_forced_samples);
+          if (state->blend_state->alpha_to_one && !screen->info.feats.features.alphaToOne) {
+             static bool warned = false;
+             warn_missing_feature(warned, "alphaToOne");
+@@ -781,6 +819,8 @@
+       VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+    };
+    unsigned state_count = 3;
++   if (zink_dynamic_rasterization_stream(screen))
++      dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT;
+    dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT;
+    dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT;
+    dynamicStateEnables[state_count++] = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+@@ -987,7 +1027,7 @@
+    struct set_entry *he = _mesa_set_search_pre_hashed(&ctx->gfx_outputs, hash, &ctx->gfx_pipeline_state);
+    if (!he) {
+       struct zink_gfx_output_key *okey = rzalloc(ctx, struct zink_gfx_output_key);
+-      memcpy(okey, &ctx->gfx_pipeline_state, sizeof(uint32_t));
++      memcpy(okey, &ctx->gfx_pipeline_state, offsetof(struct zink_gfx_output_key, sample_mask));
+       okey->pipeline = zink_create_gfx_pipeline_output(zink_screen(ctx->base.screen), &ctx->gfx_pipeline_state);
+       he = _mesa_set_add_pre_hashed(&ctx->gfx_outputs, hash, okey);
+    }
+
+diff --git a/src/gallium/drivers/zink/zink_blit.c b/src/gallium/drivers/zink/zink_blit.c
+--- a/src/gallium/drivers/zink/zink_blit.c
++++ b/src/gallium/drivers/zink/zink_blit.c
+@@ -367,7 +367,7 @@
+       dst = dst->transient;
+    bool needs_present_readback = false;
+ 
+-   if (ctx->awaiting_resolve && ctx->in_rp && ctx->dynamic_fb.tc_info.has_resolve) {
++   if (!ctx->blitter->rotation && ctx->awaiting_resolve && ctx->in_rp && ctx->dynamic_fb.tc_info.has_resolve) {
+       bool is_depth = util_format_is_depth_or_stencil(info->src.format);
+       struct pipe_resource *resolve = ctx->fb_state.resolve;
+       if (!resolve)
+@@ -384,9 +384,10 @@
+          return;
+    }
+ 
+-   if (src_desc == dst_desc ||
+-       src_desc->nr_channels != 4 || src_desc->layout != UTIL_FORMAT_LAYOUT_PLAIN ||
+-       (src_desc->nr_channels == 4 && src_desc->channel[3].type != UTIL_FORMAT_TYPE_VOID)) {
++   if (!ctx->blitter->rotation &&
++       (src_desc == dst_desc ||
++        src_desc->nr_channels != 4 || src_desc->layout != UTIL_FORMAT_LAYOUT_PLAIN ||
++        (src_desc->nr_channels == 4 && src_desc->channel[3].type != UTIL_FORMAT_TYPE_VOID))) {
+       /* we can't blit RGBX -> RGBA formats directly since they're emulated
+        * so we have to use sampler views
+        */
+@@ -552,6 +553,7 @@
+    } else {
+       struct pipe_blit_info new_info = *info;
+       new_info.src.resource = &use_src->base.b;
++      ctx->blitter->draw_completed = false;
+       util_blitter_blit(ctx->blitter, &new_info, NULL);
+    }
+    ctx->blitting = false;
+@@ -745,7 +747,7 @@
+    /* Avoid inconsistencies in rounding between both triangles which can show with
+     * nearest filtering by expanding the rect so only one triangle is effectively drawn.
+     */
+-   if (ctx->blit_scissor && ctx->blit_nearest) {
++   if (!blitter->rotation && ctx->blit_scissor && ctx->blit_nearest) {
+       int64_t new_x1 = (int64_t)x1 * 2 - x2;
+       int64_t new_y2 = (int64_t)y2 * 2 - y1;
+       if (new_x1 < INT32_MAX && new_x1 > INT32_MIN &&
+
+diff --git a/src/gallium/auxiliary/util/u_blitter.c b/src/gallium/auxiliary/util/u_blitter.c
+--- a/src/gallium/auxiliary/util/u_blitter.c
++++ b/src/gallium/auxiliary/util/u_blitter.c
+@@ -1387,17 +1387,25 @@
+    struct pipe_vertex_buffer vb = {0};
+    struct pipe_resource *releasebuf = NULL;
+ 
++   void *vs = get_vs(&ctx->base);
++
++   if (ctx->base.rotation && !vs) {
++      ctx->base.draw_failed = true;
++      return;
++   }
+    blitter_set_rectangle(ctx, x1, y1, x2, y2, depth);
+ 
+    u_upload_data(pipe->stream_uploader, 0, sizeof(ctx->vertices), 4, ctx->vertices,
+                  &vb.buffer_offset, &vb.buffer.resource, &releasebuf);
+-   if (!vb.buffer.resource)
++   if (!vb.buffer.resource) {
++      ctx->base.draw_failed = true;
+       return;
++   }
+    u_upload_unmap(pipe->stream_uploader);
+ 
+    pipe->bind_vertex_elements_state(pipe, vertex_elements_cso);
+    pipe->set_vertex_buffers(pipe, 1, &vb);
+-   pipe->bind_vs_state(pipe, get_vs(&ctx->base));
++   pipe->bind_vs_state(pipe, vs);
+    ctx->must_unset_vbuf = true;
+ 
+    if (ctx->base.use_index_buffer) {
+@@ -1413,6 +1421,7 @@
+       util_draw_arrays_instanced(pipe, MESA_PRIM_TRIANGLE_FAN, 0, 4,
+                                  0, num_instances);
+    }
++   ctx->base.draw_completed = true;
+    pipe_resource_release(pipe, releasebuf);
+ }
+ 
+@@ -1449,6 +1458,17 @@
+       default:;
+    }
+ 
++   if (blitter->rotation &&
++       (type == UTIL_BLITTER_ATTRIB_TEXCOORD_XY || type == UTIL_BLITTER_ATTRIB_TEXCOORD_XYZW)) {
++      /* Vertex order is TL, TR, BR, BL. In top-left display coordinates a
++       * counter-clockwise quarter turn maps destination TL to source TR. */
++      float coords[4][2];
++
++      for (unsigned i = 0; i < 4; i++)
++         memcpy(coords[i], ctx->vertices[i][1], sizeof(coords[i]));
++      for (unsigned i = 0; i < 4; i++)
++         memcpy(ctx->vertices[i][1], coords[(i + blitter->rotation) % 4], sizeof(coords[i]));
++   }
+    blitter_draw(ctx, vertex_elements_cso, get_vs, x1, y1, x2, y2, depth,
+                 num_instances);
+ }
+@@ -1763,6 +1783,16 @@
+    /* Initialize the sampler view. */
+    util_blitter_default_src_texture(blitter, &src_templ, src, src_level);
+    src_view = pipe->create_sampler_view(pipe, src, &src_templ);
++
++   if (!src_view) {
++      blitter->draw_failed = true;
++      util_blitter_restore_vertex_states(blitter);
++      util_blitter_restore_fragment_states(blitter);
++      util_blitter_restore_textures_internal(blitter, 0);
++      util_blitter_restore_fb_state(blitter);
++      util_blitter_restore_render_cond(blitter);
++      return;
++   }
+ 
+    /* Copy. */
+    util_blitter_blit_generic(blitter, &dst_templ, &dstbox,
+@@ -1971,8 +2001,9 @@
+          util_format_description(src->format);
+    bool src_has_stencil = util_format_has_stencil(src_desc);
+ 
+-   bool is_scaled = dstbox->width != abs(srcbox->width) ||
+-                    dstbox->height != abs(srcbox->height) ||
++   bool swap_axes = blitter->rotation & 1;
++   bool is_scaled = dstbox->width != abs(swap_axes ? srcbox->height : srcbox->width) ||
++                    dstbox->height != abs(swap_axes ? srcbox->width : srcbox->height) ||
+                     dstbox->depth != abs(srcbox->depth);
+ 
+    if (src_has_stencil || !is_scaled)
+@@ -2059,14 +2090,16 @@
+       goto out;
+    }
+ 
+-   bool is_scaled = dstbox->width != abs(srcbox->width) ||
+-                    dstbox->height != abs(srcbox->height) ||
++   bool swap_axes = blitter->rotation & 1;
++   bool is_scaled = dstbox->width != abs(swap_axes ? srcbox->height : srcbox->width) ||
++                    dstbox->height != abs(swap_axes ? srcbox->width : srcbox->height) ||
+                     dstbox->depth != abs(srcbox->depth);
+ 
+    if (src_has_stencil || !is_scaled)
+       filter = PIPE_TEX_FILTER_NEAREST;
+ 
+-   bool use_txf = util_blitter_blit_with_txf(blitter, dstbox, src, srcbox,
++   bool use_txf = !blitter->rotation &&
++                  util_blitter_blit_with_txf(blitter, dstbox, src, srcbox,
+                                              src_width0, src_height0, filter);
+ 
+    /* Check whether the states are properly saved. */
+@@ -2078,6 +2111,14 @@
+    blitter_disable_render_cond(ctx);
+ 
+    void *fs = fs_override;
++
++   if (blitter->rotation &&
++       (!ctx->blend[mask & PIPE_MASK_RGBA][alpha_blend] || !ctx->dsa_keep_depth_stencil ||
++        !ctx->velem_state || !ctx->rs_state[scissor != NULL][dst_samples > 1] ||
++        !(filter == PIPE_TEX_FILTER_LINEAR ? ctx->sampler_state_linear : ctx->sampler_state))) {
++      blitter->draw_failed = true;
++      goto restore;
++   }
+ 
+    /* Blend, DSA, fragment shader. */
+    if (dst_has_depth && dst_has_stencil) {
+@@ -2143,6 +2184,10 @@
+       }
+    }
+ 
++   if (blitter->rotation && !fs) {
++      blitter->draw_failed = true;
++      goto restore;
++   }
+    ctx->bind_fs_state(pipe, fs);
+ 
+    /* Set the linear filter only for scaled color non-MSAA blits. */
+@@ -2213,6 +2258,7 @@
+    do_blits(ctx, dst, dstbox, src, src_width0, src_height0,
+             srcbox, dst_has_depth || dst_has_stencil, use_txf, sample0_only,
+             dst_sample);
++restore:
+    util_blitter_unset_running_flag(blitter);
+ out:
+    util_blitter_restore_vertex_states(blitter);
+@@ -2253,6 +2299,16 @@
+       src_templ.swizzle_a = swizzle[3];
+    }
+    src_view = pipe->create_sampler_view(pipe, src, &src_templ);
++
++   if (!src_view) {
++      blitter->draw_failed = true;
++      util_blitter_restore_vertex_states(blitter);
++      util_blitter_restore_fragment_states(blitter);
++      util_blitter_restore_textures_internal(blitter, 0);
++      util_blitter_restore_fb_state(blitter);
++      util_blitter_restore_render_cond(blitter);
++      return;
++   }
+ 
+    /* Copy. */
+    util_blitter_blit_generic(blitter, &dst_templ, &info->dst.box,
+
+diff --git a/src/gallium/auxiliary/util/u_blitter.h b/src/gallium/auxiliary/util/u_blitter.h
+--- a/src/gallium/auxiliary/util/u_blitter.h
++++ b/src/gallium/auxiliary/util/u_blitter.h
+@@ -97,6 +97,12 @@
+    /* Whether the blitter is running. */
+    bool running;
+ 
++   /* Lightning display copies: counter-clockwise quarter turns, scoped by the
++    * immediate native adapter. Completion describes an actual recorded draw. */
++   unsigned rotation;
++   bool draw_completed;
++   bool draw_failed;
++
+    bool use_index_buffer;
+ 
+    /* Private members, really. */
+
+diff --git a/src/gallium/drivers/zink/zink_program.c b/src/gallium/drivers/zink/zink_program.c
+--- a/src/gallium/drivers/zink/zink_program.c
++++ b/src/gallium/drivers/zink/zink_program.c
+@@ -24,6 +24,7 @@
+ #include "zink_program.h"
+ 
+ #include "zink_compiler.h"
++#include "../../frontends/d3d10umd/ForcedSamplesPolicy.h"
+ #include "zink_context.h"
+ #include "zink_descriptors.h"
+ #include "zink_helpers.h"
+@@ -565,7 +566,7 @@
+ hash_gfx_output_ds3(const void *key)
+ {
+    const uint8_t *data = key;
+-   return _mesa_hash_data(data, sizeof(uint32_t));
++   return _mesa_hash_data(data, offsetof(struct zink_gfx_output_key, sample_mask));
+ }
+ 
+ static bool
+@@ -573,7 +574,7 @@
+ {
+    const uint8_t *da = a;
+    const uint8_t *db = b;
+-   return !memcmp(da, db, sizeof(uint32_t));
++   return !memcmp(da, db, offsetof(struct zink_gfx_output_key, sample_mask));
+ }
+ 
+ uint32_t
+@@ -2186,11 +2187,21 @@
+ {
+    if (!ctx->gfx_stages[MESA_SHADER_FRAGMENT])
+       return;
+-   if (zink_shader_uses_samples(ctx->gfx_stages[MESA_SHADER_FRAGMENT])) {
+-      bool samples = zink_get_fs_base_key(ctx)->samples;
+-      if (samples != (ctx->fb_state.samples > 1))
+-         zink_set_fs_base_key(ctx)->samples = ctx->fb_state.samples > 1;
+-   }
++   unsigned forced = ctx->gfx_pipeline_state.lightning_forced_samples;
++   bool samples = forced || (ctx->fb_state.samples > 1 &&
++                              zink_shader_uses_samples(ctx->gfx_stages[MESA_SHADER_FRAGMENT]));
++   if (zink_get_fs_base_key(ctx)->samples != samples)
++      zink_set_fs_base_key(ctx)->samples = samples;
++   unsigned tir = 0;
++   if (forced && ctx->fb_state.nr_cbufs) {
++      if (forced == 1 && ctx->fb_state.samples > 1)
++         tir = QLG_TIR_MODE_CENTER_INPUT; /* Center-sampled MSAA output; keep output sample identities. */
++      else
++         tir = ctx->gfx_pipeline_state.blend_state &&
++               ctx->gfx_pipeline_state.blend_state->alpha_to_coverage ? QLG_TIR_MODE_SINGLE_OUTPUT_ALPHA : QLG_TIR_MODE_SINGLE_OUTPUT;
++   }
++   if (zink_get_fs_base_key(ctx)->lightning_tir != tir)
++      zink_set_fs_base_key(ctx)->lightning_tir = tir;
+ }
+ 
+ void zink_update_gs_key_rectangular_line(struct zink_context *ctx)
+@@ -2631,7 +2642,7 @@
+    else
+       _mesa_set_init(&ctx->gfx_outputs, ctx, hash_gfx_output, equals_gfx_output);
+    /* validate struct packing */
+-   STATIC_ASSERT(offsetof(struct zink_gfx_output_key, sample_mask) == sizeof(uint32_t));
++   STATIC_ASSERT(offsetof(struct zink_gfx_output_key, sample_mask) == 2 * sizeof(uint32_t));
+    STATIC_ASSERT(offsetof(struct zink_gfx_pipeline_state, vertex_buffers_enabled_mask) - offsetof(struct zink_gfx_pipeline_state, input) ==
+                  offsetof(struct zink_gfx_input_key, vertex_buffers_enabled_mask) - offsetof(struct zink_gfx_input_key, input));
+    STATIC_ASSERT(offsetof(struct zink_gfx_pipeline_state, vertex_strides) - offsetof(struct zink_gfx_pipeline_state, input) ==
+
+diff --git a/src/gallium/drivers/zink/zink_shader_keys.h b/src/gallium/drivers/zink/zink_shader_keys.h
+--- a/src/gallium/drivers/zink/zink_shader_keys.h
++++ b/src/gallium/drivers/zink/zink_shader_keys.h
+@@ -86,7 +86,7 @@
+    bool force_persample_interp : 1;
+    bool fbfetch_ms : 1;
+    bool shadow_needs_shader_swizzle : 1; //append zink_zs_swizzle_key after the key data
+-   uint8_t pad : 2;
++   uint8_t lightning_tir : 2;
+    uint8_t coord_replace_bits;
+ };
+ 
+
+diff --git a/src/gallium/drivers/zink/zink_device_info.py b/src/gallium/drivers/zink/zink_device_info.py
+--- a/src/gallium/drivers/zink/zink_device_info.py
++++ b/src/gallium/drivers/zink/zink_device_info.py
+@@ -156,6 +156,7 @@
+               alias="interlock",
+               features=True,
+               conditions=["$feats.fragmentShaderSampleInterlock", "$feats.fragmentShaderPixelInterlock"]),
++    Extension("VK_NV_framebuffer_mixed_samples"),
+     Extension("VK_EXT_sample_locations",
+               alias="sample_locations",
+               properties=True),
+
+diff --git a/src/gallium/drivers/zink/zink_state.c b/src/gallium/drivers/zink/zink_state.c
+--- a/src/gallium/drivers/zink/zink_state.c
++++ b/src/gallium/drivers/zink/zink_state.c
+@@ -392,6 +392,8 @@
+       }
+ 
+    }
++   zink_update_fs_key_samples(ctx);
++
+ }
+ 
+ static void
+@@ -732,6 +734,22 @@
+       if (!screen->optimal_keys)
+          zink_update_gs_key_rectangular_line(ctx);
+    }
++   /* Native utility draws bind their own zero-initialized CSO; restoring the
++    * application's CSO restores its forced sample count and shader key too. */
++   unsigned forced = ctx->rast_state ? ctx->rast_state->lightning_forced_samples : 0;
++   if (ctx->gfx_pipeline_state.lightning_forced_samples != forced) {
++      ctx->gfx_pipeline_state.lightning_forced_samples = forced;
++      ctx->blend_state_changed = true;
++      ctx->ds3_states |= BITFIELD_BIT(ZINK_DS3_BLEND_A2C);
++      struct pipe_framebuffer_state fb = ctx->fb_state;
++      if (!fb.nr_cbufs && !fb.zsbuf.texture)
++         fb.samples = MAX2(forced, 1);
++      pctx->set_sample_locations(pctx, 0, NULL);
++      pctx->set_framebuffer_state(pctx, &fb);
++      ctx->gfx_pipeline_state.dirty = ctx->gfx_pipeline_state.mesh_dirty = true;
++      zink_update_fs_key_samples(ctx);
++   }
++
+ }
+ 
+ static void
+diff --git a/src/gallium/drivers/zink/zink_compiler.c b/src/gallium/drivers/zink/zink_compiler.c
+--- a/src/gallium/drivers/zink/zink_types.h
++++ b/src/gallium/drivers/zink/zink_types.h
+@@ -79,7 +79,8 @@
+ /* number of descriptors to allocate in a pool */
+ #define MAX_LAZY_DESCRIPTORS 500
+ /* explicit clamping because descriptor caching used to exist */
+-#define ZINK_MAX_SHADER_IMAGES 32
++#define ZINK_MAX_SHADER_IMAGES PIPE_MAX_SHADER_IMAGES
++#define ZINK_MAX_SHADER_RESOURCES MAX2(PIPE_MAX_SAMPLERS, ZINK_MAX_SHADER_IMAGES)
+ /* total number of bindless ids that can be allocated */
+ #define ZINK_MAX_BINDLESS_HANDLES 1024
+ 
+@@ -1294,7 +1295,7 @@
+       };
+    };
+    uint32_t sampler_binds[MESA_SHADER_MESH_STAGES];
+-   uint32_t image_binds[MESA_SHADER_MESH_STAGES];
++   uint64_t image_binds[MESA_SHADER_MESH_STAGES];
+    uint16_t sampler_bind_count[2]; //gfx, compute
+    uint16_t image_bind_count[2]; //gfx, compute
+    uint16_t write_bind_count[2]; //gfx, compute
+@@ -1927,7 +1928,7 @@
+       /* the current state of the zs swizzle data */
+       struct zink_zs_swizzle_key zs_swizzle[MESA_SHADER_MESH_STAGES];
+ 
+-      struct zink_resource *descriptor_res[ZINK_DESCRIPTOR_BASE_TYPES][MESA_SHADER_MESH_STAGES][PIPE_MAX_SAMPLERS];
++      struct zink_resource *descriptor_res[ZINK_DESCRIPTOR_BASE_TYPES][MESA_SHADER_MESH_STAGES][ZINK_MAX_SHADER_RESOURCES];
+ 
+       struct {
+          struct util_idalloc tex_slots; //img, buffer
+
+--- a/src/gallium/drivers/zink/zink_context.c
++++ b/src/gallium/drivers/zink/zink_context.c
+@@ -1981,7 +1981,7 @@
+ 
+    bool is_buffer = image_view->base.resource->target == PIPE_BUFFER;
+    struct zink_resource *res = zink_resource(image_view->base.resource);
+-   res->image_binds[stage] &= ~BITFIELD_BIT(slot);
++   res->image_binds[stage] &= ~BITFIELD64_BIT(slot);
+    if (!res->write_bind_count[is_compute])
+       res->barrier_access[stage == MESA_SHADER_COMPUTE] &= ~VK_ACCESS_SHADER_WRITE_BIT;
+    
+@@ -2240,9 +2240,9 @@
+             a->base.u.buf.size = MIN2(a->base.u.buf.size / blocksize, screen->info.props.limits.maxTexelBufferElements) * blocksize;
+          }
+          update = true;
+-         res->image_binds[shader_type] |= BITFIELD_BIT(start_slot + i);
++         res->image_binds[shader_type] |= BITFIELD64_BIT(start_slot + i);
+          if (tex2d_from_buf)
+-            a->import2d->image_binds[shader_type] |= BITFIELD_BIT(start_slot + i);
++            a->import2d->image_binds[shader_type] |= BITFIELD64_BIT(start_slot + i);
+       } else if (a->base.resource) {
+          update = true;
+          unbind_shader_image(ctx, shader_type, start_slot + i);
+
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -329,6 +329,11 @@
+    /* Hash in our debug flags that affect NIR generation as of finalize_nir */
+    unsigned shader_debug_flags = zink_debug & ZINK_DEBUG_COMPACT;
+    _mesa_blake3_update(&ctx, &shader_debug_flags, sizeof(shader_debug_flags));
++
++   /* Private descriptor-layout changes must invalidate cached shader bindings
++    * even on Windows toolchains without an ELF build ID. */
++   const uint32_t descriptor_limits[] = {ZINK_MAX_SHADER_IMAGES, ZINK_MAX_SHADER_RESOURCES};
++   _mesa_blake3_update(&ctx, descriptor_limits, sizeof(descriptor_limits));
+ 
+    /* add in these shader keys */
+    _mesa_blake3_update(&ctx, &screen->driver_compiler_workarounds, sizeof(screen->driver_compiler_workarounds));
+--- a/src/gallium/drivers/zink/zink_compiler.c
++++ b/src/gallium/drivers/zink/zink_compiler.c
+@@ -25,6 +25,7 @@
+ #include "shader_enums.h"
+ #include "zink_context.h"
+ #include "zink_compiler.h"
++#include "../../frontends/d3d10umd/ForcedSamplesPolicy.h"
+ #include "zink_descriptors.h"
+ #include "zink_program.h"
+ #include "zink_screen.h"
+@@ -1389,6 +1390,19 @@
+    screen->ntv_info.bindless_set_idx = screen->desc_set_id[ZINK_DESCRIPTOR_BINDLESS];
+ }
+ 
++static bool
++lower_tgsi_vertex_id(nir_builder *b, nir_intrinsic_instr *intr, void *data)
++{
++   if (intr->intrinsic != nir_intrinsic_load_vertex_id_zero_base)
++      return false;
++
++   /* Direct3D IDs exclude both the non-indexed start and indexed base. */
++   b->cursor = nir_before_instr(&intr->instr);
++   nir_def *vertex_id = nir_isub(b, nir_load_vertex_id(b), nir_load_first_vertex(b));
++   nir_def_replace(&intr->def, vertex_id);
++   return true;
++}
++
+ struct nir_shader *
+ zink_tgsi_to_nir(struct pipe_screen *screen, const struct tgsi_token *tokens)
+ {
+@@ -1398,7 +1412,14 @@
+       fprintf(stderr, "---8<---\n\n");
+    }
+ 
+-   return tgsi_to_nir(tokens, screen, false);
++   nir_shader *nir = tgsi_to_nir(tokens, screen, false);
++
++   if (nir) {
++      NIR_PASS(_, nir, nir_shader_intrinsics_pass, lower_tgsi_vertex_id,
++                 nir_metadata_control_flow, NULL);
++      nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
++   }
++   return nir;
+ }
+ 
+ 
+@@ -1685,7 +1706,9 @@
+ 
+    b->cursor = nir_before_instr(&txf->instr);
+    int lod_idx = nir_tex_instr_src_index(txf, nir_tex_src_lod);
+-   assert(lod_idx >= 0);
++
++   if (lod_idx < 0)
++      return false;
+    nir_src lod_src = txf->src[lod_idx].src;
+    if (nir_src_is_const(lod_src) && nir_src_as_const_value(lod_src)->u32 == 0)
+       return false;
+@@ -1696,10 +1719,13 @@
+    int handle_idx = nir_tex_instr_src_index(txf, nir_tex_src_texture_handle);
+    int deref_idx = nir_tex_instr_src_index(txf, nir_tex_src_texture_deref);
+    nir_tex_instr *levels = nir_tex_instr_create(b->shader,
+-                                                1 + !!(offset_idx >= 0) + !!(handle_idx >= 0));
++                         !!(deref_idx >= 0) + !!(offset_idx >= 0) + !!(handle_idx >= 0));
+    unsigned src_idx = 0;
+    levels->op = nir_texop_query_levels;
+    levels->dest_type = nir_type_int | lod->bit_size;
++   levels->sampler_dim = txf->sampler_dim;
++   levels->is_array = txf->is_array;
++   levels->backend_flags = txf->backend_flags;
+    if (deref_idx >= 0) {
+       levels->src[src_idx].src_type = nir_tex_src_texture_deref;
+       levels->src[src_idx++].src = nir_src_for_ssa(txf->src[deref_idx].src.ssa);
+@@ -3914,6 +3940,67 @@
+    return true;
+ }
+ 
++/* D3D TIR separates raster coverage from output coverage. Vulkan's mixed
++ * samples merge coverage; a shader output mask therefore broadcasts bit zero.
++ * Center-sampled MSAA keeps the real output mask and folds only the input. */
++static bool
++lower_lightning_coverage_intrinsic(nir_builder *b, nir_intrinsic_instr *intr, void *data)
++{
++   unsigned mode = *(unsigned *)data;
++   if (mode == QLG_TIR_MODE_CENTER_INPUT && intr->intrinsic == nir_intrinsic_load_sample_mask_in) {
++      b->cursor = nir_after_instr(&intr->instr);
++      nir_def *covered = nir_b2i32(b, nir_ine_imm(b, &intr->def, 0));
++      nir_def_rewrite_uses_after(&intr->def, covered);
++      return true;
++   }
++   if (mode < QLG_TIR_MODE_SINGLE_OUTPUT || intr->intrinsic != nir_intrinsic_store_deref)
++      return false;
++   nir_variable *var = nir_intrinsic_get_var(intr, 0);
++   if (!var || var->data.mode != nir_var_shader_out ||
++       var->data.location != FRAG_RESULT_SAMPLE_MASK)
++      return false;
++   b->cursor = nir_before_instr(&intr->instr);
++   nir_def *enabled = nir_test_mask(b, intr->src[1].ssa, 1);
++   nir_def *mask = nir_bcsel(b, enabled, nir_imm_int(b, -1), nir_imm_int(b, 0));
++   nir_src_rewrite(&intr->src[1], mask);
++   return true;
++}
++
++/* The one-sample output alpha mask is computed after shader side effects.
++ * D3D disables alpha-to-coverage when the shader explicitly writes coverage.
++ * For an absent alpha output the API leaves alpha undefined; retain coverage. */
++static bool
++lower_lightning_forced_samples(nir_shader *nir, unsigned mode)
++{
++   if (!mode)
++      return false;
++   bool progress = nir_shader_intrinsics_pass(nir, lower_lightning_coverage_intrinsic,
++                                              nir_metadata_control_flow, &mode);
++   if (mode != QLG_TIR_MODE_SINGLE_OUTPUT_ALPHA || (nir->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK)))
++      return progress;
++   nir_function_impl *impl = nir_shader_get_entrypoint(nir);
++   nir_variable *color = NULL;
++   nir_foreach_shader_out_variable(var, nir) {
++      if (var->data.location == FRAG_RESULT_DATA0 && !var->data.index)
++         color = var;
++   }
++   if (!color || glsl_get_vector_elements(color->type) < 4)
++      return progress;
++   /* Move branch-local outputs to temporaries, then append a single epilogue. */
++   nir_lower_io_vars_to_temporaries(nir, impl, nir_var_shader_out);
++   nir_variable *mask_out = nir_variable_create(nir, nir_var_shader_out,
++                                               glsl_uint_type(), "lightning_output_coverage");
++   mask_out->data.location = FRAG_RESULT_SAMPLE_MASK;
++   mask_out->data.driver_location = nir->num_outputs++;
++   nir_builder b = nir_builder_at(nir_after_block(nir_impl_last_block(impl)));
++   nir_def *alpha = nir_channel(&b, nir_load_var(&b, color), 3);
++   nir_def *enabled = nir_fge(&b, alpha, nir_imm_float(&b, 0.5f));
++   nir_store_var(&b, mask_out, nir_bcsel(&b, enabled, nir_imm_int(&b, -1),
++                                      nir_imm_int(&b, 0)), 1);
++   nir_shader_gather_info(nir, impl);
++   return nir_progress(true, impl, nir_metadata_none);
++}
++
+ struct zink_shader_object
+ zink_shader_compile(struct zink_screen *screen, bool can_shobj, struct zink_shader *zs,
+                     nir_shader *nir, const struct zink_shader_key *key, const void *extra_data, struct zink_program *pg)
+@@ -4012,6 +4099,8 @@
+             NIR_PASS(need_optimize, nir, lower_txf_lod_robustness);
+          break;
+       case MESA_SHADER_FRAGMENT:
++         NIR_PASS(need_optimize, nir, lower_lightning_forced_samples,
++                  zink_fs_key_base(key)->lightning_tir);
+          if (zink_fs_key(key)->lower_line_smooth) {
+             NIR_PASS(_, nir, lower_line_smooth_fs,
+                        zink_fs_key(key)->lower_line_stipple);
+@@ -4371,7 +4460,28 @@
+    unsigned binding = tex->sampler_dim == GLSL_SAMPLER_DIM_BUF ? 1 : 0;
+    nir_variable *var;
+ 
+-   const struct glsl_type *sampler_type = glsl_sampler_type(tex->sampler_dim, tex->is_shadow, tex->is_array, GLSL_TYPE_FLOAT);
++   /* Keep descriptor aliases typed per instruction. Mixed dimensions and
++    * integer/comparison reads may share the same bindless descriptor binding. */
++   enum glsl_base_type base_type = GLSL_TYPE_FLOAT;
++   if (tex->backend_flags == nir_type_int32)
++      base_type = GLSL_TYPE_INT;
++   else if (tex->backend_flags == nir_type_uint32)
++      base_type = GLSL_TYPE_UINT;
++   else if (tex->op != nir_texop_txs && tex->op != nir_texop_query_levels &&
++       tex->op != nir_texop_texture_samples) {
++      if (nir_alu_type_get_base_type(tex->dest_type) == nir_type_int)
++         base_type = GLSL_TYPE_INT;
++      else if (nir_alu_type_get_base_type(tex->dest_type) == nir_type_uint)
++         base_type = GLSL_TYPE_UINT;
++   }
++   const struct glsl_type *sampler_type = glsl_sampler_type(tex->sampler_dim, tex->is_shadow, tex->is_array, base_type);
++   nir_foreach_variable_with_modes(existing, nir, nir_var_uniform) {
++      if (existing->data.descriptor_set == descriptor_set &&
++          existing->data.binding == binding && glsl_type_is_array(existing->type) &&
++          glsl_get_length(existing->type) == ZINK_MAX_BINDLESS_HANDLES &&
++          glsl_without_array(existing->type) == sampler_type)
++         return existing;
++   }
+    var = nir_variable_create(nir, nir_var_uniform, glsl_array_type(sampler_type, ZINK_MAX_BINDLESS_HANDLES, 0), "bindless_texture");
+    var->data.descriptor_set = descriptor_set;
+    var->data.driver_location = var->data.binding = binding;
+@@ -4380,16 +4490,25 @@
+ 
+ /* this is a "default" bindless image used if the shader has no image variables */
+ static nir_variable *
+-create_bindless_image(nir_shader *nir, enum glsl_sampler_dim dim, unsigned descriptor_set)
++create_bindless_image(nir_shader *nir, enum glsl_sampler_dim dim, bool array, unsigned descriptor_set, enum pipe_format format)
+ {
+    unsigned binding = dim == GLSL_SAMPLER_DIM_BUF ? 3 : 2;
+    nir_variable *var;
+ 
+-   const struct glsl_type *image_type = glsl_image_type(dim, false, GLSL_TYPE_FLOAT);
++   enum glsl_base_type numeric = util_format_is_pure_uint(format) ? GLSL_TYPE_UINT :
++                                 util_format_is_pure_sint(format) ? GLSL_TYPE_INT : GLSL_TYPE_FLOAT;
++   nir_foreach_variable_with_modes(existing, nir, nir_var_image) {
++      const struct glsl_type *type = glsl_without_array(existing->type);
++      if (glsl_type_is_image(type) && existing->data.descriptor_set == descriptor_set &&
++          existing->data.binding == binding && glsl_get_sampler_dim(type) == dim && glsl_sampler_type_is_array(type) == array &&
++          glsl_get_sampler_result_type(type) == numeric && existing->data.image.format == format)
++         return existing;
++   }
++   const struct glsl_type *image_type = glsl_image_type(dim, array, numeric);
+    var = nir_variable_create(nir, nir_var_image, glsl_array_type(image_type, ZINK_MAX_BINDLESS_HANDLES, 0), "bindless_image");
+    var->data.descriptor_set = descriptor_set;
+    var->data.driver_location = var->data.binding = binding;
+-   var->data.image.format = PIPE_FORMAT_R8G8B8A8_UNORM;
++   var->data.image.format = format;
+    return var;
+ }
+ 
+@@ -4405,18 +4524,20 @@
+       if (idx == -1)
+          return false;
+ 
+-      nir_variable *var = tex->sampler_dim == GLSL_SAMPLER_DIM_BUF ? bindless->bindless[1] : bindless->bindless[0];
+-      if (!var) {
+-         var = create_bindless_texture(b->shader, tex, bindless->bindless_set);
+-         if (tex->sampler_dim == GLSL_SAMPLER_DIM_BUF)
+-            bindless->bindless[1] = var;
+-         else
+-            bindless->bindless[0] = var;
+-      }
++      nir_variable *var = create_bindless_texture(b->shader, tex, bindless->bindless_set);
++
++      /* The Direct3D translator's sampled numeric type has been consumed. */
++      tex->backend_flags = 0;
+       b->cursor = nir_before_instr(in);
+       nir_deref_instr *deref = nir_build_deref_var(b, var);
+-      if (glsl_type_is_array(var->type))
+-         deref = nir_build_deref_array(b, deref, nir_u2uN(b, tex->src[idx].src.ssa, 32));
++      if (glsl_type_is_array(var->type)) {
++         nir_def *index = nir_u2uN(b, tex->src[idx].src.ssa, 32);
++
++         /* Native handles tag texel buffers with a separate handle range. */
++         if (tex->sampler_dim == GLSL_SAMPLER_DIM_BUF)
++            index = nir_iadd_imm(b, index, -ZINK_MAX_BINDLESS_HANDLES);
++         deref = nir_build_deref_array(b, deref, index);
++      }
+       nir_src_rewrite(&tex->src[idx].src, &deref->def);
+ 
+       /* bindless sampling uses the variable type directly, which means the tex instr has to exactly
+@@ -4428,9 +4549,9 @@
+        * - Warhammer 40k: Dawn of War III
+        */
+       unsigned needed_components = glsl_get_sampler_coordinate_components(glsl_without_array(var->type));
+-      unsigned c = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+-      unsigned coord_components = nir_src_num_components(tex->src[c].src);
+-      if (coord_components < needed_components) {
++      int c = nir_tex_instr_src_index(tex, nir_tex_src_coord);
++      unsigned coord_components = c >= 0 ? nir_src_num_components(tex->src[c].src) : 0;
++      if (c >= 0 && coord_components < needed_components) {
+          nir_def *def = nir_pad_vector(b, tex->src[c].src.ssa, needed_components);
+          nir_src_rewrite(&tex->src[c].src, def);
+          tex->coord_components = needed_components;
+@@ -4463,9 +4584,10 @@
+    }
+ 
+    enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
+-   nir_variable *var = dim == GLSL_SAMPLER_DIM_BUF ? bindless->bindless[3] : bindless->bindless[2];
+-   if (!var)
+-      var = create_bindless_image(b->shader, dim, bindless->bindless_set);
++   /* Image handles carry no shader numeric type. Preserve each instruction's
++    * real view format instead of treating integer counters as float RGBA. */
++   nir_variable *var = create_bindless_image(b->shader, dim, nir_intrinsic_image_array(instr), bindless->bindless_set,
++                                              nir_intrinsic_format(instr));
+    instr->intrinsic = op;
+    b->cursor = nir_before_instr(in);
+    nir_deref_instr *deref = nir_build_deref_var(b, var);

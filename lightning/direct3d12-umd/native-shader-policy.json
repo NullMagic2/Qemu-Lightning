@@ -1,0 +1,1196 @@
+{
+  "module": "lightning.direct3d12_umd.native_shader_policy",
+  "created": "2026-10-24",
+  "public_native_interface_ready": false,
+  "private_bundle": "QemuLightningInternalGetNativeShaderFunctions version 1 with exact bundle size; never a complete mandatory WDK core table",
+  "genuine_wdk_callbacks": [
+    "PFND3D12DDI_CALC_PRIVATE_ROOT_SIGNATURE_SIZE_0001",
+    "PFND3D12DDI_CREATE_ROOT_SIGNATURE_0001",
+    "PFND3D12DDI_DESTROY_ROOT_SIGNATURE",
+    "PFND3D12DDI_CALC_PRIVATE_SHADER_SIZE",
+    "PFND3D12DDI_CREATE_SHADER_0003 for vertex shaders",
+    "PFND3D12DDI_CREATE_COMPUTE_SHADER_0003",
+    "PFND3D12DDI_DESTROYSHADER",
+    "Separate Pixel bundle PFND3D12DDI_CREATE_SHADER_0003 for genuine R0 pixel shaders"
+  ],
+  "root_admission": "Genuine bounded root StructuredBuffer VS/PS reads and RWStructuredBuffer compute stores use static element/member offsets and actual declared structure stride. Existing raw SRV/UAV, CBV and inline root-constant support remains available. Bounded CBV tables additionally use true set0 uniform-buffer descriptor interfaces; other table classes and full public runtime support remain incomplete.",
+  "shader_admission": {
+    "input": "Bounded raw R0 token stream, not a DXBC container. Genuine token header and token count are normalized once; original caller tokens and signature arrays remain immutable through the call and are copied by the exact native compiler dependency.",
+    "stages": "Admitted resource-free VS/CS and no-input constant-output PS subsets accept genuine SM5.0/5.1 tokens; this is not full shader-model or feature-level support.",
+    "flags": "NONE only; shader tracing and other flags reject",
+    "signatures": "Genuine deprecated R0 signatures normalize to the five-u32 compiler contract. PS has zero inputs and exactly one UNDEFINED/NONE0 output register0, full mask15, FLOAT32 and default precision. No invented SV_Target R0 enum or full-container target namespace is accepted.",
+    "compiler": "Raw native compiler ABI2/exact stage mask VS|PS|CS verifies pinned base and truthful upstream integration patch identity, snapshots inputs, compiles genuine raw tokens, copies actual SPIR-V and releases owned results. Old raw ABI1 dependencies fail the version/stage gate; full-container ABI remains unchanged.",
+    "backend": "Actual selected-device VkShaderModule creation consumes copied bounded aligned SPIR-V. Bounded compute and VS/PS graphics PSO constructors consume these modules; this does not establish complete SPIR-V semantics or graphics execution.",
+    "pixel_scope": "No input/resource declarations; one full float4 immediate MOV to declared output0 followed by RET (supported global refactoring flag allowed). Missing/partial output writes or unsupported semantics reject before actual module creation. Module ownership does not establish complete pixel-stage behavior.",
+    "vertex_layer_output": {
+      "input": "Authoritative genuine R0 SV_Position float4 plus optional SV_RenderTargetArrayIndex uint scalar in a distinct register. Every output must be declared and written by admitted resource-free instructions.",
+      "compiler": "Additive NativeGetFeatures bit1 reports layer-policy support after the original ABI2/base/patch handshake. Old compatible compilers remain usable for ordinary native shaders and decline layer shaders.",
+      "selected_device": "Require and enable core geometryShader and Vulkan12 shaderOutputLayer together. Reject layer SPIR-V before VkShaderModule creation when the selected logical device lacks these enabled features. This grants no geometry-stage or general shader-model support.",
+      "private_query": "QemuLightningInternalGetNativeLayerSupport writes UINT0/1 under a retained live device generation and compiler handshake. It leaves the native shader bundle byte layout unchanged.",
+      "execution": "A real native Layer1 output selects the second slice relative to the retained RTV range, for Texture1D arrays, Texture2D arrays and Texture3D W-slice views. A shader without Layer keeps default first-slice behavior."
+    },
+    "vertex_inputs": "Original R0 authoritative ordinary input register/lane/component signatures, plus supported system values, compile through native ABI2 with additive FEATURE_VERTEX_INPUT2 handshake. FLOAT/UINT/SINT32 lanes map to actual SPIR-V input locations; absence of HLSL names is preserved. Declarations, reads and signature masks are checked; duplicate registers, malformed types/masks/precision and missing declarations refuse publication. Actual SDK float/uint/sint VS5.1 cases match full-container executable SPIR-V. Ordinary input masks are the supported contiguous x/xy/xyz/xyzw lanes; packed/noncontiguous register signatures remain unsupported."
+  },
+  "lifetime": [
+    "Generic one-or-two typed runtime key claims share the same atomic cross-kind registry as device, allocator, heap and resource storage. Existing committed resource pair ABI remains unchanged.",
+    "Globally fresh runtime cookies and distinct child tokens are claimed before backend creation; caller cookie outputs commit only after actual owner creation and shared-fault-aware native publication.",
+    "Every shader holds a same-device typed root reference before compiler entry, across module creation and throughout shader lifetime. Root retirement refuses while shader, pipeline-construction, live pipeline or transient size-query leases reference it.",
+    "Native child claims retain actual runtime context and selected backend device through destruction. Failed creation destroys actual local backend owners before releasing keys and parent retains.",
+    "Known-loss cleanup remains valid. New creation preserves original shared terminal fault and cannot publish an object after observed loss.",
+    "No compiler call, backend operation or genuine runtime SetError callback occurs while native ownership locks are held.",
+    "Genuine Create/Destroy shader callbacks capture an exact native device generation/callback lease before validation and retain it through actual operation plus bounded SetError notification; no stale-generation retargeting after rollback. Explicit status retirement helpers preserve busy ownership.",
+    "Runtime owns valid aligned immutable storage until successful retirement and all overlapping calls return; cookies cannot distinguish an old copied address after legal address reuse.",
+    "Compute pipeline construction atomically retains exact same-device CS and matching empty root. Shader retirement refuses while construction borrows its module; successful actual PSO creation releases that module reference and retains an independent root lease until pipeline destruction.",
+    "Native command recording separately acquires non-Copy PSO and empty-root binding leases. Their exact native device generation/root identities must match at Dispatch; PSO selection does not implicitly bind a root. Recording or detached pending submission ownership retains both leases. Optional Reset replaces closed recording owners while pending leases remain separately owned until their own accepted completion or safe drain; old completion cannot modify a new recording. Unreset completed lists retain their original owners until reset or retirement."
+  ],
+  "private_queries": "QueryShaderInfo consumes retained actual stage metadata; it grants no borrowed backend module or execution lease and rejects outputs overlapping any registered native cookie.",
+  "explicit_gaps": [
+    "No public native DDI version advertisement, complete mandatory device/list/queue/DXGI contract or public Windows runtime acceptance.",
+    "General descriptor tables, samplers, sampled images and full shader semantics remain incomplete. Bounded root constants, CBVs, raw and structured SRV reads, static literal compute UAV writes and actual vertex/index inputs are implemented.",
+    "Geometry, hull and domain shader creation and general VS/PS stage interfaces remain incomplete; VS/PS/CS have bounded implemented subsets.",
+    "General mixed shader/PSO command streams and full public DXGI presentation remain incomplete. Owned native fences and bounded COPY, graphics, compute and presentation paths exist.",
+    "Full Windows KMD segment/cache/residency, scheduled execution and GPUVA integration remain incomplete."
+  ],
+  "credit": "Partial connected native compiler/module/pipeline consumption and bounded VS/PS pipeline construction count. Full stage semantics, interfaces and resource-bound pipelines remain incomplete.",
+  "testing_credit": 0,
+  "pipeline_consumption": "Separate genuine R0 _0001 compute PSO callbacks consume an authoritative live CS and its exact supported same-device empty root. Explicit command setters independently retain PSO and empty-root bindings; one-shot fixed Dispatch(1,1,1) requires exact matching root identity and holds both owners through pending execution. This adds no resources, general stage semantics, public capabilities or runtime readiness claim. Separate additive graphics PSO construction atomically borrows same-device VS/PS and exact shared root, consumes actual modules into a bounded VkGraphicsPipeline, releases module construction references after bake and transfers an independent root lease. Fixed-state objects have separate atomic typed leases. Native DIRECT lists now retain a graphics-only PSO lease plus independently selected identical empty graphics root through actual state-command submission and detached pending completion/drain. A separate genuine R0 draw bundle joins the retained graphics PSO/root and complete state to one explicit initialized RTV and one procedural triangle.",
+  "pixel_extension": {
+    "entry": "QemuLightningInternalGetNativePixelShaderFunctions version1/exact separate bundle size; original VS/CS bundle layout unchanged",
+    "actual_work": "Genuine R0 size/CreatePixelShader/DestroyShader plus private retirement/stage query consume the shared typed root, fresh cookie, actual VkShaderModule, fault-aware publish and rollback owner implementation.",
+    "producer": "New native PS fixture uses fresh Microsoft HLSL Compiler10.1 SHEX from exact private SDK DLL. Inherited08 programs are not attributed to Microsoft; producer proof is retained separately by compiler owner.",
+    "milestone": "Bounded native pixel module ownership, connected VS/PS graphics pipeline construction and retained DIRECT state-command binding. Complete pixel semantics/interfaces, general resource-bound rendering/draw and public capabilities remain incomplete."
+  },
+  "vertex_pipeline_metadata": "Snapshot the actual ordinary shader input register/type/lane metadata with the retained native shader generation. PSO creation compares it to the exact normalized input layout and retained root IA permission before backend construction. Retire compiler input/source modules independently after actual PSO construction.",
+  "root_constants": {
+    "scope": "Genuine R0 root signatures support zero to64 root-constant parameters within the 64-DWORD root budget, register spaces, ALL/VS/PS visibility and immutable IA permission. Typed native claims retain real selected Vulkan push layouts with exact resource-free/constant-bearing root generations. Unsupported root descriptor/table/static-sampler and other visibility/flag families remain explicit gaps.",
+    "compiler": "A new additive QemuLightningShaderNativeCompileConstants export and feature bit4 retain original ABI2 request/entry behavior. Typed by-value constant binding plans snapshot register/space/word/visibility/offset metadata. Genuine decoded constant-buffer declarations and constant indices/swizzles are bounded by the exact matching visible root parameter. Pinned upstream push-constant-buffer interfaces produce real shader loads at exact byte offsets. Original container/native entries continue rejecting resources and push storage. New admission permits push constants only, still rejecting descriptor decorations and other resource storage classes.",
+    "commands": "Genuine graphics and compute scalar/array root setters validate parameter/count/pointer/offset before state publication. Caller bytes are copied, partial updates preserve untouched words, the same root preserves arguments and a changed root selects zero internal storage from API-undefined initial values. Each consumed draw/dispatch snapshots all active constant words; later setters and source mutation never rewrite history. Selected layout/word/procedure preflight precedes any actual command. Real vkCmdPushConstants precedes each consuming draw/dispatch in the original single command buffer/receipt.",
+    "lifetime": "Exact typed root/PSO ownership covers copied values, completed replay, independent pending reset/caller retirement, unknown/accepted failed work, failed drains and safe cleanup while preserving failed results. Existing private version1 command workflows refuse constant-bearing roots they cannot set.",
+    "remaining": "Descriptor tables, root CBV/SRV/UAV descriptors, general resources/samplers, dynamic/array constant-buffer addressing, broader stages/visibility/flags and public D3D12 runtime/GPU qualification remain unfinished. Compute shader resource writes remain unsupported.",
+    "evidence": "Real SDK VS5.0/VS5.1 and PS5.1 shader binaries and actual SPIR-V push-variable/load/offset checks; genuine WDK callback and independent Vulkan command observations. Models read actual command bytes and uploaded input data; no raster pixels or GPU acceptance are synthesized.",
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false
+  },
+  "native_root_cbv": {
+    "scope": "Genuine R0 root CBV descriptors, register spaces and ALL/VS/PS visibility within the original 64-DWORD root budget. Raw-address pairs precede inline constants in an owned selected Vulkan push layout. Root-owned immutable 64 KiB zero backing safely implements unbound/null static reads and survives every retained PSO/root generation.",
+    "compiler": "Additive CompileBindings export and feature8 preserve original native ABI2 and feature4 constant entry behavior. The pinned upstream RAW_VA CBV interface produces real SPIR-V physical-storage-buffer reads without shaderInt64. By-value plans and independently returned static read requirements bind exact declaration/register/space/visibility/swizzle spans. The original compiler entries continue rejecting these resources.",
+    "commands": "Genuine graphics/compute SetRootConstantBufferView callbacks validate parameters and 256-aligned acknowledged same-device Windows GPUVAs. Current bindings and independently consumed draw/dispatch ranges own separate leases. Logical ranges, confirmed mappings, GENERIC_READ/constant-buffer states and shader read spans are checked before submission. Windows GPUVAs are never used as Vulkan addresses. Actual vkGetBufferDeviceAddress results are copied into command-local push words and surrounded by selected shader-read barriers in the same command buffer/receipt.",
+    "lifetime": "Actual native addressable buffer usage and device-address allocation flags are required. Retained resources, roots and PSOs own uploaded/static read and zero-buffer generations across current-binding changes, replay and normal command ownership. Failed preparation preserves outputs and releases candidates. Existing general pending/reset/unknown/failure/drain owner machinery retains consumed CBV chains. This is source/model verification, not native Windows/GPU acceptance.",
+    "evidence": "Genuine SDK VS5.0/VS5.1/PS5.1 CBV shaders compile to physical-buffer interfaces with exact static read requirements. Independent modeled Vulkan observations resolve pushed addresses through live buffer mappings to actual uploaded or zero-filled bytes. No rasterized output or GPU conformance is synthesized. Compute callbacks and backend use the same retained binding contract; a resource-reading compute workload remains unqualified.",
+    "remaining": "Root SRV/UAV descriptors, descriptor tables, samplers, dynamic/array CBV accesses, broader shader stages/visibility/flags, general shader/resource coverage, public D3D12 runtime integration and native Windows/GPU qualification remain unfinished.",
+    "null_reads": "Actual zero-filled immutable backing is owned by each CBV-bearing root and pinned through exact typed PSO/root lifetime; no physical address zero is dereferenced.",
+    "public_native_d3d12_ready": false,
+    "testing_credit": 0
+  },
+  "native_root_srv": {
+    "scope": "Genuine R0 bounded raw-buffer root SRV descriptors, independent t-register namespaces, register spaces and ALL/VS/PS visibility within the original 64-DWORD root budget. Root CBVs and inline constants remain compatible. Root-owned immutable 64 KiB zero backing supplies unbound/null static reads.",
+    "compiler": "Additive CompileRootBuffers export and feature16 preserve original native ABI2, feature4 constant and feature8 CBV entry restrictions. Pinned upstream RAW_VA SRV interfaces produce genuine physical-storage-buffer loads. Exact non-array declarations and static DWORD byte offsets/swizzles prove required logical spans; output requirements survive shader retirement. Upstream SampledBuffer declaration capability is allowed only in the proved physical-binding path; ordinary descriptor-backed resources remain rejected.",
+    "commands": "Genuine graphics/compute SetRootShaderResourceView callbacks validate exact root parameter kinds and DWORD-aligned acknowledged same-device Windows GPUVAs. Current bindings and independently consumed read ranges own separate leases. Selected native addresses are packed into per-command push words and surrounded by actual shader-read barriers. Windows addresses, CPU pointers and native handles are never substituted for Vulkan buffer addresses.",
+    "states": "UPLOAD reads use actual GENERIC_READ backing. DEFAULT graphics reads require admitted non-pixel/pixel or combined read-only states and a closed net transaction back to the initial state. Wrong-stage and COPY_SOURCE reads are rejected. ALL visibility conservatively requires both stage-read bits. Broader transitions and DEFAULT compute state workflows remain unfinished.",
+    "lifetime": "Owned current/consumed null and populated views, typed roots/PSOs and root zero backing survive caller unbind, module retirement, replay and detached pending reset. Existing failure/drain ownership machinery retains the consumed read chains. Model checks verify actual uploaded and initialized buffer bytes; no rasterized output or native GPU acceptance is synthesized.",
+    "evidence": "Genuine SDK VS5.1 and PS5.1 raw SRV containers, actual physical-buffer SPIR-V interfaces, exact static read spans, independent b/t namespaces and frozen-CBV-entry rejection. Independent Vulkan observations resolve pushed native addresses to actual uploaded, DEFAULT-initialized and zero-filled bytes, including four-byte views that are not CBV-aligned.",
+    "remaining": "Structured SRVs, dynamic/array raw accesses, root UAVs, descriptor tables, samplers, broader shader stages/visibility/flags, general resources/compute state workflows and public D3D12 runtime/GPU qualification remain unfinished.",
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "resource_reading_compute_gpu_qualified": false,
+    "testing_credit": 0
+  },
+  "native_root_uav": {
+    "scope": "Genuine R0 bounded raw-buffer compute root UAV stores with independent b/t/u register namespaces, exact root parameter/budget/visibility ownership and actual selected Vulkan physical addresses. Graphics root-UAV setters preserve typed bindings, but graphics UAV shader execution remains unsupported.",
+    "compiler": "Additive CompileStorageBindings export and feature32 preserve original ABI2, feature4 constants, feature8 CBVs and feature16 read-only root-buffer entry restrictions. Genuine non-array raw compute UAV declarations and static DWORD store offsets/masks are proved against exact logical spans. The resource_bytes result denotes read spans for CBV/SRV and store spans for this write-only UAV subset; root parameter kinds preserve access direction. Only literal store values and one actual 1x1x1 workgroup are admitted.",
+    "commands": "Genuine compute/graphics root-UAV setters validate DEFAULT backing, exact root kinds and DWORD-aligned acknowledged GPUVAs. Used zero UAV addresses are refused before native execution. Independently consumed ranges resolve real buffer device addresses; shader read/write barriers include actual writes and host visibility. Genuine compute read/write state workflows close net transactions back to initial states and preserve COPY/private workflow boundaries.",
+    "allocations": "R0 shader-resource flag 0x10 is admitted with official DDI assertions. API ALLOW_UNORDERED_ACCESS 0x4 is not misinterpreted as a DDI flag; R0 DDI value 0x4 means cross-adapter. The later 0022 unordered-access flag 0x80 is not fabricated as a mandatory R0 resource field. Actual DEFAULT buffer device-address usage and allocation flags are required; UPLOAD and READBACK do not become writable UAV backing.",
+    "lifetime": "Current and independently consumed write ranges, root/PSO metadata and actual allocators survive unbind, shader retirement, completed replay and detached pending reset/caller retirement. An unsubmitted replacement target never receives original pending writes. Existing supported queue failure/drain ownership remains in place; the one-unmanaged-queue adapter boundary is retained.",
+    "evidence": "Real SDK CS5.1 raw-UAV container and actual physical OpStore SPIR-V. The independent bounded straight-line SSA model derives literal values, root member offsets, array stride, native addresses and store offsets from actual SPIR-V and command inputs. Stores update real modeled backing only at execution; ordinary ResourceCopy and mapped READBACK verify exact output and unchanged neighboring bytes. No native GPU pixels, GPU conformance or full public runtime acceptance are synthesized.",
+    "null_root_semantics": "Dereferencing a zero root descriptor is undefined by the D3D12 binding specification. Used zero UAV addresses are explicitly refused. Existing zero-filled CBV/SRV root fallback is defensive implementation behavior, not the required null-descriptor guarantee for descriptor heaps.",
+    "remaining": "Structured/dynamic/array UAV access, general store values and arithmetic, multiple workgroups, UAV loads/atomics, graphics UAV execution, explicit general UAV barriers, descriptor tables, samplers, broader shader stages/flags, full public queues and native Windows/GPU qualification remain unfinished.",
+    "primary_sources": {
+      "root_descriptor_scope": "https://learn.microsoft.com/windows/win32/direct3d12/using-descriptors-directly-in-the-root-signature",
+      "root_null_dereference_undefined": "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html#null-descriptors",
+      "uav_state": "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states",
+      "R0_resource_flags": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3d12umddi/ne-d3d12umddi-d3d12ddi_resource_flags_0003"
+    },
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "testing_credit": 0
+  },
+  "native_root_structured": {
+    "scope": "Genuine bounded root StructuredBuffer VS/PS reads and RWStructuredBuffer compute stores use static element/member offsets and actual declared structure stride. Existing raw SRV/UAV, CBV and inline root-constant support remains available.",
+    "compiler": "Additive feature64 and CompileStructuredBindings use a distinct version1 1568-byte frame with exact version/size/zero flags, embedding the unchanged 1552-byte binding plan. All five prior entry protocols retain their earlier restrictions. The matched loader requires the new export when advertised and falls back to the old raw contract otherwise; old dependencies refuse structured instructions.",
+    "bounds": "Genuine non-array structure declarations require positive DWORD stride up to2048. Checked element*stride+member arithmetic must fit the declared member, a 64KiB proof bound and exact retained logical buffer range. Static read swizzles and each literal write determine authoritative per-root access spans. Resource/UAV operand classes cannot bypass memory proofs through unrelated instructions. Dynamic indices, arrays, general values and atomics remain unsupported.",
+    "ownership": "Existing independently retained root kind/register/space/visibility, real selected buffer device addresses, DEFAULT shader-read/UAV states, whole-command preflight, one receipt, completed replay and detached pending reset apply to structured access. Used zero UAVs are refused. Defensive root SRV zero storage is not a public null-descriptor guarantee.",
+    "evidence": "Fresh Microsoft SDK VS5.1/PS5.1/CS5.1 containers translate to actual physical-buffer SPIR-V. Independent modeled reads use uploaded bytes and actual view offsets. The SPIR-V SSA model derives structured store address arithmetic and literal values, then commits backing writes at completion; ordinary copy/readback checks all bytes. This is isolated ABI/model evidence, not native Windows GPU qualification.",
+    "remaining": "Dynamic resource indices, descriptor arrays/tables, samplers and sampled images, general store values/arithmetic, multiple write workgroups, UAV loads/atomics and graphics UAVs, broader stage interfaces and full public D3D12 runtime/backend integration remain unfinished.",
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false
+  },
+  "native_buffer_descriptor_storage": {
+    "scope": "Genuine R0 CBV_SRV_UAV heap storage, CPU-visible staging and CPU+shader-visible heaps; genuine CBV, raw/structured buffer SRV/UAV creation and opaque GPU heap handles. Descriptor-table binding/execution remains separate and unfinished.",
+    "shape": "Bounded existing16 heaps/16 slots, single node, exact original DDI flags1 or3. Real driver-owned CPU descriptor arena and globally protected slot-generation payloads. Monotonic opaque GPU handle intervals never encode a host pointer or Windows/Vulkan buffer address, and are never reused on heap recreation.",
+    "views": "CBVs validate acknowledged 256-aligned GPUVA, size multiple256 up64KiB and exact logical buffer bounds. Raw SRV/UAV use R32_TYPELESS/raw flags, checked16-byte view starts and4-byte elements. Structured views use UNKNOWN/no flags and positive DWORD stride up2048. Checked FirstElement/NumElements arithmetic stays within exact same-device resource generation. UAV nonnull backing is DEFAULT only and counters are refused. Typed null views retain no invented buffer.",
+    "ownership": "Distinct descriptor-resource references prevent resource retirement while allowing ordinary CPU Map. Command-access ranges remain separate and retain their existing map/state exclusions. Heap operations pin exact generations across unlocked buffer-owner acquisition/cleanup; replacement publishes atomically only after final selected-parent/device admission. Error preserves prior payload, view and resource references.",
+    "copies": "Resource descriptor copies validate the full flattened bounded transaction before mutation, then independently retain each exact source resource generation and commit all destinations together. Shader-visible source heaps, overlap, duplicate destinations, wrong classes and invalid later ranges refuse atomically. Typed null views copy without resource owners. Staging-heap retirement cannot invalidate copied descriptors.",
+    "queries": "GPU handle queries require an actual live shader-visible resource heap. Additive exact-size aligned buffer-shape inspection guards output overlap and globally protected runtime/descriptor storage; original attachment inspection ABI is unchanged.",
+    "remaining": "General SRV/UAV/sampler/image tables, dynamic descriptor indices/arrays and multiple ranges, broader shader semantics/stages/root flags, DEFAULT table state transactions, broader persistent-map/resource semantics, heap scale and complete public D3D12 runtime/backend acceptance remain unfinished. Compute table plumbing exists but observable resource-reading compute GPU behavior remains unqualified.",
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "installed_runtime_changed": false,
+    "genuine_upload_mapping": "Genuine mapped UPLOAD sources flow through retained physical CBV/raw/structured SRV ranges, true CBV table descriptor consumption, vertex/index views, unified buffer copies and buffer-to-image uploads. Backing read admission permits only that genuine UPLOAD map mode while retaining independent pending/uncertain GPU execution guards. Destinations, UAV stores, READBACK writes, retirement and older private maps keep their existing guards."
+  },
+  "native_cbv_descriptor_tables": {
+    "scope": "Genuine bounded CBV descriptor tables connect R0 heap/table setters, owned root ranges, shader interfaces, selected real Vulkan descriptor layouts/pools/sets and independently consumed graphics histories. Existing root constants and physical CBV/SRV/UAV bindings retain their contracts.",
+    "root_and_compiler": "One CBV range containing one descriptor per admitted table; explicit range offsets0..65535 or first APPEND0, separate b-register/space/visibility conflict checks and exact one-DWORD root cost. Actual address pushes and inline constants use separate packed words; table set0 binding indices are original root parameter indices. Additive feature128/CompileDescriptorTables uses an exact version1 1568-byte frame embedding the unchanged binding plan. All earlier entry/frame restrictions and ABI2 remain frozen. Actual SDK VS5.0/5.1 and PS5.1 emit real uniform-buffer descriptor interfaces, including mixed table/inline/physical plans.",
+    "heap_binding": "Genuine SetDescriptorHeaps admits zero/unbind or one actual shader-visible resource heap; stale/cross-device, sampler, CPU-only, mistyped, invalid count/input and wrong command classes reject under exact callback ownership. Same heap preserves current table arguments; a changed heap or root invalidates current table arguments. Every consumed command independently retains exact heap identity and table handles. Immutable heap identity queries and key bindings may overlap CPU slot updates; used-slot acquisition retains its separate exclusion. Concurrent writer/key-binding stress passes and the preserved pre-fix module reproduces the invalid rejection.",
+    "late_consumption": "Recording and Close retain keys rather than descriptor contents or execution ranges. Each actual submission resolves current used slot generations, validates descriptor kind and exact resource identity, and acquires independent slot/buffer execution owners. CPU descriptor and buffer updates after Close or completed replay are observed. Initial constant-buffer read states are supported; general DEFAULT table state transactions and broader persistent-map/resource semantics remain unfinished. Each consumed table key carries immutable resource/cookie/state points from its recording generation. BufferStateRecording retains the exact DEFAULT owners alongside the consumed commands. Late hydration resolves the current used descriptor slot and exact buffer GPUVA, then matches resource identity plus generation against that command-specific state snapshot. The initial state is used only when no exact point exists; final list state, another draw and another resource cannot supply the proof.",
+    "vulkan": "Selected uniform descriptor/stage/set limits, minUniformBufferOffsetAlignment, maxUniformBufferRange, real native UNIFORM_BUFFER usage and exact actual buffer ranges gate execution. Each draw/dispatch obtains an independent real descriptor set. Pool capacity counts every allocated layout binding, including unused bindings. Actual buffer updates, descriptor binding and uniform-read barriers are separate from raw address-push handling. Descriptor write scratch lives in bounded owned heap storage.",
+    "bounds": "Admitted CBV view sizes are multiples256, so the selected enabled robustness2 uniform-bound rounding (power-of-two1..256) does not enlarge those ranges. Static shader read spans may exceed the descriptor view while remaining inside declared shader bounds; true Vulkan descriptor bounds provide zero reads rather than exposing neighboring backing. Typed null CBVs use actual null descriptors, not a physical-address-zero dereference or shared writable fake storage.",
+    "receipt_lifetime": "An actual native command retains its descriptor pool until the same observed receipt completion or safe drain releases command storage. Rust slot and buffer execution owners follow the same acceptance/no-attempt/unknown/drain facts; failed or uncertain work cannot release early. No-attempt failures release temporary owners and preserve replayable keys. Origin reset/caller retirement cannot retarget detached pending descriptors, buffers, roots, PSOs or allocators.",
+    "evidence": "All31 isolated regressions pass; final draw fixture adds mixed table-before-root address ordering. Fresh SDK shaders, actual SPIR-V uniform access-chain interpretation and real descriptor-buffer metadata verify uploaded bits, nulls, populated-neighbor out-of-view zeros, post-Close updates, completed replay, partial set allocation failure and pending reset/retirement. These are isolated ABI/model checks, not Windows-native GPU or full public runtime qualification.",
+    "remaining": "The full public runtime, native GPU qualification, general state persistence/promotion across command lists, broader resources, SRV/UAV/sampler/image table classes, arrays/dynamic indexing and complete shader semantics remain unfinished.",
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceRobustness2PropertiesKHR.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_robustness2.html"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0,
+    "genuine_upload_mapping": "Genuine mapped UPLOAD sources flow through retained physical CBV/raw/structured SRV ranges, true CBV table descriptor consumption, vertex/index views, unified buffer copies and buffer-to-image uploads. Backing read admission permits only that genuine UPLOAD map mode while retaining independent pending/uncertain GPU execution guards. Destinations, UAV stores, READBACK writes, retirement and older private maps keep their existing guards."
+  },
+  "genuine_upload_persistent_mapping": {
+    "scope": "Genuine R0 MapHeap exposes nested persistent CPU mappings of admitted coherent UPLOAD buffers without treating read-only command ownership or pending GPU reads as an implicit map/unmap fence. Frozen private version1 MapHeap remains exclusive; READBACK CPU/GPU write exclusions are unchanged.",
+    "ownership": "Map counts and exact backing ownership remain distinct from command/descriptor leases. First genuine UPLOAD Map sets an internal read-compatible permission; nested calls share the actual VkMapMemory address, have a bounded independent count, and preserve caller output on quota/failure. Mixing public read-compatible and private exclusive live maps rejects without reclassifying the owner. The last Unmap releases the CPU mapping without waiting for GPU readers; neither CPU nor GPU pins alone may free backing still owned by the other.",
+    "reads": "Genuine mapped UPLOAD sources flow through retained physical CBV/raw/structured SRV ranges, true CBV table descriptor consumption, vertex/index views, unified buffer copies and buffer-to-image uploads. Backing read admission permits only that genuine UPLOAD map mode while retaining independent pending/uncertain GPU execution guards. Destinations, UAV stores, READBACK writes, retirement and older private maps keep their existing guards.",
+    "synchronization": "Map and Unmap do not synchronize GPU work. Applications must finish CPU writes before the dependent ExecuteCommandLists and must observe their own GPU completion before overwriting bytes still in use. Existing actual host-write/read barriers and coherent memory admission provide visibility; no copied staging pointer, fabricated fence completion, CPU-read result or map-time drain replaces real GPU execution.",
+    "evidence": "All31 isolated ABI/model regressions pass. Current fixtures exercise actual uniform/physical reads, R16/R32 indices, vertex fetches, whole/region copies and image-upload/readback bytes with CPU mappings open, nested 1024-map quota/failure output preservation, post-Close mapped writes and completed replay, first actual Map/Unmap during an accepted pending copy, and detached reset/caller retirement. The preserved pre-fix DLL fails the new mapped-index draw. These checks do not qualify the Windows public runtime or native GPU.",
+    "remaining": "Complete public D3D12 runtime negotiation and GPU qualification; broader resources/heaps including full READBACK persistent-map semantics, general placed/reserved mapping, broader concurrency and full shader/descriptor/command support remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12resource-map",
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceHeaps.html",
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/readback-data-using-heaps"
+    ],
+    "native_windows_acceptance": false,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_cbv_table_default_states": {
+    "scope": "Genuine bounded CBV tables resolve current descriptor contents at submission and verify exact resource state at each consuming draw or dispatch, including DEFAULT buffers inside supported closed state transactions.",
+    "state_proof": "Each consumed table key carries immutable resource/cookie/state points from its recording generation. BufferStateRecording retains the exact DEFAULT owners alongside the consumed commands. Late hydration resolves the current used descriptor slot and exact buffer GPUVA, then matches resource identity plus generation against that command-specific state snapshot. The initial state is used only when no exact point exists; final list state, another draw and another resource cannot supply the proof.",
+    "backend": "The existing real selected uniform layouts/descriptor sets/pools and exact uniform-read barriers consume actual DEFAULT VkBuffer ranges. The compiler and Vulkan model are unchanged. Distinguishable whole/region copies from actual mapped UPLOAD backing seed positive readback evidence; no synthetic state change, guessed global state, fake buffer or CPU-generated shader result substitutes for execution.",
+    "failure_lifetime": "Wrong-stage/read bits, an earlier or later invalid draw, and post-Close replacement with an untransitioned DEFAULT resource refuse before Vulkan draw/submission. Partial hydration cleanup releases temporary slot/range owners while preserving replayable keys and state owners. A later valid descriptor update repairs the same closed recording. Typed nulls need no fabricated resource state. Pending reset and caller retirement retain all original state, buffer and slot owners until that exact receipt completes or safely drains.",
+    "evidence": "All31 isolated ABI/model regressions pass. Four two-draw DEFAULT-table scenarios per fixture repetition prove independent consumed state, post-Close descriptor changes, real nonzero uniform bits, zero nulls, no-attempt failure/retry and detached pending state lifetime. The preserved pre-fix DLL fails the valid DEFAULT-table execution. This is not public Windows D3D12/native GPU qualification.",
+    "remaining": "The full public runtime, native GPU qualification, general state persistence/promotion across command lists, broader resources, SRV/UAV/sampler/image table classes, arrays/dynamic indexing and complete shader semantics remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_sampler_descriptor_objects": {
+    "scope": "Genuine R0 pfnCreateSampler constructs real selected Vulkan samplers in bounded CPU or shader-visible sampler descriptor heaps, with immutable owned metadata, protected CPU slots, opaque GPU intervals, atomic copies and exact cleanup. Private descriptor ABI1 sampler size/create/increment refusal stays frozen. Sampler shader binding/texture sampling remains unfinished.",
+    "abi": "A separate 52-byte normalized raw sampler shape and 52-byte semantic execution plan are generated from Rust with C layout assertions; prior normalized records and private bundle layouts remain unchanged. Distinct genuine public heap size/create/increment callbacks admit sampler heaps. Original R0 D3D12DDIARG_CREATE_SAMPLER/descriptor types remain in C. DWORD-aligned sampler inputs/outputs use the same global protected-range exclusions with the correct four-byte alignment; runtime-cookie and generation alignment stays eight.",
+    "state": "All point/linear min/mag/mip combinations and comparison variants, standard float border colors, wrap/mirror/clamp/border/mirror-once and finite ordered LOD state are normalized. Ignored comparison/anisotropy/border fields preserve their raw metadata without enabling unused Vulkan state. Anisotropic filters require actual physical support, optional feature enablement and selected maximum. Reduction filtering, arbitrary custom/integer border variants and complete sampler/shader combinations remain unfinished.",
+    "backend": "Exact selected maxSamplerLodBias, maxSamplerAnisotropy and maxSamplerAllocationCount are cached. Optional samplerAnisotropy is enabled only when physically observed; mirror clamp uses the existing required Vulkan1.2 feature. Both real create/destroy procedures must exist before constructing anything. A bounded atomic selected-device quota covers independent cleanup/create overlap. Actual VkSamplerCreateInfo drives vkCreateSampler; failed undefined Vulkan outputs are ignored, and late faults use the existing exact backend-object rollback helper. No CPU-generated sampling or fabricated GPU resource substitutes for the sampler object.",
+    "lifetime_copy": "Heap operation and device-child claims pin all constructor/copy/rollback/destructor work. Each sampler copy owns an independently constructed immutable VkSampler; all candidates are prepared before any destination changes. Source retirement cannot invalidate copies. Mistyped/stale/out-of-range destinations, shader-visible copy sources, overlap, duplicate destinations and uninitialized sources refuse before construction. Partial create failure destroys only new prepared objects and preserves every prior generation. Cleanup destroys actual objects before releasing protected arenas and parent claims.",
+    "evidence": "All31 isolated ABI/model regressions pass. An independent model validates actual Vulkan enums, enabled features, bounds and sampler lifecycle. Matrices exercise normal/comparison filtering, standard borders, optional/limited anisotropy and LOD, ignored raw bits, explicit four-byte records, missing procedures, failed undefined outputs, partial atomic copies and blocked-constructor snapshot/heap/device ownership. The otherwise identical control with the old eight-byte guard fails the explicit valid four-byte case. Genuine inventory is66 core/36 list/3 queue pointers; pointer availability is not functional public qualification.",
+    "remaining": "Shader sampler heap consumption, root/static sampler layouts, native texture sampling instructions and pixel qualification, reduction/custom-border cases, broader heap scale/flags and complete native threading/public runtime/GPU qualification remain unfinished. Shader-visible sampler storage does not claim executable sampler binding; the current SetDescriptorHeaps path still refuses sampler heaps.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-createsampler",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkSamplerCreateInfo.html"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "sampler_shader_execution_qualified": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_pixel_arithmetic": {
+    "scope": "Genuine native straight-line 32-bit pixel arithmetic and compiler runtime lifetime",
+    "compiler_protocol": {
+      "native_request_version": 2,
+      "unchanged_frame": "existing exact version1 NativeTablePlan/NativeBindingPlan records",
+      "optional_feature": 256,
+      "new_entry": "QemuLightningShaderNativeCompilePixelArithmetic",
+      "older_entries_remain_strict": true,
+      "older_dependencies_keep_original_restricted_pixel_path": true
+    },
+    "implemented": [
+      "authoritative upstream decoded instruction and operand shape admission, definite temporary-lane initialization and bounded256 temporary registers",
+      "straight-line supported MOV/ADD/MUL/MAD and integer/bitwise/shift/conversion families; exact declared output write proof and existing capability/extension validation",
+      "existing exact static constant/raw/structured read-span proofs remain mandatory; no new memory classes, indirect addressing or control-flow admission",
+      "root constants, physical CBVs/SRVs and descriptor-table CBVs use actual pinned upstream SPIR-V translation",
+      "genuine SDK PS5.0/5.1 multiply/add programs compile actual Fragment OpFMul/OpFAdd with all three CBV binding modes",
+      "original request ABI2 and table frame1 remain frozen; old compile entry points reject these arithmetic programs",
+      "genuine native pixel constructors reach selected VkShaderModule ownership through existing exact root lease and retire cleanly",
+      "exact sibling compiler DLL verified by full path is retained for process lifetime while per-call library references and all output tokens remain balanced",
+      "retained module prevents observed pthread_once/locale initialization abort caused by repeated DLL reloads; source/ABI/fingerprint/feature/output checks remain active"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_compiler_matrix": [
+        "ps_5_0",
+        "ps_5_1",
+        "ps_5_1 /Od"
+      ],
+      "old_entry_and_malformed_output_preservation": true,
+      "temporary_zero_and_excessive_count_rejection": true,
+      "prior_compiler_control_rejects_new_native_program": true,
+      "previous_unpinned_driver_aborts_with_identical_compiler_model_loader_and_fixture_except_PE_build_timestamps": true,
+      "compiler_base_all_hashes_verified": true
+    },
+    "limitations": [
+      "branches, loops, general interpolated pixel inputs, derivatives, texture sampling and general dynamic resources remain unfinished",
+      "unqualified new arithmetic operation families beyond tested SDK multiply/add cases",
+      "physical GPU arithmetic pixels, Windows public native acceptance and full shader models remain unqualified"
+    ],
+    "primary_sources": [
+      "official Microsoft SDK10.0.28000.0 fxc output and pinned upstream vkd3d-proton source",
+      "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexw"
+    ],
+    "scope_unchanged": true,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_pixel_math": {
+    "scope": "Genuine native straight-line pixel math and conditional selection",
+    "protocol": {
+      "optional_feature": 512,
+      "new_entry": "QemuLightningShaderNativeCompilePixelMath",
+      "unchanged_frame": "exact version1 NativeTablePlan/NativeBindingPlan",
+      "older_entries_including_feature256_remain_strict": true
+    },
+    "implemented": [
+      "min/max, floating division, reciprocal/reciprocal-square-root/square-root, fractional part, floating comparisons and conditional MOVC selection",
+      "new pixel-only scanner policy leaves shared base/container and feature256 arithmetic instruction admission frozen",
+      "same authoritative operand shapes, definite bounded temporary-lane initialization, unconditional complete output writes and exact static root read-span proofs",
+      "new actual pinned compiler entry is negotiated independently; older math-absent dependencies retain the arithmetic256/restricted fallback",
+      "genuine SDK PS5.0/5.1 min/max/sqrt/fract/LT/MOVC/division programs emit actual Fragment GLSL/SPIR-V operations across inline constants, physical CBVs and uniform descriptor tables",
+      "genuine native constructors create/retire selected VkShaderModule owners using exact root footprints",
+      "process-lifetime compiler module retention and all result-token quotas/releases remain intact"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_matrix": [
+        "ps_5_0",
+        "ps_5_1",
+        "ps_5_1 /Od"
+      ],
+      "old_arithmetic_entry_rejects_math": true,
+      "temporary_and_frame_rejection_preserves_outputs": true,
+      "prior_arithmetic_only_compiler_rejects_new_native_constructor": true
+    },
+    "limitations": [
+      "branches, loops, generic interpolated pixel inputs, saturation/source modifiers, derivatives, texture sampling and dynamic resources remain unfinished",
+      "reciprocal/reciprocal-square-root and additional comparison operation families lack the broader positive SDK/GPU matrix",
+      "new physical GPU pixels, full public shader models and Windows native acceptance remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_pixel_destination_saturation": {
+    "scope": "Genuine native float pixel destination saturation",
+    "protocol": {
+      "optional_feature": 1024,
+      "new_entry": "QemuLightningShaderNativeCompilePixelSaturation",
+      "unchanged_frame": "exact version1 NativeTablePlan/NativeBindingPlan",
+      "older_entries_including_math512_remain_strict": true
+    },
+    "implemented": [
+      "authoritative decoded destination modifier admission only for supported FLOAT MOV/ADD/MUL/MAD/min/max/divide/reciprocal/root/fractional operation families",
+      "all source modifier, extended operand, control-flow, memory-class and static-read-span restrictions remain intact",
+      "genuine SDK PS5.0/5.1 multiply/add_sat programs emit actual Fragment arithmetic plus GLSL.std.450 NClamp through inline constants, physical CBVs and uniform descriptor tables",
+      "same bounded initialized-temporary and complete output-write proof; integer saturation is refused before compilation while its otherwise identical unsaturated integer form compiles",
+      "genuine native constructors create and retire selected VkShaderModule owners under exact root read footprints",
+      "separate loader negotiation preserves older math512/arithmetic256/base policy; process-lifetime compiler module retention and token checks stay active"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_matrix": [
+        "ps_5_0",
+        "ps_5_1",
+        "ps_5_1 /Od"
+      ],
+      "old_math_entry_rejects_saturation": true,
+      "illegal_integer_saturation_rejects_but_plain_integer_form_compiles": true,
+      "malformed_temporary_and_frame_outputs_preserved": true,
+      "prior_math_only_compiler_rejects_new_native_constructor": true
+    },
+    "limitations": [
+      "source modifiers, branches/loops, generic pixel inputs, derivatives, texture sampling and dynamic resources remain unfinished",
+      "broader positive operation-family coverage beyond tested multiply/add_sat cases remains pending",
+      "physical GPU clamp/NaN/rounding pixels, complete public shader models and Windows native acceptance remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_stage_io": {
+    "scope": "Native VS/PS register interfaces and exact decoded stage linkage",
+    "protocol": {
+      "optional_feature": 2048,
+      "new_entry": "QemuLightningShaderNativeCompileStageIo",
+      "unchanged_root_frame": "version1 NativeTablePlan, 1568 bytes",
+      "requirements_frame": "version1 NativeIoRequirements, 520 bytes; resource_bytes64, inputs32, outputs32",
+      "older_entry_points_remain_strict": true
+    },
+    "implemented": [
+      "actual SDK VS/PS5.0/5.1 generic unique register signatures, FLOAT/UINT/SINT components and bounded pixel interpolators (flat, linear, centroid, no-perspective, no-perspective centroid); integer interpolation must be flat",
+      "official R0 union signatures may contain unused registers; immutable metadata records actual decoded input reads and output writes separately from full interface type/mask",
+      "two native compile-copy passes must agree on exact resource and IO metadata before selected VkShaderModule construction; output publication retains compiler/root/device generations",
+      "VS fetch requirements use decoded used lanes and ignore unused union entries; selected IA root/layout permission and component matching stay enforced",
+      "pipeline admission requires a fully written VS Position and compatible producer register type/full signature mask with every PS read lane actually written; PS Position is hardware FragCoord",
+      "linkage refusal precedes reference-count commits, backend format queries and Vulkan pipeline creation; accepted pipelines preserve normal root/module/state lifetime rules",
+      "new interface validates exact versions, sizes, flags and disjoint aligned output frames; invalid input never publishes compiler tokens or changes output buffers",
+      "older compiler absence invokes unchanged strict paths; a declared feature with missing export or unsupported program fails instead of masquerading as success"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_matrix": [
+        "vs_5_0",
+        "vs_5_1",
+        "ps_5_0",
+        "ps_5_1"
+      ],
+      "native_linkage_matrix": {
+        "valid": 4,
+        "invalid": 5,
+        "cases": [
+          "float/integer pair",
+          "cross-model pair",
+          "unused signature union",
+          "missing producer",
+          "different component type",
+          "different mask",
+          "unwritten union lanes",
+          "missing vertex fetch"
+        ]
+      },
+      "prior_compiler_control": true,
+      "disabled_linkage_guard_control": true,
+      "malformed_and_overlapping_outputs_preserved": true
+    },
+    "limitations": [
+      "packed duplicate-register signatures, arrays and sample-qualified interpolation remain unfinished",
+      "generic source modifiers, branches/loops, derivatives, texture/sampler access and complete shader models remain unfinished",
+      "actual GPU interpolation/raster pixels, public Windows native device acceptance and complete runtime integration remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_pixel_dot_products": {
+    "scope": "Native pixel DP2/DP3/DP4 and vector reduction read proofs",
+    "protocol": {
+      "optional_feature": 4096,
+      "new_entry": "QemuLightningShaderNativeCompilePixelDotProducts",
+      "unchanged_root_frame": "version1 NativeTablePlan,1568bytes",
+      "unchanged_IO_frame": "version1 NativeIoRequirements,520bytes",
+      "older_entries_including_stage_IO2048_stay_strict": true
+    },
+    "implemented": [
+      "genuine decoded floating32 DP2/DP3/DP4 reduce two/three/four vector lanes into scalar or replicated destinations; translation emits actual SPIR-V OpDot",
+      "source-lane proof uses full reduction width independently of destination mask for input signature consumption, initialized temporary reads and static root/CBV/table bounds",
+      "native compiler IO/resource requirements retain exact generation and both compile-copy passes must agree before selected VkShaderModule publication",
+      "new negotiated PS entry preserves all prior frames and older restricted paths; generic VS still uses prior StageIo entry",
+      "same source modifier, indirect access, control-flow, flag, resource binding and typed lifetime restrictions remain intact"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_cases": [
+        "PS5.0 DP2/DP3/DP4",
+        "PS5.1 DP2/DP3/DP4",
+        "PS5.1 generic input DP4",
+        "PS5.1 initialized temporary DP4"
+      ],
+      "all_three_CBV_modes": true,
+      "actual_SPIRV_OpDot": true,
+      "exact_16byte_root_spans": true,
+      "truncated_root_and_input_and_temporary_lane_refusals": true,
+      "old_StageIo_entry_refuses_dot": true,
+      "prior_compiler_refuses_new_native_module_constructor": true,
+      "scalar_mask_disabled_control_exposes_underbounded_root": true
+    },
+    "limitations": [
+      "physical GPU dot arithmetic/rounding/interpolation remains unqualified",
+      "source modifiers, branches/loops, derivatives, texture/sampler access, packed IO and complete native shader models remain unfinished",
+      "public native Windows D3D12 acceptance and full renderer integration remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_pixel_source_modifiers": {
+    "scope": "Native FLOAT source NEG/ABS/ABSNEG with exact operand encoding",
+    "protocol": {
+      "optional_feature": 8192,
+      "new_entry": "QemuLightningShaderNativeCompilePixelSourceModifiers",
+      "unchanged_root_frame": "version1 NativeTablePlan,1568bytes",
+      "unchanged_IO_frame": "version1 NativeIoRequirements,520bytes",
+      "older_entries_including_dot4096_stay_strict": true
+    },
+    "implemented": [
+      "genuine decoded FLOAT source NEG, ABS and ABSNEG emit actual SPIR-V FNegate and GLSL FAbs on admitted scalar/vector pixel arithmetic",
+      "an independent exact raw operand walk checks authoritative operand counts, immediate32 indices, literal lengths and modifier extension words against decoded FLOAT source types; extension chaining, unknown type/bits, nonuniform/minimum precision and integer source modifiers remain refused",
+      "source signs and absolute values retain existing exact initialized temporary, declared input lane, static root/CBV/table read spans and destination write proofs",
+      "new negotiated PS entry preserves prior frames and exact compiler/root ownership; both native compile-copy passes must agree before selected module publication",
+      "older source-modifier policies remain strict; optional absence invokes restricted earlier interfaces and declared-but-unavailable features fail"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_cases": [
+        "PS5.0 CBV modifiers",
+        "PS5.1 CBV modifiers",
+        "PS5.1 generic input modifiers",
+        "PS5.1 temporary modifiers"
+      ],
+      "all_three_CBV_modes": true,
+      "actual_SPIRV_FNegate_and_FAbs": true,
+      "exact_16byte_read_spans": true,
+      "seven_malformed_extension_variants_preserve_outputs": true,
+      "integer_absolute_modifier_refuses_while_plain_integer_operation_compiles": true,
+      "older_dot_entry_refuses_source_modifiers": true,
+      "prior_compiler_refuses_new_native_constructor": true,
+      "disabled_exact_raw_guard_control_exposes_bad_extension_acceptance": true
+    },
+    "limitations": [
+      "physical GPU modifier NaN/signed-zero/pixel qualification remains pending",
+      "vertex/compute modifier generalization, branches/loops, derivatives, textures/samplers, packed IO and complete native shader models remain unfinished",
+      "public Windows native device acceptance and full renderer integration remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_pixel_derivatives": {
+    "scope": "Native fragment standard/coarse/fine X/Y derivatives",
+    "protocol": {
+      "optional_feature": 16384,
+      "new_entry": "QemuLightningShaderNativeCompilePixelDerivatives",
+      "unchanged_root_frame": "version1 NativeTablePlan,1568bytes",
+      "unchanged_IO_frame": "version1 NativeIoRequirements,520bytes",
+      "older_entries_including_modifiers8192_stay_strict": true
+    },
+    "implemented": [
+      "genuine decoded DSX/DSY standard, coarse and fine 32-bit floating componentwise derivatives translate to their exact actual SPIR-V DPdx/DPdy operation variants",
+      "only the new fragment policy admits DerivativeControl in compiled output; shared/container and every older native output policy remain frozen",
+      "DerivativeControl requires Vulkan1.0 core and no new optional hardware feature; selected native backend already requires newer Vulkan core",
+      "all existing input lane, temporary initialization, static root/CBV/table bounds, source encoding, output write and no-control-flow proofs remain in force",
+      "matching native compile-copy metadata and selected shader module construction retain exact compiler/root/device generations; old dependencies explicitly refuse new derivative programs"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_matrix_cases": 12,
+      "profiles": [
+        "ps_5_0",
+        "ps_5_1"
+      ],
+      "families": [
+        "standard_x",
+        "standard_y",
+        "coarse_x",
+        "coarse_y",
+        "fine_x",
+        "fine_y"
+      ],
+      "exact_actual_SPIRV_derivative_opcode": true,
+      "DerivativeControl_present_only_for_fine_coarse": true,
+      "all_six_selected_native_module_constructors_and_retirement": true,
+      "old_modifier_entry_refuses_derivatives": true,
+      "wrong_vertex_compute_and_malformed_frames_preserve_outputs": true,
+      "prior_compiler_refuses_new_native_constructor": true,
+      "denied_capability_control_refuses_actual_coarse_shader": true
+    },
+    "primary_requirement_source": "https://docs.vulkan.org/spec/latest/appendices/spirvenv.html",
+    "limitations": [
+      "physical GPU quad/helper-lane derivative pixels and numerical behavior remain unqualified",
+      "derivative saturation modifier extension, vertex/compute derivatives, branches/loops, sampling/textures and full native shader models remain unfinished",
+      "public Windows native device acceptance and complete renderer integration remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_pixel_multi_output": {
+    "scope": "Native pixel shader o0..o7 output modules and exact write metadata",
+    "protocol": {
+      "optional_feature": 32768,
+      "new_entry": "QemuLightningShaderNativeCompilePixelMultiOutput",
+      "unchanged_root_frame": "version1 NativeTablePlan,1568bytes",
+      "unchanged_IO_frame": "version1 NativeIoRequirements,520bytes",
+      "older_entries_including_derivatives16384_stay_strict": true
+    },
+    "implemented": [
+      "bounded unique FLOAT pixel outputs0..7 with exact per-output masks1/3/7/15; native supported path still requires fully declared/written float4 target0",
+      "native signature normalization snapshots all admitted output entries, validates duplicates/types/masks/minimum precision and protects every source/output cookie span",
+      "multiple output declarations are admitted before executable code only by new policy; every actual declared output must have complete decoded writes and unused union entries retain zero usage",
+      "actual native register indices supply matching SPIR-V output locations, with no invented HLSL names or target enums",
+      "exact immutable per-output IO/resource records agree across both compiler copies before selected module construction; typed owner validation bounds pixel output registers to eight",
+      "source/input/temporary/root memory and lifetime proofs stay active; older compilers and protocols continue refusing multi-output programs"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_matrix_cases": 4,
+      "profiles": [
+        "ps_5_0",
+        "ps_5_1"
+      ],
+      "cases": [
+        "noncontiguous outputs0/2/7 including float2 target2",
+        "all eight outputs"
+      ],
+      "actual_SPIRV_target_locations": true,
+      "exact_decoded_output_masks": true,
+      "unused_union_output_remains_unused": true,
+      "missing_required_target0_and_partial_target7_refuse": true,
+      "both_selected_native_module_constructors_retire_after_signature_mutation": true,
+      "older_derivative_entry_refuses_outputs": true,
+      "malformed_stage_output_frames_preserve_outputs": true,
+      "prior_compiler_refuses_new_native_constructor": true,
+      "disabled_target0_guard_exposes_unwritten_required_target": true
+    },
+    "limitations": [
+      "At the earlier shader-module milestone backend pipelines/draws were single-target. Native MRT constructors are now implemented in native_mrt_pipeline; attachment recording, multi-target draws and physical MRT pixels remain unfinished.",
+      "integer or depth/coverage pixel outputs, packed signatures and full native shader models remain unfinished",
+      "public Windows native device acceptance and complete renderer integration remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_mrt_pipeline": {
+    "scope": "Native MRT graphics pipeline constructors and immutable target/blend ownership",
+    "implemented": [
+      "separate292-byte MrtPlan carries exact1..8 target formats and normalized eight-target blend payload without changing scalar FixedPlan/BlendPlan or official callback bundle layouts",
+      "genuine R0 blend size/create snapshots replicated target0 or independently validates and owns all8 target descriptors; original scalar private size/create APIs remain frozen",
+      "internal pipeline request copies only active RTVFormats; exact format/count arrays survive typed pipeline generation and lifetime leases, while CPU size queries do no Vulkan work",
+      "selected actual maxColorAttachments and enabled independentBlend gate unavailable target counts or differing per-target blend states before format/pipeline work; replicated MRT remains usable without independentBlend",
+      "every selected color/depth format and shared sample count is probed with real temporary Vulkan image preparation and immediate exact cleanup",
+      "Vulkan dynamic-rendering PSO creation receives N exact color formats and N independent/replicated color/alpha factors/ops/write masks, with unchanged selected root/VS/PS/input/depth/sample contracts",
+      "actual native constructor leases pin entire immutable blend/raster/depth/input arrays, both modules and root; partial output, procedure/format/feature failures release all local owners before rollback",
+      "existing single-target recording/draw matching explicitly rejects MRT pipeline generations until multiple attachment snapshots/execution are implemented"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "actual_target_counts": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "replicated_and_independent_cases": 14,
+      "actual_Vulkan_format_blend_array_observation": true,
+      "shared_samples_and_optional_depth": true,
+      "copied_descriptor_mutation": true,
+      "missing_independent_blend_and_physical_limit2": true,
+      "supported_retry_after_feature_refusal": true,
+      "blocked8_target_constructor_and_atomic_lifetimes": true,
+      "invalid_count_format_procedure_and_partial_output_cleanup": true,
+      "prior_runtime_and_collapsed_Vulkan_array_controls": true
+    },
+    "primary_independent_blend_contract": "https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineColorBlendStateCreateInfo.html",
+    "limitations": [
+      "native attachment binding, consumed per-draw RTV arrays, MRT dynamic rendering/state/barriers/clears and physical GPU MRT pixels remain unfinished",
+      "format holes, zero-color/depth-only PSOs, alpha-to-coverage, logic/dual-source blends and remaining raster/shader classes remain unfinished",
+      "public Windows native runtime acceptance and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "recording_followup": "The earlier constructor-only limit is superseded for supported1..8-target draws by native_mrt_recording. Original scalar private callbacks remain unchanged; public acceptance and remaining unsupported classes stay gated."
+  },
+  "native_mrt_recording": {
+    "scope": "Native multi-target OM snapshots, consumed graphics ownership and actual Vulkan draw recording",
+    "implemented": [
+      "genuine R0 OMSetRenderTargets snapshots up to8 array handles or expands one range handle using the actual descriptor increment; scalar private callback remains unchanged",
+      "all current RTVs and optional DSV are retained atomically with exact generation, selected adapter, geometry, sample/layer consistency and disjoint writable subresource checks; count0 unbind releases only current state",
+      "every consumed draw owns independent full RTV/DSV and pipeline/root/index/vertex/resource snapshots, surviving source mutation, reverse rebinding, unbind, replay, reset and caller retirement",
+      "internal GraphicsWork carries count and7 tail owners with generated cross-language size/offset checks; frozen scalar private draw ABI is unchanged",
+      "selected C preflight borrows and checks every actual Vulkan view against exact PSO color count/formats/samples and optional depth, rejects overlap before any recording",
+      "one actual Vulkan rendering scope carries N LOAD/STORE color attachments and optional depth/stencil, exact per-target pre/post subresource barriers and true indexed/non-indexed commands; one observed receipt owns all operands",
+      "current-state rebind, take/restore/release, constructor rollback, pending detach, uncertain submission, failed/safe drain and terminal cleanup release every unique extra attachment outside policy locks",
+      "unconsumed OM binding has no draw side effect; existing no-draw scope can omit unused additional bindings while retaining their complete CPU lifetime"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "normal_count_cases": 28,
+      "counts": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "color_formats": 5,
+      "sample_counts": [
+        1,
+        4
+      ],
+      "optional_depth_formats": [
+        "D32_FLOAT",
+        "D24_UNORM_S8_UINT"
+      ],
+      "replicated_and_independent_blend_execution": true,
+      "range_and_array_handles": true,
+      "reversed_mixed_indexed_draws": true,
+      "source_mutation_and_unbind": true,
+      "no_attempt_retry_and_completed_replay": true,
+      "detached_pending_reset": true,
+      "eight_target_uncertain_and_failed_counter_drain": true,
+      "invalid_alias_handle_range_count_BOOL_and_PSO_count": true,
+      "independent_actual_Vulkan_array_and_exact_inverse_barrier_oracle": true,
+      "prior_runtime_and_collapsed_rendering_array_controls": true
+    },
+    "limitations": [
+      "zero-color/depth-only PSOs, active format holes, broader texture shapes/mips and general command/shader/resource combinations remain unfinished",
+      "existing RTV slot overwrite and heap retirement refuse while leased; this bounded contract does not yet provide the full public descriptor lifetime contract",
+      "physical GPU MRT pixels, independent blend numerical behavior, full public Windows native runtime acceptance and complete D1 remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false
+  },
+  "native_pixel_control_flow": {
+    "scope": "Native pixel structured IF/ELSE selections with definite initialized temporary and output lane proof",
+    "protocol": {
+      "optional_feature": 65536,
+      "new_entry": "QemuLightningShaderNativeCompilePixelControlFlow",
+      "unchanged_root_frame": "version1 NativeTablePlan,1568bytes",
+      "unchanged_IO_frame": "version1 NativeIoRequirements,520bytes",
+      "older_entries_including_multi_output32768_stay_strict": true
+    },
+    "implemented": [
+      "explicit native-only decoder/admission policy handles scalar UINT bit conditions and authentic IF_z/IF_nz, optional ELSE and ENDIF; decoded types/operands and exact raw instruction control bits are validated",
+      "bounded16-level structured control frames snapshot initialized temporary lanes at IF, restore entry lanes before ELSE and intersect both arms at ENDIF; missing ELSE intersects against entry, preserving already initialized lanes",
+      "Rust independently snapshots and intersects written output masks at every branch merge; all actually declared outputs must be completely written on every path before final return",
+      "conditional predicates consume exactly their selected source lane; authoritative actual input usage and existing root/physical/uniform resource read proofs remain mandatory across every branch",
+      "early RET inside selections, malformed/unbalanced/duplicate delimiters, too-deep nesting, declarations after executable code, uninitialized conditions/temporaries/outputs and reserved instruction controls refuse before translation/publication",
+      "real pinned compiler emits Fragment SelectionMerge/BranchConditional structures; new loader negotiates feature/export and refuses missing declared exports instead of silently downgrading",
+      "genuine selected native module construction owns exact copied IO and resource metadata with unchanged module/root generations and compiler output cleanup"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "SDK_matrix_cases": 8,
+      "profiles": [
+        "ps_5_0",
+        "ps_5_1"
+      ],
+      "cases": [
+        "input branch with both arms assigning",
+        "optional ELSE preserves previously initialized lanes",
+        "nested three-selection program",
+        "inline-root/physical-CBV/uniform-table branch reads"
+      ],
+      "actual_SPIRV_selections_and_conditional_branches": true,
+      "IF_test_inversion_changes_actual_integer_condition_ops": true,
+      "supported_depth16_and_refused17": true,
+      "exact48_byte_static_root_reads_and_short_root_refusal": true,
+      "derived_direct_output_paths_and_missing_branch_write_refusal": true,
+      "uninitialized_condition_and_else_temporary_refusal": true,
+      "malformed_control_and_wrong_stage_preserve_outputs": true,
+      "all_eight_selected_native_modules_retire_after_IO_mutation": true,
+      "prior_compiler_missing_export_and_both_disabled_merge_controls": true
+    },
+    "limitations": [
+      "loops, switch/case, break/continue, early returns, deeper structured nesting and general native stage/control/resource programs remain unfinished",
+      "all branch paths are conservatively checked even when a condition is constant; dynamic memory addressing and unsupported resource classes remain gated",
+      "physical GPU branch/interpolation/derivative numerical behavior, full shader-model support and public Windows native runtime qualification remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false
+  },
+  "native_alpha_to_coverage": {
+    "scope": "Native alpha-to-coverage CPU blend snapshots and selected actual Vulkan multisample pipeline state",
+    "implemented": [
+      "genuine R0 blend size/create admits exact FALSE/TRUE AlphaToCoverageEnable and owns it with the complete replicated/independent blend generation; malformed BOOL2 still refuses before claims",
+      "old scalar FixedPlan24bytes, BlendPlan32bytes, MrtPlan292bytes and original private Rust scalar/MRT constructor signatures remain unchanged; new additive coverage constructors carry immutable state through selected backend admission",
+      "coverage-enabled single-target or1..8-target pipelines use the same selected physical count/format/sample/independentBlend checks and exact temporary-image probes as the existing native MRT path",
+      "actual VkPipelineMultisampleState.alphaToCoverageEnable receives the exact saved BOOL with selected sample1/4 and optional depth/stencil; alphaToOne stays disabled and original pixel alpha values remain available to blending",
+      "CPU fixed states may retire after actual pipeline bake while exact root/pipeline generations remain owned; blocked creation, source mutation, missing procedures, partial outputs, format refusal and supported retry retain existing constructor cleanup",
+      "mixed MRT draws bind independently retained enabled/disabled coverage pipelines through rebind, completed replay, pending reset and uncertain/failed drain; Vulkan-side observation reads actual bound pipeline state"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "actual_multisample_state_cases": 24,
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "coverage_enabled_disabled": true,
+      "independent_replicated_blend": true,
+      "optional_depth_stencil": true,
+      "CPU_size_queries_backend_free": true,
+      "caller_source_mutation": true,
+      "blocked_eight_target_constructor": true,
+      "missing_procedure_partial_output_format_and_retry": true,
+      "actual_mixed_draw_coverage_state_observation": true,
+      "prior_runtime_and_disabled_Vulkan_bit_controls": true,
+      "frozen_scalar_and_MRT_layouts": true
+    },
+    "primary_contracts": {
+      "D3D12_blend_state": "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_blend_desc",
+      "Direct3D_output_merger_contract": "https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#17.18%20Alpha-to-Coverage",
+      "Vulkan_multisample_coverage": "https://docs.vulkan.org/spec/latest/chapters/fragops.html#fragops-covg",
+      "supported_raster_samples": [
+        1,
+        4
+      ],
+      "original_scalar_and_MRT_records_unchanged": true,
+      "additional_work_needed": "Physical alpha0/1/NaN and cross-API numerical qualification; coverage output/early-depth/full shader models remain unfinished",
+      "testing_credit": 0
+    },
+    "limitations": [
+      "physical GPU alpha0/1/NaN coverage and cross-API numerical behavior remain unqualified; NaN coverage portability may require additional shader lowering before public qualification",
+      "coverage-output shaders and their alpha-to-coverage suppression, general sample masks/shading, wider sample counts, dual-source/logic blends and remaining raster states remain unfinished",
+      "complete native shader models, public Windows runtime acceptance and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "NaN_followup": "Portable NaN alpha rule implemented in native_alpha_nan_coverage; actual CPU Vulkan pixels verified, physical GPU and Windows acceptance remain unqualified."
+  },
+  "native_raster_culling": {
+    "scope": "Native cull mode and front-face raster state from genuine copied CPU descriptions to actual selected Vulkan pipelines and consumed draws",
+    "implemented": [
+      "genuine R0 raster normalization validates NONE/FRONT/BACK cull mode and exact FALSE/TRUE FrontCounterClockwise, storing independent immutable normalized bits in the existing scalar raster_flags",
+      "original default RASTER_SUPPORTED_FLAGS remains3; expanded allowed-mask validation preserves required depth-clip/scissor bits, rejects unknown/high bits and excludes simultaneous FRONT/BACK cull flags",
+      "FixedPlan24bytes, BlendPlan32bytes, MrtPlan292bytes and all constructor/callback record layouts remain unchanged",
+      "selected Vulkan pipeline creation maps retained flags to actual VkCullModeFlags and VkFrontFace under the same color/depth/sample/root/state ownership gates across scalar, MRT and alpha-to-coverage paths",
+      "CPU size queries remain backend-free; caller descriptor mutation cannot change baked pipeline state, and missing procedure/partial output/format refusal plus supported retry preserve exact reservations and input cleanup",
+      "mixed indexed/nonindexed MRT draws bind independent immutable default and BACK/CCW pipelines through later source retirement, replay, pending reset and uncertain/failed drain"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "raster_pipeline_cases": 36,
+      "cull_modes": [
+        "NONE",
+        "FRONT",
+        "BACK"
+      ],
+      "front_counterclockwise": [
+        false,
+        true
+      ],
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "optional_depth_stencil": true,
+      "actual_Vulkan_cull_front_fields": true,
+      "malformed_enum_BOOL_and_unsupported_classes": 10,
+      "constructor_failures_and_retry": 3,
+      "actual_consumed_draw_raster_observation": true,
+      "source_mutation_and_baked_state_retirement": true,
+      "prior_runtime_and_disabled_raster_controls": true,
+      "frozen_scalar_and_MRT_layouts": true
+    },
+    "limitations": [
+      "physical triangle winding, coordinate transform and pixel visibility across all states remain unqualified",
+      "wireframe, depth clamp/bias, line/multisample/conservative rasterization and other original raster classes remain unfinished",
+      "general native resources/shaders, full public runtime integration and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "wireframe_followup": "The prior wireframe gap is now implemented for supported native paths in native_wireframe with actual selected optional-feature gates. Physical pixel/line qualification and broader raster classes remain pending."
+  },
+  "native_wireframe": {
+    "scope": "Native wireframe CPU raster state and actual selected optional Vulkan feature, pipeline and consumed draw integration",
+    "implemented": [
+      "genuine R0 raster size/create validates SOLID or WIREFRAME and retains an immutable wireframe bit alongside existing cull/front state; default flags3 and scalar FixedPlan24/BlendPlan32/MrtPlan292 layouts remain unchanged",
+      "selected physical fillModeNonSolid is actually queried, retained, enabled at logical VkDevice creation only when observed, and copied into the exact live device context",
+      "unavailable optional non-solid support refuses wireframe in original scalar and common MRT/coverage constructors before any format query, image probe or Vulkan pipeline call; same device/private key still supports solid work",
+      "actual VkPipelineRasterizationState.polygonMode becomes LINE only for retained wireframe state; cull/front, sample1/4, alpha-to-coverage, optional depth and all prior selected physical/format/lifetime checks remain intact",
+      "source descriptions may mutate and CPU fixed states retire after pipeline bake; failed/partial constructors, source rollback and supported retry preserve exact existing ownership",
+      "independently retained solid/wireframe pipelines are actually bound by mixed indexed/nonindexed MRT draws across source retirement, rebind/replay, pending reset and uncertain/failed drain"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "polygon_pipeline_cases": 24,
+      "actual_physical_optional_feature_query_and_logical_enable": true,
+      "missing_feature_scalar_MRT_coverage_cases": 6,
+      "missing_feature_refusal_before_backend_side_effects": true,
+      "same_device_same_key_solid_retry": true,
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "alpha_enabled_disabled": true,
+      "optional_depth_stencil": true,
+      "actual_Vulkan_polygon_mode": true,
+      "copied_source_and_baked_state_retirement": true,
+      "constructor_failures_and_retry": 3,
+      "actual_consumed_draw_polygon_observation": true,
+      "prior_runtime_and_disabled_polygon_controls": true,
+      "old_runtime_control_model_reports_and_expects_optional_featureFALSE": true,
+      "frozen_scalar_and_MRT_layouts": true
+    },
+    "limitations": [
+      "physical wireframe edge/pixel/line numerical behavior remains unqualified",
+      "depth clamp/bias, advanced line/conservative and broader sample/raster classes remain unfinished",
+      "general native resources/shaders, full public runtime integration and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_alpha_nan_coverage": {
+    "scope": "Portable native Direct3D NaN alpha-to-coverage guard and exact pipeline specialization",
+    "implemented": [
+      "optional compiler feature131072 and CompilePixelCoverage preserve ABI2/root1/IO1 and all older exports, result ownership and reserved0",
+      "typed transform of actual pinned-compiler Fragment SPIR-V proves sole entry epilogue and float4 output0, adds reserved private default-FALSE bool specialization and actual output alpha load/IsNan/AND/structured Kill; ordinary output values stay untouched",
+      "bounded shared proof distinguishes SPIR-V ID references from literal widths/locations/constants, rejects malformed guard/type/entry/spec/early-test shapes and outside references to fresh guard IDs; compiler and actual module owner independently apply the proof",
+      "real selected shader owner retains a verified guard bit derived from module bytes, never result metadata; coverage construction refuses old unguarded modules before format/image/pipeline work while ordinary older-compiler pipelines remain usable",
+      "actual pixel VkSpecializationInfo enables only the private guard for alpha-to-coverage; ordinary single/MRT pipelines keep defaultFALSE/no specialization and alphaToOne remainsFALSE",
+      "NaN fragments discard all MRT outputs without replacing alpha; finite alpha continues through actual Vulkan coverage and original blending; existing source/root/IO/descriptor/state and pending-draw ownership remain intact"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "SDK_branch_root_MRT_cases": 12,
+      "SDK_numeric_cases": 5,
+      "SPIRV_Tools_Vulkan12_valid": true,
+      "old_entry_IR_byte_identical_after_guard_removal": true,
+      "malformed_and_truncation_cases": 6116,
+      "CPU_offscreen_pixel_cases": 20,
+      "CPU_renderer": "llvmpipe LLVM21.1.8",
+      "sample_counts": [
+        1,
+        4
+      ],
+      "alpha_values": [
+        "NaN",
+        "0",
+        "1",
+        "-1",
+        "2"
+      ],
+      "coverage_enabled_disabled": true,
+      "independent_actual_module_and_Vulkan_specialization_observed": true,
+      "missing_guard_compiler_and_disabled_specialization_controls": true
+    },
+    "limitations": [
+      "physical GPU and full native Windows runtime acceptance remain unqualified",
+      "sample-mask output, forced early depth/stencil, wider sample classes and full native shader/resource/runtime contracts remain unfinished",
+      "CPU numerical fixture exercises actual compiled fragment SPIR-V and Vulkan state offscreen; it does not qualify Windows GPU execution"
+    ],
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm",
+      "https://docs.vulkan.org/spec/latest/chapters/fragops.html#fragops-covg"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_sample_mask": {
+    "scope": "Native copied per-pipeline UINT sample mask and actual Vulkan pipeline/consumed draw integration",
+    "implemented": [
+      "genuine graphics request already snapshots SampleMask; admission now accepts every UINT, including zero, sparse and high-only bits, without altering any existing request/FixedPlan24/BlendPlan32/MrtPlan292 layouts",
+      "nondefault masks use an additive internal constructor and immutable scalar copy while all-ones retains original scalar/MRT/coverage routes and frozen signatures",
+      "selected-device common construction preserves real format/sample/image prerequisites, independent blend, wireframe feature, depth and verified NaN-coverage module gates; full masks are used by actual VkPipelineMultisampleState pSampleMask",
+      "one copied mask word covers all currently admitted sample counts1/2/4/8/16; Vulkan ignores higher bits, including single-sample bits above0; no optional feature is invented",
+      "exact pipeline ownership retains each mask through CPU source mutation, mixed indexed/nonindexed MRT PSO changes, completed replay, pending reset and uncertain/failed drain; no extra command or backend object is introduced"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "pipeline_cases": 72,
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts_tested": [
+        1,
+        4
+      ],
+      "coverage_enabled_disabled": true,
+      "mask_values": [
+        "0xffffffff",
+        "0",
+        "1",
+        "5",
+        "0xaaaaaaaa",
+        "0x80000000"
+      ],
+      "optional_depth": true,
+      "CPU_size_backend_free": true,
+      "blocked_constructor_source_mutation": true,
+      "constructor_failures_and_same_key_retry": 3,
+      "actual_consumed_and_replayed_Vulkan_mask_observation": true,
+      "previous_runtime_and_disabled_mask_controls": true,
+      "CPU_offscreen_numeric_cases": 100,
+      "CPU_numeric_renderer": "llvmpipe LLVM21.1.8",
+      "CPU_numeric_includes_NaN_and_finite_coverage": true
+    },
+    "limitations": [
+      "physical GPU pixels and public native Windows runtime acceptance remain unqualified",
+      "broader topology/raster/depth/resource/shader classes and full production integration remain unfinished"
+    ],
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_graphics_pipeline_state_desc",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineMultisampleStateCreateInfo.html"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_primitive_topology": {
+    "scope": "Native LINE/TRIANGLE PSO classes and per-draw list/strip topology through real Vulkan1.3 dynamic state",
+    "implemented": [
+      "genuine graphics request admits LINE2 and TRIANGLE3 classes; copied CPU sizes remain backend-free and actual VkPipelineInputAssemblyState selects matching class with dynamic primitive topology",
+      "new explicit primitive constructor accepts class/mask/coverage while all original scalar/MRT/coverage/masked signatures and fixed public/private records remain unchanged; selected formats/samples/independent blend/wireframe/depth/NaN guards stay mandatory",
+      "Rust pipeline and immutable lease retain class; current IA topology lives in List/RecordingOwners take/restore/reset paths and is matched to PSO class before draw admission",
+      "genuine IA accepts LINELIST2,LINESTRIP3,TRIANGLELIST4,TRIANGLESTRIP5; legacy private setter stays TRIANGLELIST4; POINT/adjacency/PATCH and index strip-cut remain gated",
+      "explicit topology/reserved fields append only to generated internal GraphicsWork; DirectState/DrawArguments and private callback bundles are frozen; zero internal topology means legacy triangle-list and is checked against the retained selected class",
+      "every consumed draw snapshots topology independently of later IA mutation or pipeline binding; exact replay, pending reset and uncertain/failed drain retain original generations",
+      "whole-stream selected C preflight repeats actual owner class/enum/reserved checks before recording; core vkCmdSetPrimitiveTopology is required and emitted for each real draw, with older scalar/private draws explicitly setting triangle-list",
+      "Vulkan1.3 selected physical and instance API already required; same-class dynamic topology uses core behavior without claiming optional unrestricted topology or inventing features"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "native_pipeline_cases": 48,
+      "pipeline_classes": [
+        "LINE",
+        "TRIANGLE"
+      ],
+      "IA_topologies": [
+        "LINELIST",
+        "LINESTRIP",
+        "TRIANGLELIST",
+        "TRIANGLESTRIP"
+      ],
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "alpha_coverage_and_sample_masks": true,
+      "optional_depth": true,
+      "immutable_blocked_constructor_class": true,
+      "class_mismatch_and_POINT_recording_errors": true,
+      "invalid_lists_retire_exactly_and_fresh_lists_reuse_sources": true,
+      "actual_consumed_and_replayed_topology": true,
+      "no_attempt_pending_reset_uncertain_failed_drain": true,
+      "missing_core_topology_on_fresh_device_and_retry": true,
+      "valid_cached_function_remains_valid": true,
+      "assembly_class_and_dynamic_command_disabled_controls": true,
+      "CPU_Vulkan13_offscreen_pixel_cases": 8,
+      "CPU_renderer": "llvmpipe LLVM21.1.8",
+      "CPU_list_strip_pixel_coverage_distinguished": true
+    },
+    "limitations": [
+      "POINT requires proved vertex point-size semantics; adjacency/GS/PATCH/tessellation/index strip-cut remain unfinished",
+      "physical GPU line rasterization/winding and full native Windows runtime acceptance remain unqualified",
+      "broader resource/shader/runtime contracts and complete D1 remain pending"
+    ],
+    "primary_sources": [
+      "https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetPrimitiveTopology.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3PropertiesEXT.html"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "followup": "Native POINT and point-only entry now implemented; original ordinary interfaces are preserved, selected output budgets gate both entries and triangle wireframe is ignored for POINT/LINE. See native_point_rasterization."
+  },
+  "native_point_rasterization": {
+    "scope": "Native POINT class/list with proved one-pixel vertex output and separate ordinary/private SPIR-V entries",
+    "implemented": [
+      "optional compiler262144/CompileVertexPointSize transforms genuine pinned Vertex SPIR-V, preserves ABI2/root1/IO1/result reserved0 and all older entry restrictions; actual unsupported transform falls back to ordinary StageIo without point admission while a declared missing export fails strictly",
+      "ordinary main wrapper and private ql_point wrapper call the unchanged original application helper; only ql_point appends float32 Output PointSize=1; original main interface remains byte-identical and canonical wrapper/typed ID proof binds actual module bytes",
+      "shared bounded literal-aware proof validates unique typed Output PointSize, exact constant1, canonical entry wrappers/call/store, old interface identity and absence of outside fresh-ID references; selected VkShaderModule owner derives metadata from actual bytes without caller flags",
+      "real selected vertex output count and location extent include built-ins; ordinary/point budgets are retained separately and checked against actual maxVertexOutputComponents before format probes or pipeline creation; unknown output layouts refuse conservatively",
+      "POINT/LINE/TRIANGLE immutable PSO classes and IA POINTLIST1/list-strip snapshots select actual assembly and dynamic topology; POINT requires proved module and selects ql_point while ordinary LINE/TRIANGLE selects main",
+      "triangle-only wireframe is normalized to FILL for POINT and LINE, without requiring fillModeNonSolid for ignored state; point culling does not change actual point rasterization",
+      "all existing selected mask/coverage/depth/format/sample, source-lifetime and exact command ownership/fault gates remain mandatory; frozen external records, original constructors and legacy private triangle-list behavior are preserved"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "pipeline_cases": 72,
+      "nontriangle_wireframe_feature_boundary_cases": 12,
+      "SDK_shader_profiles": [
+        "5.0",
+        "5.1"
+      ],
+      "SDK_compiler_root_IO_cases": 12,
+      "SDK_pixel_profiles": 2,
+      "SDK_wide_output_case": true,
+      "SPIRV_Tools_Vulkan12_valid": true,
+      "old_IR_byte_identity_after_private_entry_removal": true,
+      "ordinary_interface_unchanged": true,
+      "point_size_proof_cases": 4068,
+      "per_entry_budget_cases": 15,
+      "alpha_guard_regression_cases": 6116,
+      "selected_64_components_ordinary64_point65_refusal_and_smaller_retry": true,
+      "CPU_Vulkan_pixel_cases": 288,
+      "CPU_only_ICD_asserted": true,
+      "prior_compiler_and_disabled_module_proof_and_output_budget_controls": true,
+      "width2_real_pixel_count_sensitivity_control": true,
+      "mixed_indexed_nonindexed_consumed_replayed_pending_fault_lifetimes": true
+    },
+    "limitations": [
+      "adjacency/GS/PATCH/tessellation/index strip-cut and full general shaders/resources/runtime contracts remain unfinished",
+      "currently admitted vertex scalar32/vector outputs receive exact budgets; unknown composites fail closed",
+      "physical GPU point/line/winding qualification and public native Windows D3D12 acceptance remain unqualified"
+    ],
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/PointSize.html",
+      "https://docs.vulkan.org/spec/latest/chapters/interfaces.html"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_vertex_operations": {
+    "scope": "Explicit bounded native vertex math and authoritative operand/temporary proof, preserving previous compiler exports",
+    "implemented": [
+      "optional524288/CompileVertexOperations preserves ABI2/root1/IO1/result reserved0 and every older export; genuine Vertex5.0/5.1 dot reductions, min/max/div/reciprocal/rsqrt/sqrt/fraction/comparisons/selection, supported FLOAT saturation and exact FLOAT source modifiers join existing basic arithmetic",
+      "shared decoded instruction shape validates exact source/destination counts, real output register kind/limit, static indices, no predicate/coissue/unknown flags or operand extensions, at most256 declared temporaries and definite initialized source lanes; derivative/flow flags remain disabled for this vertex policy",
+      "vertex declaration sequencing handles authoritative ordinary/system inputs and outputs before execution; exact union input reads, full declared output writes, dot source lanes and static root/physical/uniform resource spans remain mandatory",
+      "native loader negotiates only the explicit declared export; semantic instruction/lane/resource failure never falls back to the older looser policy. Basic arithmetic already admitted by the old vertex path receives no duplicate implementation claim",
+      "after strict validation, real pinned Vertex IR may receive the proved private one-pixel entry while ordinary main retains original interface; unsupported optional point shape retains strictly validated ordinary IR, without recompiling through older admission",
+      "actual selected native module/POINT/LINE/TRIANGLE pipeline construction uses copied caller IO/root ownership and per-entry output limits. Generic full shader models, texture sampling, control flow and public runtime qualification remain unfinished"
+    ],
+    "verification": {
+      "SDK_containers": 9,
+      "SDK_native_compile_frames": 13,
+      "SDK_profiles": [
+        "5.0",
+        "5.1"
+      ],
+      "inline_constants_physical_CBV_uniform_table_and_structured_reads": true,
+      "short_root_read_span_and_input_refusal": true,
+      "older_entry_math_restrictions_preserved": true,
+      "older_basic_vertex_arithmetic_parity": true,
+      "native_regressions": 31,
+      "native_math_modules": 4,
+      "procedural_primitive_pipelines": 6,
+      "undeclared_temps_no_old_policy_fallback": true,
+      "caller_IO_mutation_and_exact_retirement": true,
+      "CPU_Vulkan_pixel_cases": 288,
+      "CPU_ICD_asserted": true,
+      "real_SDK_dot_coefficient_pixel_sensitivity": true,
+      "SPIRV_Tools_valid": true,
+      "older_compiler_and_runtime_controls": true
+    },
+    "limitations": [
+      "full native shader models, loops/branches, dynamic resources/textures and full runtime D1 remain incomplete",
+      "physical GPU numerical/NaN/signed-zero and public native Windows qualification remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_vertex_control_flow": {
+    "scope": "Explicit structured native vertex IF/ELSE selections and signed/unsigned integer comparison predicates",
+    "implemented": [
+      "optional1048576/CompileVertexControlFlow preserves ABI2/root1/IO1/result reserved0 and all older exports; native Vertex5.0/5.1 IF_z/IF_nz, optional ELSE and ENDIF use existing exact scalar UINT condition proof and16-level structured validation",
+      "temporary lane initialization and independently tracked output writes intersect every branch path; absent ELSE preserves entry values, no one-sided assignment escapes merges, declarations stay before execution and all declared outputs remain fully written",
+      "authoritative static input/root/physical-CBV/uniform-table read spans apply in every branch; actual condition reads consume one source lane and unused union signature entries remain unused",
+      "six explicit IEQ/INE/ILT/IGE/ULT/UGE predicates emit genuine equality/inequality/signed/unsigned SPIR-V comparisons; real32-bit operand/temporary/index/modifier checks apply and integer saturation refuses; earlier vertex and pixel policies keep these additional gates disabled",
+      "selected native loader negotiates the explicit flow export, and semantic failures remain terminal without older-policy fallback; real pinned structured IR retains ordinary main and optional proved point entry with exact module/root/IO lifetime",
+      "native selected module construction handles input,nested,preserved,root and integer-predicate modules after caller IO mutation; existing physical output limits, primitive/mask/coverage and owner gates remain mandatory"
+    ],
+    "verification": {
+      "SDK_profiles": [
+        "5.0",
+        "5.1"
+      ],
+      "SDK_containers": 10,
+      "base_compile_frames": 14,
+      "derived_exact_SDK_integer_predicate_frames": 12,
+      "SPIRV_Tools_valid": true,
+      "all_root_physical_uniform_variants_retained_for_validation": true,
+      "native_regressions": 31,
+      "native_flow_modules": 10,
+      "condition_inversion_and_missing_delimiter_reserved_flags_early_return_refusals": true,
+      "definite_output_and_temporary_merge_refusals": true,
+      "nested16_accepts17_refuses": true,
+      "short_root_exact_condition_and_branch_read_spans": true,
+      "integer_saturation_refuses": true,
+      "older_entries_preserve_restrictions": true,
+      "older_runtime_compiler_controls": true,
+      "CPU_Vulkan_pixel_cases": 576,
+      "both_branch_outcomes_each_profile": true,
+      "actual_branch_destination_sensitivity": true,
+      "CPU_ICD_asserted": true
+    },
+    "limitations": [
+      "loops,switch,early returns,general memory/texture access and complete native shader models/runtime remain unfinished",
+      "physical GPU branch/numerical behavior and public native Windows acceptance remain unqualified"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  }
+}

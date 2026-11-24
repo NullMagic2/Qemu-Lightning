@@ -1,0 +1,96 @@
+{
+  "module": "lightning.direct3d12_umd.native_objects_policy",
+  "created": "2026-10-24",
+  "generator": "native_objects.rs and genuine WDK native_objects_abi.c production boundary",
+  "official_kit": "10.0.28000.0",
+  "public_native_interface_ready": false,
+  "advertised_native_versions": [],
+  "public_CreateDevice": "E_NOINTERFACE; private-size remains0; no mandatory native DDI table is installed",
+  "experimental_entry": "QemuLightningInternalGetNativeObjectFunctions(version1, exact sizeof bundle)",
+  "experimental_bundle": "Versioned private function bundle of genuine official PFND3D12DDI types for device size/create/destroy and allocator size/create/destroy/reset, plus status-returning retirement retry helpers. Never a complete native core table.",
+  "device_contract": {
+    "interface": "D3D12DDI_INTERFACE_VERSION_R0",
+    "runtime_build": 8,
+    "flags": [
+      "NONE",
+      "DISABLE_IMPLICIT_MGPU"
+    ],
+    "storage_bytes": 8,
+    "storage_alignment": 8,
+    "runtime_callback": "Copy actual pfnSetErrorCb plus actual hRTDevice.handle; no runtime callback table retained",
+    "parent": "Dedicated actual adapter retain; CloseAdapter remains busy until last native context successfully retires",
+    "quota": 32
+  },
+  "allocator_contract": {
+    "type": "D3D12DDI_COMMAND_LIST_TYPE_DIRECT",
+    "queue_flags": "Exactly one of3D,COMPUTE,COPY; bundle, paging, mixed or unknown flags rejected",
+    "storage_bytes": 8,
+    "storage_alignment": 8,
+    "quota": 128,
+    "backend": "Real vkCreateCommandPool(flags0,selected graphics+compute family), actual vkResetCommandPool(flags0), vkDestroyCommandPool",
+    "destructor_resolution": "Resolve Create,Reset,Destroy before creation; failed output is never owned, even if scribbled",
+    "ownership": "Native allocator child pins native runtime context; context pins adapter/device until every allocator is destroyed",
+    "concurrency": "Registry operating state excludes simultaneous reset/destruction. Recording, closed-list and detached pending lifetime references refuse actual allocator Reset/Retire. A separate exclusive association permits one active recording per allocator and ends on Close/reset/retirement. Optional Reset can replace list ownership while old GPU work retains its actual pool; Vulkan calls occur outside locks.",
+    "command_buffers": "Bounded native COPY, resource-free COMPUTE and DIRECT state lists allocate real primary command buffers from their exact retained allocator pools; temporary command storage is freed only after observed own accepted completion or explicit safe drain.",
+    "future_requirement": "General reusable command streams, bundles, arbitrary graphics and resource-bound commands remain incomplete."
+  },
+  "error_contract": {
+    "void_operations": "Known-owner refusal and Vulkan reset failure reach genuine copied SetErrorCb; ownership remains retained on refusal",
+    "retry": "Private RetireDevice/RetireCommandAllocator return actual failure/busy for explicit retry; successful retirement alone clears caller cookie",
+    "callback_lifetime": "Leases keep native context/adapter/runtime callback valid through notification; runtime calls occur outside all locks",
+    "callback_reentry": "Per-device active notification gate suppresses nested error delivery while preserving outer lease, failure state and retirement refusal; no recursion guard required in runtime callback",
+    "device_loss": "DXGI_ERROR_DEVICE_REMOVED faults native context and shared real backend device; first shared fault retained; cleanup still allowed",
+    "unknown_allocator": "Pointer key absent from registry is never dereferenced and has no invented parent callback",
+    "shared_fault_observation": "Read original shared parent fault before resetting an existing native pool; a different context/private backend fault cannot be ignored. Merge native/shared faults before successful new pool publication, retain creating child through actual cleanup.",
+    "native_command_generation": "New void COPY/list/queue operations acquire an exact-generation copied callback lease before operation; child retirement cannot retarget notification to a replacement native context.",
+    "native_image_generation": "Genuine image allocation-query/create/destroy callbacks hold exact-generation copied callback leases; real requirements queries also hold a consumed Rust DeviceQueryLease while backend work runs outside locks. Failure cannot notify a replacement native context.",
+    "image_failed_create_collection": "RetireDevice retries hidden buffer and image rollback cleanup before checking child ownership. Attempted image initialization requires token-scoped actual safe drain before backing/claims release; failed drain preserves the original creation failure and parent retention.",
+    "native_descriptor_generation": "Genuine CPU RTV heap/view callbacks retain exact-generation native callback leases. Selected/native fault admission precedes actual slot publication; failed replacement preserves the prior real view and destroys any owned local candidate before releasing the initialized-image lease.",
+    "descriptor_arena_claims": "Descriptor CPU arena bounds attach to the exact global descriptor-heap child before publication. All native storage claims and output copies exclude the range. Retirement removes descriptor lookup, destroys views/releases image leases, frees arena while range exclusion remains, then releases native child/range; no external calls occur under the common lock.",
+    "render_target_command_references": "Distinct bound/clear RTV leases retain exact descriptor generation, actual image/view/heap and allocator during recording and all attempted submissions. Referenced slot overwrite/heap retirement return BUSY. Reset detaches old pending owners; own completion or explicit safe drain alone permits retirement. Completed unchanged one-shot lists retain references until reset/retirement. No external platform calls occur under the policy lock.",
+    "image_transition_command_references": "Separate genuine original R0 ResourceBarrier bundle retains an initialized ImageLease and exact DIRECT allocator through a closed same-image RT/COPY_SOURCE/RT transaction. Missing required Vulkan procedure fails before attempt and preserves retry. Reset detaches attempted owners; unknown submission/failed completion remains terminal with owners retained through failed drain. Safe drain permits cleanup without successful state rollback. The original transition-only bundle keeps its ABI; a separate bounded image-readback bundle now connects the copy between explicit transitions. No inter-list image state persistence is supplied.",
+    "image_readback_command_references": "Genuine original R0 copy callbacks snapshot active placed-resource footprints and retain one exclusive exact same-device READBACK write lease alongside the initialized-image lease. Nonzero resource references, active maps, stale/cross-device cookies, wrong source sequence and invalid logical footprint reject. Missing required copy procedure fails before an attempt and is retryable. Unknown/failed actual attempts preserve original terminal outcome and resources through failed drain; safe drain permits cleanup without success. Reset detaches both resources and old completion cannot mutate replacement recording. Both acquisition orders exclude conflicting ordinary COPY and image-readback leases under the common lock, while ordinary COPY sharing remains valid. Exact cookie/token/adapter and sole-reference checks guard release of the private exclusive-write ownership state.",
+    "image_upload_command_references": "A non-Copy UploadLease pins exact live native resource cookie/backend token/adapter. Read-only image-upload lists and ordinary COPY source leases may share in either acquisition order. Every map, operating source, stale/wrong-device/wrong-kind source and counter overflow refuses acquisition. Only its exact release decrements its own reference; existing exclusive READBACK write ownership remains unchanged. Recording and completed-unreset lists keep source/image/allocator leases. Actual accepted or unknown attempts keep all owners through failed observation/drain. Own observed completion or safe drain alone permits detached cleanup; reset/reused generations cannot be changed by old completion. Failed terminal work is never reported as successful upload."
+  },
+  "caller_storage_contract": [
+    "Runtime owns valid aligned storage through every call and until successful retirement and all overlapping calls return",
+    "Atomic shim cookie reads/writes plus registry pointer key/cookie consistency checks; failed create/retire preserves caller storage",
+    "No arbitrary pointer validation or defense against caller freeing or reusing live storage during a call is claimed",
+    "Fresh cookies reject copied/edited storage, but cannot distinguish an old copied address after legal same-address runtime storage reuse"
+  ],
+  "remaining": [
+    "No complete public native device interface or mandatory core/list/queue/DXGI tables",
+    "Bounded native COPY, resource-free COMPUTE, DIRECT state, fixed-RTV binding/clear and one procedural triangle execute. Indexed or resource-bound drawing, general command sequences, full resource-bound compute and presentation remain missing. Native OS fences and logical queue dependencies now exist through the separate owned-mapping experimental fence bundle.",
+    "No WDDM context/paging callbacks used by this experimental subset",
+    "No real Windows D3D12 runtime acceptance, Venus ICD or GPU validation"
+  ],
+  "implementation_credit": "Experimental actual native runtime storage/private-size, copied callback/error path, parent/child ownership and real empty Vulkan allocator pool/reset are production implementation; complete native device and complete command-list/queue behavior remain absent",
+  "testing_credit": 0,
+  "runtime_execution_status": {
+    "callback": "Copy optional genuine pKTCallbacks.pfnEscapeCb at CreateDevice; retain callback code and exact hRTDevice under native generation leases. Runtime adapter handle comes from the actual retained OpenAdapter context.",
+    "marshalling": "D3DDDICB_ESCAPE with DeviceStatusQuery1, HardwareAccess0, null context and an initialized exact D3DDDI_EXECUTIONSTATEESCAPE. The runtime processes this status query before KMD escape dispatch.",
+    "admission": "A per-device in-progress flag excludes recursive or parallel status Escapes. Callback invocation occurs outside the common policy lock; busy retirement and adapter-close attempts preserve the generation until callback return.",
+    "loss": "Only exact S_OK with RESET/STOPPED, D3DDDIERR_DEVICEREMOVED or DXGI_ERROR_DEVICE_REMOVED confirms loss. Failed, pending, unknown and other execution states are inconclusive. A confirmed reset conservatively invalidates the shared selected backend and feeds existing one-time native SetError notification and safe teardown.",
+    "consumers": "Private GetDeviceRemovedReason probes the actual runtime device even without fences or a Vulkan device. Existing queue/fence workers sample eligible runtime contexts at most once per32ms per device, without manufacturing a KMT monitoring device.",
+    "boundaries": "A missing optional Escape callback preserves legacy private behavior. Devices with no active worker are probed on explicit status query. Full public runtime advertisement and hibernation remain separate incomplete contracts."
+  },
+  "mapped_resource_profile": {
+    "version": 5,
+    "entry": "QemuLightningInternalOpenNativeAdapterR0",
+    "callback_copy": "Genuine device paging/map/free callbacks and genuine core-layer residency callbacks are copied; no callback table pointer survives CreateDevice.",
+    "residency_lifetime": "Exact buffer/image heap pins and a native callback lease span runtime calls outside locks. Partial acquisition is rolled back, duplicate objects preserve the actual OS request list, and pending residency results retain their returned fence meaning.",
+    "device_loss": "Confirmed removal from allocation or mapping failures faults the shared native device before further publication.",
+    "public_ready": false
+  },
+  "single_node_topology": {
+    "callbacks": [
+      "PFND3D12DDI_GETIMPLICITPHYSICALADAPTERMASK",
+      "PFND3D12DDI_QUERY_NODE_MAP"
+    ],
+    "source": "The retained Lightning adapter identity admits one guest physical adapter and one visible node; this is independent of host Vulkan enumeration indices.",
+    "result": "Guest physical adapter mask1; the exact one-element physical-to-logical map contains node ordinal0.",
+    "admission": "Copied native callback lease spans exact generation lookup and error reporting. Rust validates aligned non-aliased output and publishes only under atomic native fault admission.",
+    "failure": "Wrong physical count, NULL/misaligned/claimed output or lost device leaves output unchanged. Invalid/retired device returns no mask and never dereferences unknown storage.",
+    "public_ready": false
+  }
+}

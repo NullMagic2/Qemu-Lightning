@@ -1,0 +1,289 @@
+--- a/src/gallium/drivers/zink/zink_types.h
++++ b/src/gallium/drivers/zink/zink_types.h
+@@ -1938,8 +1938,8 @@
+          } db;
+       };
+ 
+-      VkDescriptorImageInfo fbfetch;
+-      uint8_t fbfetch_db[ZINK_FBFETCH_DESCRIPTOR_SIZE];
++      VkDescriptorImageInfo fbfetch[PIPE_MAX_COLOR_BUFS];
++      uint8_t fbfetch_db[PIPE_MAX_COLOR_BUFS][ZINK_FBFETCH_DESCRIPTOR_SIZE];
+ 
+       /* the current state of the zs swizzle data */
+       struct zink_zs_swizzle_key zs_swizzle[MESA_SHADER_MESH_STAGES];
+--- a/src/gallium/drivers/zink/zink_descriptors.c
++++ b/src/gallium/drivers/zink/zink_descriptors.c
+@@ -260,7 +260,7 @@
+    if (fbfetch) {
+       bindings[ZINK_GFX_SHADER_COUNT].binding = ZINK_FBFETCH_BINDING;
+       bindings[ZINK_GFX_SHADER_COUNT].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+-      bindings[ZINK_GFX_SHADER_COUNT].descriptorCount = 1;
++      bindings[ZINK_GFX_SHADER_COUNT].descriptorCount = PIPE_MAX_COLOR_BUFS;
+       bindings[ZINK_GFX_SHADER_COUNT].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+       bindings[ZINK_GFX_SHADER_COUNT].pImmutableSamplers = NULL;
+    }
+@@ -997,7 +997,7 @@
+    else {
+       sizes[0].descriptorCount = ZINK_GFX_SHADER_COUNT * MAX_LAZY_DESCRIPTORS;
+       sizes[1].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+-      sizes[1].descriptorCount = MAX_LAZY_DESCRIPTORS;
++      sizes[1].descriptorCount = PIPE_MAX_COLOR_BUFS * MAX_LAZY_DESCRIPTORS;
+    }
+    pool->pool = create_pool(screen, !is_compute && has_fbfetch ? 2 : 1, sizes, 0);
+    return pool;
+@@ -1340,12 +1340,15 @@
+    struct zink_program *pg = is_compute ? &ctx->curr_compute->base : pidx == ZINK_PIPELINE_GFX ? &ctx->curr_program->base : &ctx->mesh_program->base;
+    struct zink_screen *screen = zink_screen(ctx->base.screen);
+    bool have_KHR_push_descriptor = screen->info.have_KHR_push_descriptor;
++   /* Input attachments occupy the push set even when neither shader has
++    * uniforms. Fetch-only programs must still allocate, upload and bind it. */
++   const bool has_push_descriptors = pg->dd.push_usage || pg->dd.fbfetch;
+ 
+    bool batch_changed = !bs->dd.pg[pidx];
+    if (batch_changed) {
+       /* update all sets and bind null sets */
+       ctx->dd.state_changed[pidx] = pg->dd.binding_usage & BITFIELD_MASK(ZINK_DESCRIPTOR_TYPE_UNIFORMS);
+-      ctx->dd.push_state_changed[pidx] = !!pg->dd.push_usage || ctx->dd.has_fbfetch != bs->dd.has_fbfetch;
++      ctx->dd.push_state_changed[pidx] = has_push_descriptors || ctx->dd.has_fbfetch != bs->dd.has_fbfetch;
+    }
+ 
+    if (!is_compute) {
+@@ -1387,7 +1390,7 @@
+ 
+    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB) {
+       size_t check_size = 0;
+-      if (pg->dd.push_usage && ctx->dd.push_state_changed[pidx])
++      if (has_push_descriptors && ctx->dd.push_state_changed[pidx])
+          check_size += ctx->dd.db_size[pidx];
+       for (unsigned i = 0; i < ZINK_DESCRIPTOR_BASE_TYPES; i++) {
+          if (changed_sets & BITFIELD_BIT(i))
+@@ -1404,7 +1407,7 @@
+          zink_batch_bind_db(ctx);
+    }
+ 
+-   if (pg->dd.push_usage && (ctx->dd.push_state_changed[pidx] || bind_sets)) {
++   if (has_push_descriptors && (ctx->dd.push_state_changed[pidx] || bind_sets)) {
+       if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB) {
+          uint32_t index = 0;
+          uint64_t offset = ctx->dd.push_state_changed[pidx] ?
+@@ -1426,18 +1429,19 @@
+             }
+             if (!is_compute && ctx->dd.has_fbfetch) {
+                uint64_t stage_offset = offset + ctx->dd.db_offset[MESA_SHADER_FRAGMENT + 1];
+-               if (pg->dd.fbfetch && screen->info.db_props.inputAttachmentDescriptorSize) {
+-                  /* real fbfetch descriptor */
+-                  VkDescriptorGetInfoEXT info;
+-                  info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
+-                  info.pNext = NULL;
+-                  info.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+-                  info.data.pInputAttachmentImage = &ctx->di.fbfetch;
+-                  VKSCR(GetDescriptorEXT)(screen->dev, &info, screen->info.db_props.inputAttachmentDescriptorSize,
+-                                                            bs->dd.db_map + stage_offset);
+-               } else {
+-                  /* reuse cached dummy descriptor */
+-                  memcpy(bs->dd.db_map + stage_offset, ctx->di.fbfetch_db, screen->info.db_props.inputAttachmentDescriptorSize);
++               for (unsigned rt = 0; rt < PIPE_MAX_COLOR_BUFS; rt++) {
++                  uint8_t *descriptor = bs->dd.db_map + stage_offset +
++                     rt * screen->info.db_props.inputAttachmentDescriptorSize;
++                  if (pg->dd.fbfetch && screen->info.db_props.inputAttachmentDescriptorSize) {
++                     VkDescriptorGetInfoEXT info = {0};
++                     info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
++                     info.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
++                     info.data.pInputAttachmentImage = &ctx->di.fbfetch[rt];
++                     VKSCR(GetDescriptorEXT)(screen->dev, &info, screen->info.db_props.inputAttachmentDescriptorSize,
++                                             descriptor);
++                  } else {
++                     memcpy(descriptor, ctx->di.fbfetch_db[rt], screen->info.db_props.inputAttachmentDescriptorSize);
++                  }
+                }
+             }
+             bs->dd.cur_db_offset[ZINK_DESCRIPTOR_TYPE_UNIFORMS] = bs->dd.db_offset;
+@@ -1697,7 +1701,7 @@
+    init_push_template_entry(&ctx->dd.compute_push_entry, MESA_SHADER_COMPUTE, MESA_SHADER_COMPUTE);
+    VkDescriptorUpdateTemplateEntry *entry = &ctx->dd.push_entries[ZINK_GFX_SHADER_COUNT]; //fbfetch
+    entry->dstBinding = ZINK_FBFETCH_BINDING;
+-   entry->descriptorCount = 1;
++   entry->descriptorCount = PIPE_MAX_COLOR_BUFS;
+    entry->descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    entry->offset = offsetof(struct zink_context, di.fbfetch);
+    entry->stride = sizeof(VkDescriptorImageInfo);
+--- a/src/gallium/drivers/zink/zink_context.c
++++ b/src/gallium/drivers/zink/zink_context.c
+@@ -2940,55 +2940,59 @@
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
+    info.pNext = NULL;
+    info.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+-   info.data.pInputAttachmentImage = &ctx->di.fbfetch;
+-   if (screen->info.db_props.inputAttachmentDescriptorSize)
+-      VKSCR(GetDescriptorEXT)(screen->dev, &info, screen->info.db_props.inputAttachmentDescriptorSize, ctx->di.fbfetch_db);
++   for (unsigned rt = 0; rt < PIPE_MAX_COLOR_BUFS; rt++) {
++      info.data.pInputAttachmentImage = &ctx->di.fbfetch[rt];
++      if (screen->info.db_props.inputAttachmentDescriptorSize)
++         VKSCR(GetDescriptorEXT)(screen->dev, &info, screen->info.db_props.inputAttachmentDescriptorSize,
++                                 ctx->di.fbfetch_db[rt]);
++   }
+ }
+ 
+ bool
+ zink_update_fbfetch(struct zink_context *ctx)
+ {
+-   const bool had_fbfetch = ctx->di.fbfetch.imageLayout == VK_IMAGE_LAYOUT_GENERAL;
+-   if (!ctx->gfx_stages[MESA_SHADER_FRAGMENT] ||
+-       !ctx->gfx_stages[MESA_SHADER_FRAGMENT]->info.fs.uses_fbfetch_output) {
+-      if (!had_fbfetch)
+-         return false;
++   const bool had_fbfetch = ctx->di.fbfetch[0].imageLayout == VK_IMAGE_LAYOUT_GENERAL;
++   const bool uses_fetch = ctx->gfx_stages[MESA_SHADER_FRAGMENT] &&
++      ctx->gfx_stages[MESA_SHADER_FRAGMENT]->info.fs.uses_fbfetch_output;
++   bool changed = uses_fetch != had_fbfetch;
++   bool multisampled = false;
++
++   if (!uses_fetch && !had_fbfetch)
++      return false;
++   if (!uses_fetch)
+       zink_batch_no_rp(ctx);
+-      ctx->di.fbfetch.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+-      ctx->di.fbfetch.imageView = VK_NULL_HANDLE;
+-      ctx->invalidate_descriptor_state(ctx, MESA_SHADER_FRAGMENT, ZINK_DESCRIPTOR_TYPE_UBO, 0, 1);
+-      ctx->dynamic_fb.flags[0].flags &= ~VK_RENDERING_ATTACHMENT_INPUT_ATTACHMENT_FEEDBACK_BIT_KHR;
+-      return true;
+-   }
+-
+-   bool changed = !had_fbfetch;
+-   if (ctx->fb_state.cbufs[0].texture) {
+-      struct zink_surface *surf = zink_create_fb_surface(&ctx->base, &ctx->fb_state.cbufs[0]);
+-      if (!surf)
+-         /* swapchain image: retry later */
+-         return false;
+-      VkImageView fbfetch = surf->image_view;
+-      changed |= fbfetch != ctx->di.fbfetch.imageView;
+-      ctx->di.fbfetch.imageView = fbfetch;
+-
+-      bool fbfetch_ms = ctx->fb_state.cbufs[0].texture->nr_samples > 1;
+-      if (zink_get_fs_base_key(ctx)->fbfetch_ms != fbfetch_ms)
+-         zink_set_fs_base_key(ctx)->fbfetch_ms = fbfetch_ms;
+-      ctx->dynamic_fb.flags[0].flags |= VK_RENDERING_ATTACHMENT_INPUT_ATTACHMENT_FEEDBACK_BIT_KHR;
+-   } else {
+-      ctx->di.fbfetch.imageView = VK_NULL_HANDLE;
+-      ctx->dynamic_fb.flags[0].flags &= ~VK_RENDERING_ATTACHMENT_INPUT_ATTACHMENT_FEEDBACK_BIT_KHR;
+-   }
+-   bool ret = false;
+-   ctx->di.fbfetch.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
++
++   /* Resolve every view before changing the live descriptor table. A missing
++    * acquired swapchain image must leave the previous binding intact. */
++   VkImageView views[PIPE_MAX_COLOR_BUFS] = { VK_NULL_HANDLE };
++   for (unsigned rt = 0; rt < PIPE_MAX_COLOR_BUFS; rt++) {
++      if (uses_fetch && (ctx->fbfetch_outputs & BITFIELD_BIT(rt)) &&
++          rt < ctx->fb_state.nr_cbufs && ctx->fb_state.cbufs[rt].texture) {
++         struct zink_surface *surf = zink_create_fb_surface(&ctx->base, &ctx->fb_state.cbufs[rt]);
++         if (!surf)
++            return false; /* Swapchain acquisition retries after its image exists. */
++         views[rt] = surf->image_view;
++         multisampled |= ctx->fb_state.cbufs[rt].texture->nr_samples > 1;
++      }
++   }
++
++   for (unsigned rt = 0; rt < PIPE_MAX_COLOR_BUFS; rt++) {
++      changed |= ctx->di.fbfetch[rt].imageView != views[rt];
++      ctx->di.fbfetch[rt].imageView = views[rt];
++      ctx->di.fbfetch[rt].imageLayout = uses_fetch ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED;
++      if (views[rt])
++         ctx->dynamic_fb.flags[rt].flags |= VK_RENDERING_ATTACHMENT_INPUT_ATTACHMENT_FEEDBACK_BIT_KHR;
++      else
++         ctx->dynamic_fb.flags[rt].flags &= ~VK_RENDERING_ATTACHMENT_INPUT_ATTACHMENT_FEEDBACK_BIT_KHR;
++   }
++   if (uses_fetch && zink_get_fs_base_key(ctx)->fbfetch_ms != multisampled)
++      zink_set_fs_base_key(ctx)->fbfetch_ms = multisampled;
+    if (changed) {
+       ctx->invalidate_descriptor_state(ctx, MESA_SHADER_FRAGMENT, ZINK_DESCRIPTOR_TYPE_UBO, 0, 1);
+-      if (!had_fbfetch) {
+-         ret = true;
++      if (uses_fetch && !had_fbfetch)
+          zink_batch_no_rp(ctx);
+-      }
+-   }
+-   return ret;
++   }
++   return changed;
+ }
+ 
+ static void
+@@ -5831,8 +5835,8 @@
+ {
+    struct zink_shader *zs = state;
+    info->zsbuf_write_fs |= zs->info.outputs_written & (BITFIELD64_BIT(FRAG_RESULT_DEPTH) | BITFIELD64_BIT(FRAG_RESULT_STENCIL));
+-   /* TODO: if >1 fbfetch attachment is ever supported */
+-   info->cbuf_fbfetch |= zs->info.fs.uses_fbfetch_output ? BITFIELD_BIT(0) : 0;
++   if (zs->info.fs.uses_fbfetch_output)
++      info->cbuf_fbfetch |= (zs->info.outputs_read >> FRAG_RESULT_DATA0) & BITFIELD_MASK(PIPE_MAX_COLOR_BUFS);
+ }
+ 
+ void
+--- a/src/gallium/drivers/zink/zink_compiler.c
++++ b/src/gallium/drivers/zink/zink_compiler.c
+@@ -1664,17 +1664,25 @@
+     * - SPIRV OpTypeImage specification
+     */
+    fbfetch->data.image.format = 0;
+-   fbfetch->data.index = 0; /* fix this if more than 1 fbfetch target is supported */
++   fbfetch->data.index = 0; /* Descriptor-array elements address matching color attachments. */
+    fbfetch->data.mode = nir_var_uniform;
+-   fbfetch->data.binding = ZINK_FBFETCH_BINDING;
+    fbfetch->data.binding = ZINK_FBFETCH_BINDING;
+    fbfetch->data.sample = ms;
+    enum glsl_sampler_dim dim = ms ? GLSL_SAMPLER_DIM_SUBPASS_MS : GLSL_SAMPLER_DIM_SUBPASS;
+-   fbfetch->type = glsl_image_type(dim, false, GLSL_TYPE_FLOAT);
++   const struct glsl_type *value_type = glsl_without_array(var->type);
++   enum glsl_base_type base_type = glsl_get_base_type(value_type);
++   fbfetch->type = glsl_array_type(glsl_image_type(dim, false, base_type), PIPE_MAX_COLOR_BUFS, 0);
+    nir_shader_add_variable(b->shader, fbfetch);
+-   nir_def *deref = &nir_build_deref_var(b, fbfetch)->def;
++   nir_def *index = nir_imm_int(b, MAX2(var->data.location, FRAG_RESULT_DATA0) - FRAG_RESULT_DATA0);
++   nir_deref_instr *output = nir_src_as_deref(intr->src[0]);
++   if (output->deref_type == nir_deref_type_array)
++      index = nir_iadd(b, index, output->arr.index.ssa);
++   nir_def *deref = &nir_build_deref_array(b, nir_build_deref_var(b, fbfetch), index)->def;
+    nir_def *sample = ms ? nir_load_sample_id(b) : nir_undef(b, 1, 32);
+-   nir_def *load = nir_image_deref_load(b, 4, 32, deref, nir_imm_vec4(b, 0, 0, 0, 1), sample, nir_imm_int(b, 0));
++   nir_def *load = nir_image_deref_load(b, 4, 32, deref, nir_imm_vec4(b, 0, 0, 0, 1), sample, nir_imm_int(b, 0),
++                                       .image_dim = dim, .image_array = false,
++                                       .access = var->data.access,
++                                       .dest_type = nir_get_nir_type_for_glsl_base_type(base_type));
+    nir_def_rewrite_uses(&intr->def, load);
+    return true;
+ }
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -785,7 +785,9 @@
+ #if defined(MVK_VERSION)
+    caps->fbfetch = 0;
+ #else
+-   caps->fbfetch = screen->info.have_KHR_dynamic_rendering_local_read;
++   caps->fbfetch = screen->info.have_KHR_dynamic_rendering_local_read ?
++      MIN3(PIPE_MAX_COLOR_BUFS, screen->info.props.limits.maxColorAttachments,
++           screen->info.props.limits.maxPerStageDescriptorInputAttachments) : 0;
+ #endif
+    caps->fbfetch_coherent = caps->fbfetch && screen->info.have_EXT_rasterization_order_attachment_access;
+ 
+--- a/src/mesa/main/barrier.c
++++ b/src/mesa/main/barrier.c
+@@ -190,6 +190,9 @@
+       return;
+    }
+ 
++   /* Immediate-mode vertices must precede the GPU memory dependency. */
++   FLUSH_VERTICES(ctx, 0, 0);
++
+    ctx->pipe->texture_barrier(ctx->pipe, PIPE_TEXTURE_BARRIER_FRAMEBUFFER);
+ }
+ 
+@@ -204,5 +207,8 @@
+       return;
+    }
+ 
++   /* Immediate-mode vertices must precede the GPU memory dependency. */
++   FLUSH_VERTICES(ctx, 0, 0);
++
+    ctx->pipe->texture_barrier(ctx->pipe, PIPE_TEXTURE_BARRIER_FRAMEBUFFER);
+ }

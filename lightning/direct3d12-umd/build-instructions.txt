@@ -1,0 +1,602 @@
+Module: lightning.direct3d12_umd.build_instructions
+Purpose: Reproduce the Windows adapter and selected Venus capability bridge.
+Created: 2026-10-24
+Architecture: Rust owns bounded adapter/backend policy. Thin C uses genuine WDK,
+Win32 and Vulkan structures. This module never installs or advertises a device.
+
+Implementation
+    OpenAdapter12 exports the official R0/0003 WDK adapter table. It copies the
+    runtime callback and its opaque selected adapter handle, without loading any
+    backend. The runtime must keep callback code valid until CloseAdapter succeeds.
+
+    QemuLightningInternalOpenNativeAdapterR0(version=1) opens an explicit private
+    profile on the same adapter machinery. pfnGetSupportedVersions reports exactly
+    D3D12DDI_SUPPORTED_0003 for that profile. Its genuine core, 3D list and 3D queue
+    tables support the selected copy, compute and draw paths through the existing
+    owner registries. Other table types and out-of-scope slots remain unavailable.
+    The single list table is installed at index zero with its runtime handle.
+    Successful CreateCommandList publishes the runtime-owned list and then calls
+    the copied SetCommandListDDITableCb under a generation-scoped device lease.
+    Scoped recording errors use SetCommandListErrorCb with that list's exact
+    runtime handle. Core and queue failures keep using the device SetErrorCb.
+    Core allocation slots route committed buffers and render-target images to their
+    typed owning implementation. Scoped RGBA8/BGRA8/RGB10A2/RGBA16_FLOAT/RGBA16_UNORM render-target and sample-one queries
+    check actual selected Vulkan image requirements. The ICD can decline the format.
+    Managed fences still use the existing private fence preparation and attachment.
+    Public discovery continues to report zero DDI versions. Windows resource/KMD
+    association, the full feature-level contract, mandatory slots and DXGI remain open.
+
+    The opt-in R0 version 2 adds real WDDM queue ownership through the four
+    required virtual-context and paging-queue callbacks in the runtime's R0
+    core layer. A command queue obtains its context on the selected render
+    node before its cookie becomes visible. QemuLightningInternalPrepareNativePagingQueue
+    explicitly obtains the paging queue and its monitored fence for a live
+    queue. Returned handles remain borrowed through the queue lifetime.
+    The paging queue is optional per queue and is destroyed before its context.
+    If either destroy callback fails, the private runtime retains the queue
+    storage and runtime handle and retries RetireCommandQueue. New work stops
+    after retirement is requested. Version 1 continues to accept its original
+    callback set and leaves WDDM queue creation to the caller.
+    The opt-in R0 version 3 adds WDDM allocation association for the scoped
+    committed RGBA8/BGRA8/RGB10A2/RGBA16_FLOAT/RGBA16_UNORM render target. It requires both runtime allocation
+    callbacks and VK_KHR_external_memory_win32 on the selected Lightning ICD.
+    The image format query must permit the opaque Win32 export. The paired
+    ICD exports a Venus backing ID for the bound dedicated allocation. The
+    runtime AllocateCb gives the miniport its own reference to that ID.
+    CheckResourceAllocationHandle returns the D3DKMT allocation for a live
+    image in the owning device. Retirement calls DeallocateCb before freeing
+    Vulkan memory and retains the owner if the callback has to be retried.
+    The private profile still needs other resource coverage, GPUVA mapping,
+    VidMm residency, and WDDM command scheduling.
+
+    Private native committed RGBA8/BGRA8/RGB10A2/RGBA16_FLOAT/RGBA16_UNORM render targets accept nonempty dimensions
+    within the guest cap, selected framebuffer and image-format limits, and
+    allocation size and alignment restrictions. Format support probes the
+    smallest nonempty shape. RTVs, clear and draw submissions, upload/readback
+    and presentation use the exact admitted extent and format. Draw requires
+    a matching graphics PSO and RTV format. A copy footprint must match the
+    retained image format and geometry and cover each row's active bytes.
+    Texture1D render targets require Height=1 and use actual Vulkan 1D
+    images and views, with independent selected image-type and format limits.
+    Texture1D and Texture2D arrays use the selected Vulkan layer limit and the
+    total backing size. Initialization clears all layers. An RTV can clear
+    a contiguous range within the framebuffer layer limit. A draw without a layer output uses the first
+    layer of its bound RTV range, and a transfer uses one subresource with matching single-layer
+    or explicit all-layer barriers. Texture1D transfers use one row.
+    Texture3D uses a genuine Vulkan 3D image and checks the selected format's
+    width, height, depth and backing size limits. RTVs select W slices of mip
+    zero. Clears can span a slice range, while a draw without a layer output uses the first selected slice. Vulkan
+    barriers cover the entire volume mip. Pitched transfers copy that entire
+    mip and use SlicePitch between depth slices.
+    The private color path admits 2, 4, 8 or 16 samples on Texture2D when
+    selected framebuffer and format sample masks both support the count.
+    Graphics PSOs and RTVs must have identical sample counts. Raw pitched
+    buffer copies require one sample.
+    QemuLightningInternalRecordNativeColorResolve records a whole-layer
+    multisample-to-single-sample resolve on an empty render-target list.
+    Both images enter and leave in RENDER_TARGET and stay retained until
+    actual completion or safe drain. Public Windows resolve DDI remains open.
+    Private window presentation accepts single-sample, single-layer
+    Texture1D and Texture2D.
+    Pitched copies use eight bytes per RGBA16 texel and four bytes
+    per texel for the other formats. RGBA16_FLOAT clears accept finite
+    values within the half-float range, including negative and above-one
+    channels. Its private presentation path converts to an SDR swapchain.
+
+    QemuLightningInternalQueryMemoryBudget reads a live per-VM blob limit and
+    charged usage through the runtime's selected adapter and a matching Venus
+    host. The versioned result includes the negotiated CPU aperture and a
+    separate, per-heap tally of live UMD buffer and image allocation bytes.
+    The selected Vulkan driver can supply its optional live per-heap budget
+    and usage. Older hosts without the negotiated query return unsupported.
+    Public DXGI budget and residency are outside this private interface.
+
+    The opt-in R0 pfnGetCaps handles the genuine memory-architecture schema
+    for node zero when the selected ICD exhibits the implemented discrete
+    host and local pool split. UMA and adapter-wide coherency remain unadvertised.
+
+    Official pfnGetCaps handles exact D3D12DDI_SHADER_CAPS_0003 output and the
+    genuine D3D12DDI_D3D12_SHADER_MODELS_DATA_0011 pointer/count protocol. Rust
+    intersects physical evidence with implemented native shader features. No
+    optional shader features or translated models exist yet: feature fields are
+    false, model count is zero, and caller model arrays remain untouched. A null
+    model array performs a count-only query; null/aliased count storage, wrapped
+    array ranges and wrong schema sizes fail without output mutation. Queries
+    never load the backend or call the runtime. Shader negotiation succeeds even
+    without a Vulkan dependency, but cannot advertise a usable device or model.
+    Unknown cap types, mandatory D3D12 options, pipeline levels, GPU VA and other
+    schema versions remain unsupported. The source policy
+    and exact supported native layouts are listed in native-caps-policy.json.
+
+    QemuLightningInternalQueryBackendSnapshot is an explicitly PRIVATE observation
+    API. Its signature is declared for fixture consumers as QUERY_BACKEND; it takes
+    an official D3D12DDI_HADAPTER, exact generated snapshot byte size and writable
+    QLDX12_BACKEND_SNAPSHOT pointer. Call it outside DllMain and loader-lock contexts
+    while holding the UMD module loaded. It does not create a D3D12 device.
+
+    First valid query uses that adapter's official QueryAdapterInfoCb for the
+    existing 32-byte QLGA contract and the distinct 48-byte selected identity reply.
+    The shared Rust contract/generator owns both schemas. Old KMDs reject identity48
+    and initialization fails; the UMD never derives a LUID from opaque handle bits.
+
+    Only verified exact sibling vulkan-1.dll and QemuLightningVulkan.dll modules
+    are accepted. VK_LUNARG_direct_driver_loading is EXCLUSIVE, with one ICD and no
+    Vulkan environment or registry mutation. The instance requires Vulkan1.3.
+    Exactly one non-CPU Lightning physical device must match the selected OS LUID
+    and single-node mask. A second adapter, mismatch, duplicate, invalid identity,
+    overflow count or VK_INCOMPLETE fails; there is no fallback to another GPU.
+
+    The immutable scalar snapshot records raw physical API, feature-chain booleans,
+    limits, queue counts and physical device-local heap bytes. Its usable 2D limit
+    is min(physical maximum, the paired guest contract maximum of 4096). Physical
+    heap bytes are not the guest allocation budget, residency or application budget.
+    A reserved alignment word is zero, and generated Rust/C field-offset checks
+    cover the entire layout. No official Vulkan or D3D ABI is redefined in Rust.
+
+    QemuLightningInternalQueryBackendRequirement returns one exact-size private
+    QLDX12_REQUIREMENT_RESULT for a named rule index in requirements_contract.h.
+    requirements-source.json maps all23 rules to immutable proposed vkd3d-proton
+    v2.14 source hashes/branches or explicit guest/native gaps. Hard/conditional
+    failures and advisory/optional absences remain separate. The descriptor-buffer
+    alternative is unobserved until runtime initialization; UBO descriptor limits
+    are not imposed because upstream permits SSBO fallback. Passing the selected
+    startup inventory does not prove queues, formats, device feature-enable chains,
+    descriptor layouts, logical-device creation, native DDI devices or FL11_0.
+    profile_complete/native_ddi_implemented remain zero. No translator is linked.
+
+    QemuLightningInternalEnumerateBackendExtensions returns normalized names and
+    actual spec versions from the cached selected physical device. Pass exact
+    sizeof(QLDX12_BACKEND_EXTENSION), a start index and count capacity. A null
+    array requires input count0 and returns remaining count. Array calls copy at
+    most8 entries per page and return DXGI_ERROR_MORE_DATA while entries remain.
+    Zero-capacity pages are valid. Count storage and output arrays cannot overlap.
+    Invalid/busy/stale/backend failures preserve outputs; MORE_DATA publishes a
+    complete valid page. Duplicate, unterminated, invalid ASCII identifiers and
+    zero spec versions fail before evidence is published. Tests use modeled ICDs.
+
+    The separate experimental native fence bundle owns local/imported Windows
+    monitored-fence mappings through PrepareFence before the genuine R0 CreateFence
+    validates the exact GPU VA. AttachQueue enables bounded asynchronous waits,
+    signals and deferred native ExecuteCommandLists. CPU signals use genuine KMT
+    notification; asynchronous OS wait events preserve intermediate values across
+    rewinds. Shared NT handles can be exported and imported with independent KMT
+    ownership. Arbitrary unregistered runtime GPU VAs are declined, never treated
+    as CPU pointers. This is source implementation behind the existing public gate;
+    the default WDDM1.3 package and full D3D12 advertisement remain unchanged.
+
+    The private native fence bundle version 2 extends its original function
+    prefix with application completion events and a device-removal query.
+    Pass the exact QLDX12_NATIVE_FENCE_COMPLETION_FUNCTIONS byte size.
+    A non-null Win32 event is duplicated and signaled after the KMT target
+    is reached or the owning device is removed. A null handle blocks until
+    the target is reached or returns the removal HRESULT. Loss drains
+    registrations without signaling the shared KMT fence value. A fence
+    with pending registrations owns its mapping until they are released.
+    Version 1 keeps its original layout. Retained native fence waits sample
+    D3DKMTGetDeviceState on their exact KMT device, and a signaled event
+    requires a fresh active execution result before it counts as progress.
+    A confirmed reset/removal wakes the old waiters and enters normal loss
+    teardown. Pending or failed state queries leave the event and ownership
+    outstanding, including a removal sentinel without confirmed loss.
+
+    QemuLightningInternalRetireLostNativeDevice tears down a confirmed-removed
+    device and its driver-owned children using retained generation keys. It
+    drains presentation targets and accepted queues before retiring lists,
+    resource descriptors, pipeline state, buffers, images and allocators.
+    Stale child storage is never read. A live CPU map or failed host drain
+    keeps the blocking owners and device available for retry. The void
+    DestroyDevice callback uses the same path for a confirmed-removed device.
+    Call outside loader-lock contexts while the runtime device is still live.
+
+    The D5 private native presentation exports are declared in native_present.h.
+    PresentNativeImage accepts an initialized native render-target image, its
+    owning DDI device, a live same-process HWND and an interval of zero or one.
+    The exact selected ICD must support Win32 surface and swapchain extensions.
+    Venus WSI owns the swapchain. The selected Vulkan queue blits the rendered
+    image into an acquired buffer and restores its attachment layout. FIFO at
+    interval one and immediate mode at interval zero require surface support.
+    PresentNativeImageOnQueue binds each HWND to an exact DIRECT queue and
+    returns busy while earlier list execution or logical fence work is pending.
+    A busy in-flight frame keeps its source and queue until a matching retry or
+    safe retirement. Later scheduled work on the reserved queue stays ordered.
+    The original PresentNativeImage entry point still accepts caller-completed
+    rendering. Up to eight windows per selected adapter own separate swapchains.
+    RetireNativePresentationWindow releases one. The original retire export
+    releases all targets owned by the device. Failed drains remain retryable.
+    Public DXGI backbuffers, Present DDI, shared resources and output transitions
+    require the complete runtime interfaces.
+
+    The build provides backend_present_fixture.exe for modeled WSI behavior
+    and native_present_fixture.exe for a signed-in Windows guest with the exact
+    production loader and ICD. The native fixture uses real KMT adapter queries,
+    submits real RTV clears, checks two independent window swapchains with
+    FIFO and immediate presentation, then verifies resize and independent
+    queue/target retirement. The modeled variant verifies that a DIRECT
+    fence wait gates presentation and a failed handoff releases later work.
+
+    build.rs also builds a distinct fence-modeled fixture DLL. Its KMT loader is
+    explicitly modeled while actual production ownership, worker, DDI normalization
+    and OS structure marshalling execute. Passing it does not establish native
+    Windows notification, cross-process/API sharing or real GPU acceptance.
+
+Lifetime
+    A short official SRW lock protects the Rust registry only; callbacks, module
+    loading, Vulkan operations and destruction all execute outside that lock.
+    Success/failure is cached per adapter. Loading queries return busy on reentry.
+    CloseAdapter returns DXGI_ERROR_WAS_STILL_DRAWING while loading; retry after
+    the active query completes. A successful close detaches ownership exactly once,
+    destroys any successfully drained device/queue owner, then VkInstance, then
+    releases ICD/loader references and runtime context.
+    No callback is used after successful close. Stale identities never alias reuse.
+    Device initialization uses QemuLightningInternalInitializeBackendDevice with
+    an exact-size QLDX12_DEVICE_RESULT. The separate device-policy.json names all
+    fourteen enabled feature bits, two extensions and conservative admission.
+    Rust requires the checked hard/conventional prerequisite profile plus timeline,
+    buffer-address, sync2, dynamic-rendering and robust-buffer features. It chooses
+    the first nonempty graphics+compute family; no descriptor-buffer alternative
+    or fallback GPU is substituted. Official Vulkan structures enable only that
+    subset, one priority1.0 queue and a zero-initialized real timeline semaphore.
+    Win32 WSI can add the optional VK_KHR_swapchain extension when the exact
+    ICD advertises the corresponding instance and device support.
+    This is not full vkd3d initialization, a native DDI device or FL11_0.
+
+    QemuLightningInternalBackendQueueOperation accepts a copied exact-version
+    QLDX12_QUEUE_COMMAND and exact-size QLDX12_QUEUE_REPORT. SIGNAL submits actual
+    empty vkQueueSubmit2 work with a private increasing timeline value. One pending
+    unobserved signal is allowed; QUERY reads the actual counter and WAIT uses a
+    caller-selected submitted target with at most10ms timeout. Timeout returns
+    DXGI_ERROR_WAIT_TIMEOUT and leaves report output unchanged. Other operation
+    failures retain their HRESULT and fault later queue use, including signals
+    accepted before a failed counter read. No rendering or OS fence follows.
+    Malformed commands perform no queue operation or output publication, but may
+    lazily initialize the backend/device before QueueState validates their shape.
+
+    Separate initializing/operating/retiring states prevent close or concurrent
+    external queue work. Close keeps the adapter slot pinned while draining outside
+    the SRW lock. After any submission attempt, successful QueueWaitIdle or confirmed
+    device loss permits semaphore/device destruction; other errors retain all
+    ownership for a retry. Only after successful device retirement does close detach
+    and release instance/modules/runtime. Callback lifetime extends to that point.
+    The logical-device requirement reports actual per-adapter initialized ownership,
+    while profile_complete/native_ddi_implemented remain zero.
+
+    Private buffer APIs create/destroy backend tokens and copy bounded host bytes:
+    QemuLightningInternalCreateBackendBuffer takes copied QLDX12_BUFFER_COMMAND
+    and exact-size QLDX12_BUFFER_RESULT. DEFAULT requires physical DEVICE_LOCAL;
+    UPLOAD and READBACK require HOST_VISIBLE|HOST_COHERENT, with HOST_CACHED
+    preferred for readback. Unsupported additional memory flags (protected,
+    lazy, vendor-specific) are never selected. Memory type bits, heap indices,
+    heap sizes and maxMemoryAllocationCount come from the selected real device.
+    Requirements2 is queried with dedicated requirements, and every allocation
+    is dedicated to its buffer, bound at offset0. No buffer-device-address usage
+    or allocation flag is requested. Physical memory is not a guest budget.
+
+    Rust limits each adapter to32 live buffers, each request to64MiB, individual
+    observed allocation to128MiB and aggregate observed allocation to256MiB.
+    These are implementation quotas, not capability/budget claims. Result records
+    requested bytes separately from actual allocation size. Failure rolls back
+    buffer/memory ownership and quota. Fresh tokens are unique across adapters;
+    destroy invalidates a token and returns its actual allocation charge.
+
+    QemuLightningInternalWriteBackendBuffer permits only UPLOAD; the Read variant
+    permits only READBACK. Each call checks overflow/range and <=64KiB, stages host
+    bytes in bounded heap storage, maps the whole coherent allocation temporarily,
+    copies, unmaps and only then publishes read output. DEFAULT cannot map through
+    this API. No pointer or Vulkan handle escapes; failed reads preserve bytes.
+    Noncoherent-only memory is rejected. Map is not a GPU completion operation.
+
+    The device operation lease excludes creation/copy/destroy/queue/close races.
+    Current empty queue submissions reference no buffers. Future GPU resource use
+    must add usage/completion synchronization before extending CPU access or
+    destruction. Close first drains the queue; failed drain retains every live
+    buffer/memory/device. After successful drain, all buffers are destroyed before
+    freeing memory and the device, then instance/modules/runtime. No D3D12 heap,
+    native resource callback or residency/guest budget is implemented here.
+
+    Immutable extension storage is retained inside the backend. Bounded Rust reader
+    leases prevent successful close while C inventory memory is read outside the
+    registry lock. Reports evaluate copied cached Rust scalars without C callbacks.
+
+Build prerequisites
+    Host Rust compiler supporting edition2024; Windows Rust compiler with target
+    x86_64-pc-windows-gnu; sha256sum; restored official WDK/SDK10.0.28000.0 and
+    clang-cl-21/lld-link-21 in the existing WDDM_TOOLCHAIN layout.
+    VULKAN_HEADERS_INCLUDE points to existing Vulkan-Headers v1.4.335 include/.
+    The consumed sixteen generated header files must match vulkan-headers.sha256.
+    Official release metadata: https://github.com/KhronosGroup/Vulkan-Headers/releases/tag/v1.4.335
+    Local vendored bytes are pinned; the builder downloads no dependencies.
+    GRAPHICS_SOURCE_ROOT optionally names a source root containing the paired shared
+    graphics adapter generator and miniport allocation policy generator.
+    Default: the source tree above lightning/.
+
+Build (all placeholders are explicit absolute paths)
+    rustc --edition=2024 SOURCE_DIRECTORY/build.rs -o PRIVATE_OUTPUT/dx12-build
+    WDDM_TOOLCHAIN=OFFICIAL_KIT VULKAN_HEADERS_INCLUDE=PINNED_INCLUDE \
+    RUSTC_WINDOWS=WINDOWS_TARGET_RUSTC GRAPHICS_SOURCE_ROOT=PAIRED_SOURCE_ROOT \
+        PRIVATE_OUTPUT/dx12-build SOURCE_DIRECTORY PRIVATE_OUTPUT/artifacts
+
+    SOURCE_DIRECTORY is lightning/direct3d12-umd. The first output folder must exist.
+    production/ contains the actual bootstrap DLL and independent ABI fixture.
+    modeled/ contains a copy plus backend fixture and explicitly synthetic sibling
+    loader/ICD DLLs. Never package these test dependencies as the production backend.
+    missing-dependency/ contains only the modeled loader: the missing exact ICD must
+    cause failure and release that partially loaded module. No system fallback occurs.
+    Build output is never published to canonical Binaries; no INF is changed.
+
+Validation
+    Run production/adapter_abi_fixture.exe, modeled/backend_fixture.exe,
+    modeled/requirements_fixture.exe, modeled/device_fixture.exe,
+    modeled/buffer_fixture.exe and
+    missing-dependency/backend_fixture.exe under Windows or an explicitly isolated
+    Wine prefix. Tests exercise actual production exports with official WDK/Vulkan
+    function types, plus separately labeled modeled dependencies. Scenarios include
+    independent ownership, stale identities, simultaneous close, cached query states,
+    mismatched/ambiguous/CPU adapters, incomplete and growing enumerations, missing
+    functions, malformed kernel identity, reentrant callbacks and close while busy.
+    The adapter fixture exercises exact official native shader layouts, negative
+    support, count/array output preservation, alias/overflow rejection and confirms
+    no callback/backend I/O occurs. The device fixture separately observes physical
+    shaderFloat64=true and verifies this never enables native Doubles or a shader
+    model, before and after selected Vulkan device initialization.
+    The device fixture inspects the exact official enable chain, selected family,
+    two independent device/timeline owners, partial creation/function-load cleanup,
+    cached failures, pending completion/timeout, failed drain/retry and blocked
+    creation/submission races with close. Synthetic ICDs never access a GPU.
+
+    These modeled tests do not execute real Venus, access a GPU, validate native
+    Windows runtime acceptance or implement a D3D12 translation backend. A real
+    Windows selected-adapter run remains pending. F2.5 and D1 remain partial; no
+    complete native D3D12 behavior unit follows. Supported device versions remain
+    empty, and native device/table requests remain rejected. Only the two shader
+    capability protocols above succeed with explicit empty native support. Testing
+    contributes zero implementation progress.
+
+2026-11-19 F2 private depth target slice
+    D16_UNORM and D32_FLOAT committed 1D/2D depth targets use selected-device
+    format/extent/depth framebuffer sample masks and dedicated backing. Their
+    initialization clears all depth texels before native publication and ends
+    in DEPTH_WRITE. DSV heaps are CPU-visible, separately typed from RTV heaps,
+    and own exact format/range Vulkan views and native image references.
+    ql_dx12_native_create_dsv and
+    QemuLightningInternalClearNativeDepthStencilView use exact R0 DDI signatures
+    on the explicit private render-target list mode. Full depth-only clears keep
+    independent descriptor/image owners across pending/reset/drain lifetimes.
+    The genuine core DSV creation callback is connected; general runtime clear
+    sequencing, stencil, read-only DSV flags, depth testing/draw and depth resolve
+    remain unfinished. CheckMultisampleQualityLevels probes actual depth image
+    support without implying color or shader format support.
+    All 30 isolated ABI fixtures and CPU Vulkan D16/D32 single-sample readback
+    plus direct shader reads of every 4x depth sample pass. These checks are not
+    Windows/Venus acceptance or implementation credit. Installed runtime unchanged.
+
+2026-11-19 F2 private stencil target slice
+    D24_UNORM_S8_UINT and D32_FLOAT_S8X24_UINT now join the admitted depth
+    formats. Actual image support intersects depth and stencil framebuffer
+    sample masks. Initialization covers both aspects before publication.
+    The exact R0 private DSV clear callback now admits depth, stencil, or both.
+    Independent Vulkan attachment load operations preserve the untouched aspect.
+    Active depth must be finite and normalized; the stencil argument is UINT8.
+    CPU Vulkan shader reads verify every sample after combined, stencil-only
+    and depth-only clears on both formats. All 30 isolated ABI fixtures pass.
+    Read-only DSVs, partial rectangle depth/stencil clears, depth-tested draws,
+    public resource-state sequencing and depth/stencil resolve remain open.
+    Installed runtime and VM unchanged. Testing contributes no implementation credit.
+
+2026-11-19 F2 bounded depth/stencil rectangle clears
+    The exact private R0 DSV-clear callback now snapshots up to 16 signed input
+    rectangles before Rust clips them to the retained view. Independent depth
+    and stencil LOAD operations plus vkCmdClearAttachments preserve all other
+    pixels and the unselected aspect. Explicit lists clipped to empty remain
+    no-ops. Actual D16/D32/D24S8/D32S8 4x CPU Vulkan shader readback verifies
+    every sample, untouched pixels/layers and the empty-list result. All 30 ABI
+    fixtures pass. Public command streams, depth drawing, read-only DSVs and
+    depth/stencil resolve remain unfinished. Testing credit is zero.
+
+2026-11-19 F2 bounded native depth-tested drawing
+    Native depth state now admits all eight comparisons and ZERO/ALL write masks.
+    Graphics PSOs retain the requested depth format and probe matching selected
+    depth image/sample support. Enabled depth without a depth format is rejected.
+    A genuine draw OM setter can atomically snapshot one RTV and one DSV. The
+    native owner checks exact formats, extents, layer counts and sample counts;
+    a failed second operand retains neither binding. All pending/reset/drain
+    paths retain the added DSV through the common recording-owner structure.
+    Vulkan records paired color/depth barriers and LOAD/STORE dynamic rendering.
+    All 30 ABI fixtures pass, including actual Vulkan comparison/write field
+    observations. Independent CPU Vulkan verifies 72 comparison/write/format
+    cases with color pixels and every depth sample checked at 4x. Read-only DSVs,
+    stencil testing, general public command streams and native Windows/Venus
+    qualification remain open. Installed runtime unchanged; testing credit zero.
+
+2026-11-19 F2 read-only depth/stencil views
+    Genuine R0 READ_ONLY_DEPTH and READ_ONLY_STENCIL flags now survive normalized
+    descriptor admission, exact view generations and command retention. Protected
+    clears and depth-writing PSOs reject before GPU submission. An unused stencil
+    flag does not restrict a depth-only format. Bounded clears and draws select
+    mixed/combined Vulkan read-only layouts and restore DEPTH_WRITE afterward.
+    All 30 isolated ABI fixtures pass. CPU Vulkan covers 24 read-only depth-draw
+    cases plus per-sample mixed depth/stencil clears at 4x. Stencil testing and
+    public persistent resource-state integration remain unfinished. These checks
+    are not Windows/Venus acceptance; testing credit is zero.
+
+2026-11-19 F2 bounded native stencil testing
+    Genuine R0 fixed depth/stencil state now snapshots independent face enables,
+    comparisons and fail/depth-fail/pass operations plus UINT8 read/write masks.
+    A 64-bit normalized state owner carries the complete plan into actual Vulkan
+    PSO fields. Inactive faces use ALWAYS/KEEP and zero write masks. Stencil tests
+    require a stencil-capable depth format. Read-only stencil DSVs reject active
+    stencil write masks before drawing.
+    QemuLightningInternalSetNativeStencilReference uses the genuine R0 callback
+    signature, is connected to the R0 table, and records independent dynamic
+    state. The final UINT snapshot reaches vkCmdSetStencilReference; default is
+    zero. Viewport/scissor setters preserve it and reset uses default state.
+    All 30 ABI fixtures pass with exact Vulkan face-state/reference observations.
+    CPU Vulkan verifies 276 stencil rendering cases at 4x on both stencil formats,
+    including comparison masks, saturation/wrap and all operation branches.
+    General public resource/command integration and Windows/Venus acceptance
+    remain open. Installed runtime unchanged. Testing implementation credit zero.
+
+Native vertex Layer output requires rebuilding the pinned QemuLightningShader.dll with shader_dependency.rs; the additive QemuLightningShaderNativeGetFeatures export must be present. Older ABI2 compilers retain the previous resource-free shader subset. No complete native shader model or feature level is advertised by this optional extension.
+
+Explicit capability diagnostics: QemuLightningInternalQueryNativeCapabilityStatus uses version1 and the generated native_caps_contract.h record. It distinguishes physical host requirements, effective guest limits, pinned bounded native stage support and unavailable mandatory native levels/tiers. The report creates no Vulkan device or GPU work and changes no public interface advertisement. Official GetCaps does not load the compiler.
+
+F4 runtime execution status uses the copied native CreateDevice pKTCallbacks.pfnEscapeCb. DeviceStatusQuery supplies the real retained adapter/device handles and never creates a KMT fence or Vulkan device. Existing queue/fence workers pace probes at32ms; explicit removal queries can probe a device without fences. Failed/pending queries do not confirm removal, and all runtime calls stay outside the policy lock under exact-generation leases. Full native public runtime qualification and hibernation are not implied.
+
+D1 opt-in shared buffer association (20 November 2026)
+    QemuLightningInternalOpenNativeAdapterR0 version4 keeps profile3 image
+    association and additionally binds supported committed DEFAULT and custom
+    cached coherent UPLOAD/READBACK buffers to actual device-owned WDDM
+    allocations. Profiles1-3 keep their existing buffer behavior.
+    The matching Vulkan usage must report external-memory export support.
+    Actual exportable backing and its paired Venus blob ID feed AllocateCb;
+    initialization and a final parent fault check precede cookie publication.
+    Only S_OK acknowledges allocation/deallocation. Failed deallocation retains
+    the OS handle, Vulkan backing and parent for explicit retry and quarantines
+    the resource against borrowing/mapping. Allocation handles are borrowed only
+    from exact live runtime storage generations.
+    This does not advertise public DX12 readiness, GPUVA, residency or scheduling.
+    Native Windows qualification and public runtime integration remain pending.
+
+D1 mapped resource and residency profile (20 November 2026)
+    Opt-in R0 version5 adds actual device paging queues, buffer GPUVA mappings,
+    typed CheckResourceVirtualAddress and supported heap MakeResident/Evict.
+    The runtime must provide the exact additional callbacks. Versions1-4 keep
+    their previous behavior. Native public advertisement remains gated.
+    A pending buffer map must reach its actual read-only monitored paging fence
+    before the resource becomes visible. Creation waits at most100ms; refusal
+    retains or retires exact OS owners through acknowledged cleanup. Failed
+    unmap/deallocation/queue destruction keeps Vulkan and native parents pinned.
+    MakeResident forwards the actual runtime paging handle and allocation list,
+    including repeated references. E_PENDING returns the actual fence and wait
+    mask; failed/uncertain results preserve caller output. Evict refuses active
+    GPU references or CPU mappings. Buffers and images share typed owner pins.
+    General GPU-address translation, residency wait scheduling, remaining object
+    families, public capability publication and Windows qualification remain open.
+
+Native vertex-input subset (2026-11-20): rebuild the exact pinned shader dependency from these sources before building the UMD. Native compiler ABI2 layout is unchanged; ordinary VS inputs require additive QemuLightningShaderNativeGetFeatures bit2. Layer outputs retain bit1. SM5.0/5.1 token admission applies only to the supported resource-free subsets and does not advertise a complete shader model. Preserve matching compiler/UMD binaries. See native-draw-policy.json for admitted R32 non-indexed vertex fetches and explicit remaining robustness/format/divisor/public-runtime gaps.
+
+2026-11-20 native robust vertex fetch: genuine R16/R32 indexed and non-indexed vertex input uses already required/enabled robustness2/nullDescriptor, exact view bounds and explicit consumed null slots. Mixed indexed/null/ordinary histories preserve unique resource and null-node ownership through replay/reset/failure/drain. Compiler inputs and feature levels are unchanged. Unaligned/overlapping strides, broader formats/rates/resources, out-of-range index-buffer reads and full public runtime integration remain unfinished. Model observations read actual uploaded bytes and Vulkan commands, not synthesized raster pixels; no Windows/GPU acceptance claim.
+
+2026-11-20 native root constants: matched compiler feature bit4 and additive CompileConstants export are required for nonempty constant roots. Actual selected push limits, immutable typed root metadata, real SDK VS/PS loads and genuine graphics/compute root setters connect to per-command vkCmdPushConstants snapshots and exact pending/reset/failure ownership. Existing resource-free ABI2 entry and private version1 command shape stay gated. Descriptor/root-resource/table/sampler and full public runtime/GPU contracts remain unfinished. Testing gives zero implementation credit.
+
+2026-11-20 native root CBV: matched compiler feature8/CompileBindings connects genuine root descriptors to actual addressable Vulkan buffer backing and exact SDK-proven static read spans. Current/consumed command generations independently retain ranges and roots. Null reads use real immutable root-owned zero storage. Resource-reading compute GPU behavior, broader resources/descriptors/stages and public runtime/GPU acceptance remain unqualified or unfinished. Testing has zero implementation credit.
+
+2026-11-20 raw root SRV: matched compiler feature16/CompileRootBuffers is required for raw SRV roots. Exact non-array static loads, independent b/t namespaces and genuine root-SRV callbacks connect to retained DWORD-aligned logical views and actual Vulkan physical addresses. UPLOAD and closed DEFAULT graphics read-state transactions, real null backing, replay and detached pending reset are integrated. Structured/dynamic resources, descriptor tables, root UAVs, broader compute states and public runtime/GPU acceptance remain unfinished. Testing has zero implementation credit.
+
+2026-11-20 raw compute root UAV: matched compiler feature32/CompileStorageBindings connects genuine static literal stores to DEFAULT buffer address/state/write ownership, actual shader-write barriers, completed replay and detached pending reset. R0 shader-resource flag 0x10 is admitted without confusing API and DDI flag encodings. An independent actual-SPIR-V SSA model executes stores into real backing before ordinary copy/readback verification; no expected shader output is fabricated. Only 1x1x1 workgroups are admitted. General groups/values, structured/dynamic access, UAV loads/atomics/graphics, descriptor tables and public runtime/GPU acceptance remain unfinished. Testing has zero implementation credit.
+
+2026-11-20 structured roots: feature64/CompileStructuredBindings adds an exact versioned plan around the frozen original binding ABI. Static StructuredBuffer VS/PS reads and RWStructuredBuffer literal compute stores prove structure stride/member offsets and retained byte spans. Matched loader negotiation, exact read/write states and existing consumed replay/reset ownership connect actual native physical addresses. Dynamic access, descriptors/tables, general shader semantics and public runtime/GPU acceptance remain unfinished. Testing has zero implementation credit.
+
+2026-11-20 descriptor heaps: genuine R0 CBV_SRV_UAV storage admits CPU staging and CPU+shader-visible heaps with checked opaque GPU handle intervals. CBV/raw-structured buffer SRV/UAV/null views use typed exact buffer-generation metadata; descriptor references prevent retirement while allowing CPU Map. Transactional copies retain independent owners and prohibit shader-visible sources. Table setters/execution, samplers/images and full public runtime integration remain unfinished; this stage grants no table execution or shader/compiler credit. Tests have zero implementation credit.
+
+2026-11-20 CBV tables: exact versioned feature128 compiler protocol preserves all earlier ABIs while genuine bounded tables emit real Vulkan uniform-buffer bindings. Root/table/heap keys remain immutable per consumed command; actual descriptor contents are resolved at each submission. Selected descriptor/offset/range limits, native uniform usage, real set/pool allocation, uniform barriers and receipt-owned pools connect the backend. Null/out-of-view reads use enabled Vulkan robustness2; mixed table-before-physical-root ordering is independent. Partial allocation/no-attempt cleanup, post-Close changes, replay and detached pending reset pass isolated ABI models. General tables, DEFAULT table state transactions, persistent mapping and full public runtime/native GPU qualification remain unfinished. Testing contributes zero implementation credit.
+
+2026-11-20 genuine UPLOAD mapping: R0 MapHeap has a separate public callback from the unchanged private resource bundle. Coherent CPU map counts and exact GPU read owners coexist through actual shader/table/input/copy/image-upload execution. Map/Unmap do not wait for GPU work; applications order writes with execution and completion. READBACK writes and resource retirement retain their existing protections. Nested mapping, failure output/quota preservation, mapped writes before replay, first maps during pending copies and detached reset are checked in isolated ABI/model regressions. Broader resource mappings, public runtime/native GPU qualification remain unfinished. Testing contributes zero implementation credit.
+
+2026-11-20 DEFAULT CBV descriptor tables: each consumed table key now retains immutable exact-resource/generation state points at its Draw/Dispatch. Submission resolves current descriptor contents and applies that command-specific state proof before any Vulkan work. Closed DEFAULT read transactions use the existing real uniform descriptor/barrier backend. Nonzero uploaded data, earlier/later invalid states, untransitioned late replacements, retry/null replay and detached pending reset are checked against an unchanged Vulkan model and compiler; the pre-fix DLL fails the positive workflow. General table/state families and complete Windows/GPU qualification remain unfinished; tests0.
+
+2026-11-20 genuine DEFAULT initial states: separate public R0 size/create admission and actual allocation requirements now accept supported read-only GENERIC_READ-subset or exclusive UAV states, retaining exact original resource state and selected initialized backing. Private version1 admission remains frozen. C/Rust read-state normalization and DIRECT copy transactions agree. Initial CBV/GENERIC_READ tables consume actual uploaded bits; initial UAV compute stores and closed ordinary copy expose literal and neighboring bytes through poisoned READBACK. All31 isolated regressions pass; independent Vulkan/compiler source is unchanged. COMMON promotion/decay, broader resources and full Windows/GPU acceptance remain unfinished; tests0.
+
+2026-11-20 genuine DEFAULT COMMON: public allocation/sizes/create agree for COMMON initial state while private v1 remains frozen. Exact explicit closed COMMON/read/copy/UAV transitions work on supported COPY, DIRECT and COMPUTE roles. Real whole/region copies, nonzero uniform shader reads, actual SDK compute stores and poisoned ordinary READBACK verify output and ownership; prior COPY_DEST/UAV initial cases remain. C/Rust admission, per-command state snapshots, no-attempt retry and pending cleanup remain consistent. All31 isolated regressions pass against unchanged compiler/Vulkan model. Implicit promotion/decay, general state coordination and Windows/GPU qualification remain unfinished; tests0.
+
+2026-11-20 genuine COMMON promotion: selected DEFAULT COMMON reads/copy/UAV roles use one exact state-or-promotion predicate. Physical root CBV, table reads and SDK stores consume nonzero real data without opening barriers; COPY/DIRECT chains may omit final COMMON transitions and retain post-implicit-copy state proof with promotable BeforeState. Existing actual Vulkan dependencies and observed receipt completion govern execution and owner release; reset/no-attempt cannot fabricate decay. Explicit incompatible state snapshots still refuse. All31 isolated regressions pass; pre-fix source fails the strengthened actual copy proof. Non-COMMON global decay/batching and public Windows/GPU qualification remain unfinished; tests0.
+
+2026-11-20 genuine sampler objects: original R0 CreateSampler and separate genuine sampler heap callbacks normalize owned raw state into real selected VkSampler objects. Physical LOD/anisotropy/allocation limits, optional feature enablement, required procedures, atomic quota, per-copy construction and protected four-byte record alignment guard admission. Immutable snapshots, failed outputs, partial-copy rollback, source-independent copies and blocked-constructor ownership pass all31 isolated regressions. The old-alignment control rejects the valid four-byte case. Native pointer inventory66/36/3 is not runtime qualification; shader sampler binding/sampling, broader cases and Windows/GPU acceptance remain unfinished. Private descriptor ABI1 layouts and sampler refusal remain frozen; tests0.
+
+2026-11-20 genuine native offer/reclaim: mapped R0 profile5 copies optional Windows allocation offer/reclaim callbacks and exposes typed core requests for exact committed buffer/image heaps. Actual allocation order, duplicates, priority, discarded BOOLs and pending paging fences are forwarded with protected snapshots, output validation and per-generation lifetime pins. Offered backing refuses new use; active mappings/commands refuse offer, and unconfirmed positive offer quarantines until acknowledged reclaim. Supported preserved bytes are checked. General object-family/placed/shared integration, kernel scheduled commands and Windows/GPU qualification remain unfinished. The installed runtime is unchanged; testing contributes zero implementation credit.
+
+2026-11-20 genuine ClearRootArguments: original R0 recording callback zeroes every current root argument irrespective of current root/list family while retaining bound heaps, root, pipeline and non-root state. Physical view releases occur outside policy locks; consumed command snapshots remain independent across graphics/compute execution, replay and pending/uncertain work. Exact table invalidation and COPY no-root semantics are checked. Null reads use existing real zero backing; required null table/UAV access stays refused. Disabling the clear triggers the stale-table negative control. This source change leaves the installed runtime untouched and earns zero testing credit.
+
+2026-11-21 native pixel arithmetic: optional feature256/CompilePixelArithmetic reuses exact version1 root binding frames while every older compiler entry stays strict. The genuine parser validates supported straight-line operand shapes, bounded initialized temporary lanes and complete output writes; existing memory-span and SPIR-V capability proofs remain. Genuine SDK5.0/5.1 multiply/add shaders compile through inline constants, physical CBVs and uniform tables, and native constructors own actual selected modules. Repeated compiler DLL reloads triggered a pthread_once/locale runtime abort; the exact verified sibling module now remains loaded for process lifetime while every output token and caller reference is still released. All31 isolated regressions pass; prior compiler and unpinned-driver controls fail. Branches, general inputs/resources/textures and public native/GPU qualification remain unfinished. Installed runtime unchanged; tests0.
+
+2026-11-21 native pixel math: optional feature512/CompilePixelMath adds validated min/max, divide/reciprocal/square-root/fractional, comparisons and conditional selection. Older entries including feature256 remain strict. The actual parser retains operand/initialized-temporary/output and existing static memory-span proofs; no branches, new resource classes or unchecked addressing are admitted. SDK PS5.0/5.1 programs emit real Fragment math across all three CBV modes, and native constructors own selected modules. All31 regressions/three SDK cases pass; the prior arithmetic-only compiler refuses the new native math constructor. Compiler module lifetime repair is preserved. General pixel/shader/runtime/GPU qualification remains unfinished. Installed runtime unchanged; tests0.
+
+2026-11-21 native float pixel destination saturation: optional feature1024/CompilePixelSaturation reuses exact version1 root binding frames while every older interface including math512 stays strict. Only supported FLOAT destination operations admit SATURATE; source modifiers, unknown extensions, memory proofs, initialized temporary lanes and full output write rules remain unchanged. SDK PS5.0/5.1 multiply/add_sat emits actual NClamp through inline, physical and uniform-table CBVs, with native selected module ownership. Illegal integer saturation rejects while its unsaturated counterpart compiles. All31 regressions/three SDK cases pass, and the prior math-only compiler refuses the new native constructor. Source modifiers/general shaders/public Windows/GPU clamp qualification remain unfinished. Installed runtime unchanged; tests0.
+
+2026-11-21 native stage IO: optional feature2048/CompileStageIo preserves ABI2 and root frame1, adding exact520-byte IO requirements. Ordinary VS outputs/PS inputs and decoded read/write masks use authoritative union signatures without requiring unused entries. Bound PS interpolation modes1..5; integer flat only. Native pipeline linkage checks producer type/mask/written lanes and VS Position before any backend call or reference commit; VS fetches ignore unused union inputs. All31 native regressions/four SDK compiler cases pass; nine native linkage cases include four successful real selected pipelines and five pre-backend refusals. Previous compiler and disabled-linkage controls fail at intended checks. Generic shader and physical GPU/public Windows qualification remain unfinished. Installed runtime unchanged; tests0.
+
+2026-11-21 native pixel dot products: optional4096/CompilePixelDotProducts uses unchanged root1/IO1 frames. Genuine DP2/DP3/DP4 emits actual vector OpDot; source masks cover every reduction lane independently of result mask across temporary initialization, input consumption and exact static root reads. SDK5.0/5.1 and input/temporary cases pass in all three CBV modes; truncated roots and missing vector lanes refuse. All31 native regressions pass and selected native module constructors retain exact ownership. Prior compiler refuses new constructor; disabling vector source masks wrongly accepts a three-word root and is caught independently. Older protocols remain strict, installed runtime unchanged, public Windows/GPU dot qualification pending, tests0.
+
+2026-11-21 native FLOAT source modifiers: optional8192/CompilePixelSourceModifiers keeps root1/IO1 frames and adds exact NEG/ABS/ABSNEG with real FNegate/FAbs. A raw SDK operand-layout walk validates extension words against decoded FLOAT types, immediate32 indices and literal lengths; unknown/chained/nonuniform/precision/integer extensions remain refused. Existing temporary/input/root spans and two-pass compiler/module lifetime remain unchanged. Four SDK cases across CBV/input/temporary and all three CBV modes pass, as do all31 regressions. Seven malformed extensions refuse without output changes; otherwise valid integer addition compiles while adding float ABS refuses. Prior compiler and raw-guard-disabled controls fail intended checks. Public Windows/native GPU NaN/zero qualification remains pending; installed runtime unchanged; tests0.
+
+2026-11-21 native fragment derivatives: optional16384/CompilePixelDerivatives preserves root1/IO1 frames. Genuine standard/coarse/fine X/Y derivatives emit exact DPdx/DPdy variants; only new fragment output publication admits DerivativeControl, a Vulkan1.0 core capability (https://docs.vulkan.org/spec/latest/appendices/spirvenv.html). Original shared/container and older native policies remain strict. Input/temporary/root/source-extension/full-output proofs stay active. All12 SDK5.0/5.1 cases and all31 regressions pass; six real selected native modules retire cleanly. Prior compiler and capability-denied controls refuse intended paths. Physical GPU quad/numerical/helper behavior and public Windows acceptance remain unqualified. Installed runtime unchanged; tests0.
+
+2026-11-21 native pixel output modules: optional32768/CompilePixelMultiOutput preserves root1/IO1 and supports unique FLOAT o0..o7 signatures with exact decoded per-output masks and real SPIR-V locations. Target0 must be fully declared/written; each actual declared output has complete writes, while unused union entries retain zero usage. Native signature normalization and owner metadata protect all output ranges/generations. Four SDK5.0/5.1 sparse/eight cases and all31 native regressions pass; missing target0/partial target7 refuse. Prior compiler and target0-guard-disabled controls fail intended assertions. Backend PSO/attachment/draw path remains single-target; physical MRT and full public Windows qualification remain unfinished. Installed runtime unchanged; tests0.
+
+2026-11-21 native MRT pipeline constructors: genuine R0 requests retain copied1..8 formats and independent/replicated blend arrays. Separate292-byte MrtPlan preserves scalar FixedPlan/BlendPlan and callback ABI. Actual maxColorAttachments and enabled independentBlend gate unavailable constructors; per-target color/depth sample probes retire temporary images. Real Vulkan dynamic-rendering PSOs receive exact N formats/blend states. All31 regressions,14 positive count/state cases, missing-feature/limit2, caller mutation, blocked8-target leases and failure/partial-output cases pass. Prior runtime and collapsed-Vulkan-array controls fail intended checks. Single-target draw matching rejects MRT until attachment recording/execution is extended. Format holes/depth-only/alpha coverage/logic/dual-source, physical MRT pixels and full public native acceptance remain unfinished. Source only; installed runtime unchanged; tests0.
+
+2026-11-21 native MRT recording: genuine R0 OM arrays/ranges retain up to8 exact RTV generations and optional DSV atomically, including count0 unbinding. Independent consumed draw snapshots preserve all target owners through reversed rebind, replay, pending reset, uncertain submission and failed/safe drain. Generated internal count/tail ABI and selected C preflight match actual PSO formats/samples/geometry; real Vulkan scopes emit every color LOAD/STORE and exact pre/post barriers with mixed indexed draws. All31 regressions,28 normal count cases across5 formats/sample1/4/depth-stencil plus2 eight-target terminal cases pass. Prior runtime and collapsed-rendering-array controls fail expected checks. Physical MRT pixels, public native acceptance, depth-only/format-hole/full descriptor lifetime classes remain unfinished. Source only; installed runtime unchanged; tests0.
+
+2026-11-21 native pixel control flow: optional65536/CompilePixelControlFlow preserves root1/IO1 and admits authentic scalar IF_z/IF_nz, optional ELSE and ENDIF under16-level structured proof. C temporary lanes and independent Rust output masks intersect every branch path; uninitialized conditions, one-sided writes, malformed delimiters, reserved controls, early RET and depth17 refuse before real translation/publication. Predicates read one exact source lane; all existing input/root/physical/uniform bounds stay mandatory. Real SPIR-V selection/conditional branches, eight SDK5.0/5.1 cases, native module construction/lifetime and all31 regressions pass. Prior compiler, missing declared export and independently disabled temporary/output intersections fail expected controls. Loops/general flow/stages/resource classes, physical numeric behavior and full public native acceptance remain unfinished. Installed runtime unchanged; tests0.
+
+2026-11-21 native alpha-to-coverage: genuine R0 captures exact FALSE/TRUE state and preserves scalar FixedPlan24/BlendPlan32/MrtPlan292 layouts through additive selected constructors. Actual Vulkan multisample state uses the retained coverage BOOL on single/MRT sample1/4 with unchanged selected color/depth formats and independentBlend gates. CPU size queries stay backend-free; blocked constructors/source mutation, failed/partial/format output cleanup and retry preserve ownership. All31 regressions,24 pipeline-state cases, actual mixed MRT coverage binds through replay/pending/failure cleanup and prior-runtime/disabled-bit controls pass. Alpha0/1/NaN physical/numerical behavior, coverage-output suppression and broader sample/state/shader/public contracts remain unfinished or unqualified. Source only; installed runtime unchanged; tests0.
+
+2026-11-21 native raster culling: genuine R0 CPU state owns exact NONE/FRONT/BACK and FALSE/TRUE front winding in validated unused scalar flag bits. Default flags3, FixedPlan24/BlendPlan32/MrtPlan292 and existing constructor/callback layouts remain unchanged. Actual Vulkan rasterization fields carry copied state through scalar/MRT/coverage pipeline construction and independently bound mixed draw histories. All31 regressions,36 pipeline-state cases,10 malformed/unsupported exclusions,3 constructor failure/retry cases and prior-runtime/disabled-raster controls pass. Physical winding/pixel/coordinate qualification and wireframe/clamp/bias/line/conservative/full public contracts remain unfinished or unqualified. Source only; installed runtime unchanged; tests0.
+
+2026-11-21 native wireframe: genuine R0 owns copied SOLID/WIREFRAME state in validated unused flags, preserving default3 and FixedPlan24/BlendPlan32/MrtPlan292. Actual selected fillModeNonSolid is queried/enabled/retained; missing support refuses wireframe before any scalar/MRT/coverage format probe or pipeline work and preserves same-device/key solid retry. Real Vulkan polygonModeLINE reaches independently retained mixed draw histories under unchanged cull/front/alpha/sample/depth and cleanup contracts. All31 regressions,24 polygon cases,6 missing-feature path cases, failure/retry and prior-runtime/disabled-polygon controls pass. Old runtime control model keeps the new optional feature physically/logicallyFALSE to avoid unrelated device-create mismatch. Physical wire pixels, clamp/bias/advanced line/conservative and full public contracts remain unfinished or unqualified. Source only; installed runtime unchanged; tests0.
+
+2026-11-21 native NaN alpha coverage: optional131072/CompilePixelCoverage transforms real pinned Fragment IR with typed output0 IsNan and defaultFALSE private specialization, preserving older protocols and actual alpha. Shared bounded verifier checks actual module bytes, types, sole epilogue, reserved constant and fresh-ID isolation with literal-aware operands. Selected module owners derive guard metadata from bytes. Coverage pipelines require verified modules before backend probes and supply exact pixel-only VkSpecializationInfo TRUE; ordinary pipelines keep defaultFALSE/no specialization and alphaToOneFALSE. All31 native regressions,12 SDK branch/root/MRT cases plus5 finite/NaN sources, SPIRV-Tools Vulkan1.2 validation,6116 malformed/truncation proofs,20 actual CPU llvmpipe pixel cases at1/4 samples and prior-compiler/disabled-specialization controls pass. Physical GPU/full Windows runtime acceptance and broader shader/resource/raster classes remain pending. No installation or VM/host GPU operation; tests0.
+
+2026-11-21 native sample masks: genuine copied UINT SampleMask accepts zero/sparse/high/all bits, using one immutable word in actual VkPipelineMultisampleState for supported sample counts1..16. Nondefault masks use an additive internal path; all-ones retains frozen scalar/MRT/coverage routes, original records and all selected format/sample/feature/NaN guards. Pipeline/draw owners preserve masks across source mutation, blocked construction, mixed indexed/nonindexed MRT rebind, replay, pending reset and failed/uncertain drain. All31 regressions,72 pipeline cases,3 failure/retry paths, prior-runtime/disabled-mask controls and100 actual CPU Vulkan finite/NaN coverage/mask pixel cases pass. Physical GPU/full Windows runtime acceptance and broader native classes remain unfinished or unqualified. Source only; installed unchanged; testing credit0.
+
+2026-11-21 native primitive topology: genuine LINE/TRIANGLE PSOs retain actual Vulkan input assembly class and declare core Vulkan1.3 dynamic primitive topology; no unrestricted-class feature is assumed. IA line/triangle list/strip values snapshot independently per consumed draw and match retained PSO class before CPU admission and whole-stream selected backend preflight. Internal GraphicsWork appends explicit topology/reserved words; frozen DirectState/DrawArguments/private records and scalar/MRT/coverage/masked APIs remain unchanged. Actual core topology command is required before recording and emitted for every draw, including explicit legacy triangle-list calls. All31 regressions,48 PSO combinations, class/POINT errors, blocked source mutation, mixed list/strip indexed/nonindexed replay/pending/fault lifetimes, fresh-device missing-command retry, two independently disabled controls and8 actual CPU Vulkan1.3 pixel cases pass. Recording errors intentionally invalidate lists; tests retire them and use fresh lists. Missing lazy procedures are tested on fresh devices; valid cached pointers are preserved. POINT-size/adjacency/PATCH/strip-cut, physical GPU qualification and full public Windows native integration remain pending. Source only; installed unchanged; tests0.
+
+2026-11-21 native point rasterization: optional compiler262144/CompileVertexPointSize preserves ABI2/root1/IO1 and result reserved0. Two real SPIR-V entry wrappers call the unchanged application helper: ordinary main preserves its complete output interface, private ql_point adds typed Output PointSize=1. Shared module-byte proof gates native POINT pipelines; actual per-entry components/location extent gate selected maxVertexOutputComponents before backend probes. Unsupported optional transformation retains ordinary StageIo fallback, but declared missing export fails strictly. Actual POINTLIST command snapshots and replay preserve exact owners; POINT/LINE ignore triangle wireframe without optional non-solid feature. All31 native regressions,72 class pipeline combinations,12 nontriangle wireframe boundary cases,12 SDK root/IO profiles plus2 numerical shaders and64/65-component wide shader validate;4,068 proof cases,15 budgets,6,116 alpha regressions and288 actual CPU Vulkan pixels pass. Prior compiler, disabled module proof/output limit and width2 numeric controls fail as intended. Tests0; public native/physical GPU qualification and complete D1 remain pending. Source only, installed unchanged.
+
+2026-11-21 native vertex math: optional524288/CompileVertexOperations retains older ABI2/root1/IO1 and exports. Genuine supported Vertex5.0/5.1 math/dot/FLOAT source modifiers/saturation use exact decoded operand,256-temp initialized-lane, declaration/order, input/output and static resource proofs. Existing basic vertex arithmetic is preserved and receives no duplicate credit. New native loader semantic failures cannot fall back to older admission. Optional point transformation occurs only after strict validation; unsupported point shape retains strict ordinary IR and remains point-gated by module bytes.9 SDK containers/13 root/input/physical/uniform/structured frames,4 retained native modules,6 procedural PSOs,missing-temp refusal with no fallback,31 regressions and288 CPU Vulkan pixels pass. Actual SDK dot coefficient perturbation and older runtime/compiler controls fail as intended. Full shaders/resources/runtime and physical/public native qualification remain unfinished; source only,installed unchanged,tests0.
+
+2026-11-21 native vertex control flow: optional1048576/CompileVertexControlFlow preserves older ABI2/root1/IO1/result reserved0 and every previous export. Exact scalar UINT IF_z/IF_nz with optional ELSE/ENDIF uses16-level structure, initialized temporary-lane and independent output-path intersections, mandatory input/root/physical/uniform spans and strict no-old-policy-fallback admission. Six explicit signed/unsigned integer comparisons use real SDK opcodes and actual typed SPIR-V predicates; integer saturation refuses. Ordinary/optional point entry interfaces and retained selected shader owners remain exact.10 SDK containers/14 original compile frames plus12 predicate variants validate, including both root physical/table variants.10 native modules,16/17 depth boundary,missing initialization/output merge, malformed delimiters/flags/early returns,short roots,31 regressions and576 CPU Vulkan pixels through both branch outcomes pass. Older runtime/compiler and actual branch-destination inversion controls fail as intended. Full shader models,loops/textures/resources/runtime and physical/public qualification remain unfinished. Source only,installed unchanged,tests0.
+
+2026-11-21 native query-heap foundations: genuine R0 size/create/destroy callbacks claim exact8-byte native device/generation keys for original occlusion,timestamp and pipeline-statistics heap classes. CPU sizing performs no backend work. Observed optional precise-occlusion/statistics features are explicitly enabled only when selected physical support exists; timestamp construction requires actual selected queue valid bits. Real Vulkan query pool type/count/eleven-counter mask, early cleanup-procedure resolution,partial-output destruction,blocked descriptor mutation/reserved keys,same-key retries,shared-loss rollback and kind16 bulk retirement preserve exact owners. All32 regressions,24 capability/type and40 malformed/class/alias cases plus old-runtime and disabled-prerequisite controls pass. New source paths have explicit absent-before manifests and rollback semantics. Genuine inventory71 core/37 list/3 queue is not qualification. Query begin/end/resolve,state/result/frequency and full public renderer integration remain unfinished; no query execution/result claim. Source only,installed unchanged,physical/public native acceptance false,tests0.
+
+2026-11-21 native DIRECT query commands: genuine typed R0 BeginQuery/EndQuery/ResolveQueryData normalize original timestamp/full-occlusion/eleven-counter-statistics queries into the unique retained growable draw chain. Query-only lists require no fake PSO/RTV; query-first mixed draw histories and repeated closed-list execution share one actual receipt. Exact pool and destination writer generations survive pending reset/retirement. Matching scopes,no open query on Close,initialized same-recording result ranges and zero-count destination checks precede actual Vulkan work. Selected pool/feature/queue and8-byte logical COPY_DEST spans are validated before real reset/begin/end/writeTimestamp2/copyQueryPoolResults64+WAIT; full statistics stride88,actual barriers and PRECISE occlusion. All32 native regressions,8 query-only receipts,6 mixed replays,6 no-attempt retries,13 invalid recordings and288 CPU-only actual dynamic-rendering/query numerical cases pass;3 sensitivity controls fail as intended. Genuine inventory71 core/40 list/3 queue is not qualification. Binary normalization,COMPUTE/cross-list acceptance,COMMON consumed-write roles,persistent READBACK maps,public timestamp clocks and full runtime/kernel integration remain pending. Source only,installed unchanged,physical/public native acceptance false,tests0.
+
+2026-11-21 public persistent READBACK/query mapping: genuine public MapHeap now retains a stable actual coherent CPU address across native query recording,Close,pending completion,closed-list replay and pending-reset retirement. Query-writer references are separately counted inside exact-generation resource references; only those writers receive this persistent-map interop,while private exclusive maps and non-query writer exclusions remain unchanged. Actual selected READBACK buffer ownership,logical result spans and transfer/host dependencies remain validated. Mapping never implies readiness; applications synchronize CPU reads with observed completion. Nested counts,last-Unmap retirement protection,failed output/retry and cookie-alias guards remain exact. All32 native regressions and4 new map lifecycles/7 actual deferred result receipts plus2 sensitivity controls pass. Prior288 CPU query numerical cases remain retained evidence,not new implementation credit. Other READBACK writer classes,COMMON write ledger,cross-list/binary/COMPUTE queries,public clocks and full native/kernel integration remain pending. Source only,installed unchanged,physical/public native acceptance false,tests0.
+
+2026-11-21 public persistent READBACK/COPY mapping: genuine R0 CopyBufferRegion and CopyResource destination leases now join the explicit exact-generation public writer class used by queries. Public coherent READBACK Map can precede recording,follow Close or coexist with actual pending copy work; last Unmap/remap,nested pointer stability,closed replay and pending reset preserve actual backing and receipt pins. Mapping never implies readiness. Native transfer single/batch admission permits only the explicit selected READBACK public map mode; private copy recordings and private source/destination maps retain exclusions. Actual logical Width,overlap ordering,transfer/host dependencies,mapped UPLOAD reads and last-map retirement protection remain exact. All32 native regressions,10 new copy-map lifecycles/18 actual receipts/27 region or whole operations,updated multi-buffer pending pointer/sentinel checks,18 CPU-only actual Vulkan copy/map numerical receipts and3 sensitivity controls pass. Image READBACK writer maps,COMMON ledger,broader query/runtime/kernel contracts and physical/public acceptance remain pending. Source only,installed unchanged,tests0.
+
+2026-11-21 public persistent image READBACK mapping: genuine R0 image-to-buffer recording snapshots actual public/private list mode. Only genuine public image READBACK leases join explicit CPU persistent-map eligibility while preserving exclusive GPU writer admission. Public pointers remain valid before recording,after Close,during actual pending image work,through replay,pending reset and last-Unmap/remap; maps never imply readiness. Actual image-copy prebarriers include prior host reads/writes; selected READBACK backing and original logical footprints/source subresources remain exact. Private image recording cannot acquire a preexisting public map,and public Map cannot bypass a retained private image writer. Every GPU/CPU owner protects retirement. All32 native regressions,5 new image-map lifecycles/9 actual receipts,2 private/public order exclusions,missing-copy no-attempt retry,9 CPU-only actual Vulkan image/map numerical receipts checking65536 texel/prefix/row-padding/tail bytes,and3 sensitivity controls pass. Broader image/resource/state/thread/runtime/kernel contracts and physical/public acceptance remain pending. Source only,installed unchanged,tests0.
+
+2026-11-21 genuine command signatures and GPU indirect DRAW: original typed R0 size/create/destroy callbacks own rootless pure DRAW,DRAW_INDEXED and DISPATCH metadata under distinct kind17 device claims/cookies. Genuine ExecuteIndirect executes only pure non-indexed DRAW with exact retained logical buffer spans and INDIRECT_ARGUMENT states,actual selected firstInstance/multidraw features,maxDrawIndirectCount batching and real vkCmdDrawIndirect GPU reads. Signature metadata,persistent UPLOAD maps and argument buffers survive closed replay,pending reset and failed/safe drain without CPU argument decode. Zero count skips actual indirect GPU reads/procedure/feature requirements. Unsupported count/indexed/dispatch/root-state execution remains pending. All32 native regressions,29 completed indirect receipts plus uncertain recovery,13 invalid admissions,8 missing-procedure retries,2 selected feature/limit rejections,12 signature layouts/13 constructor invalid cases,capacity/device/loss ownership,72 real CPU Vulkan pixel cases across native VS5.0/5.1 and3 controls pass. Internal graphics metadata is additive; prior external private bundles stay frozen. Source only,installed unchanged,full D1 scope remains pending,tests0.
+
+2026-11-21 genuine bounded indexed GPU indirect DRAW: pure DRAW_INDEXED signatures now retain separate exact IA index and logical argument buffer leases. Selected VK_KHR_maintenance5 extension+feature are observed and enabled only when available. Real vkCmdBindIndexBuffer2KHR binds the actual D3D12 index-view bytes; robustness2 prevents poisoned allocation-padding index reads. Real vkCmdDrawIndexedIndirect consumes original20-byte arguments and padded strides on GPU with actual feature/limit batching,no CPU count/value decode. Zero count skips index/indirect bind/read/procedure requirements. Public mapped index/argument buffers,closed replay,pending detached reset and uncertain failed/safe drain retain independent owners. All32 regressions,25 completed indexed receipts plus uncertain recovery,14 missing-procedure retries,4 selected extension/feature/R32 rejections,288 actual CPU Vulkan index-dependent pixel cases across native VS5.0/5.1 and3 controls pass. Initial numeric base-vertex oracle was corrected against Direct3D VertexID semantics and retained compiler fixup; production compiler unchanged. Prior non-indexed and constructor regressions remain intact. Dispatch/count-buffer/root-state/bundle and full D1 integration remain pending; source only,installed unchanged,tests0.
+
+2026-11-21: Pure DISPATCH ExecuteIndirect now executes on genuine COMPUTE lists using retained signature/argument owners and real vkCmdDispatchIndirect. It preserves padded strides, post-recording argument changes, consumed root constants, replay and detached pending reset. Existing resource/UAV limits remain explicit. Focused checks and the32-test integration suite pass;12 CPU Vulkan checks verify actual indirect shader invocation counts. Graphics and compute share one indirect visibility helper. No installed runtime change; testing adds zero implementation credit.
+
+2026-11-21 root compatibility: native graphics/compute pipeline construction and genuine consumed commands accept independently created root signatures with identical normalized parameters and flags. Existing leases retain requested layouts and bound roots. Different-object root switches still invalidate current arguments; original private command bundles keep their documented restrictions.
+
+2026-11-21 empty lists: genuine COPY/COMPUTE/DIRECT Close and Execute accept no consumed work, including state-only DIRECT lists. An actual empty Vulkan command buffer uses existing ordered receipt, replay, pending reset and drain handling. No pipeline, draw or resource is fabricated. Existing private bundle restrictions remain unchanged.
+
+2026-11-21 raw UINT UAV clear: the genuine callback snapshots matching CPU/GPU raw views and the first DWORD pattern, retains exact DEFAULT UAV-state write spans and executes vkCmdFillBuffer in the existing ordered stream. DIRECT and COMPUTE clear-only streams support replay and detached pending reset without an artificial shader/PSO. Rectangles, structured/typed or float clears and mixed COMPUTE dispatch/clear remain unfinished.
+
+2026-11-21 public native entry: OpenAdapter12 now negotiates the implemented mapped R0 tables. Backend-only fixtures use QemuLightningInternalOpenBackendAdapter. The normal --native-d3d12 build publishes the UMD, matching compiler and public Windows device probe; --driver-package includes them and registers the DX12 slot (KMTUMDVERSION_DX12 is index3). Mandatory feature-level/options contracts still decline; this is discovery/entry implementation, not a supported D3D12 feature-level claim. Run QemuLightningD3D12Probe.exe in Windows to query its actual DX12 UMD filename and call the system D3D12CreateDevice without private exports or WARP fallback.
+
+For the native kernel build and matching installer use the same WDDM selection:
+  QLG_WDDM=2_2 ./build.sh --graphics-driver --native-d3d12 --driver-package
+The package assembler now reuses the kernel INF generator so WDDM 2.x MSI-X
+settings and the current native DX12 DLL registration are both retained. Separate
+build/package invocations must retain the same QLG_WDDM value. The default remains
+WDDM 1.3 for the existing display profile; this does not enable a native feature level.
+
+Native resource limits (0.1.0.903): Texture1D/2D extents now reach 16,384,
+subject to exact selected Vulkan image/format/framebuffer limits. Native buffer
+and image requirements can reach 1 GiB; creating resources uses the paired VidMm
+segment budget (1 GiB minus the 8 MiB POST reservation), including already owned
+backings. A full 16K RGBA8 requirements query may succeed while create returns
+E_OUTOFMEMORY. Scanout mode limits and the private backend ABI1 64 MiB/256 MiB buffer
+limits are independent. No complete shader model or native feature level is enabled.
+
+Public R0 allocation destruction (0.1.0.904): CreateDevice requires the real
+pKTCallbacks->pfnDeallocate2Cb, which is copied with the other used callbacks.
+Allocation retirement requests AssumeNotInUse|SynchronousDestroy, with all
+reserved/system flags clear. Unconfirmed/failing callbacks retain their owners
+for retry. Diagnostic profiles3/4 can still use the older DeallocateCb.
+
+Public texture layouts (0.1.0.905): The mapped R0 path now creates selected
+color images with VK_IMAGE_TILING_LINEAR and queries vkGetImageSubresourceLayout.
+GetCaps(TEXTURE_LAYOUT) reports one device-dependent layout with predefined
+row-major swizzle. CheckSubresourceInfo returns the retained actual offset and
+pitches; query and create layouts must agree. Native allocation, rendering,
+upload/readback and whole-image copies continue to use the actual VkImage.
+The public layout currently excludes arrays, depth/stencil and multisampling.
+Older diagnostic paths retain optimal tiling. Full native feature-level and
+Windows/GPU qualification remain incomplete.

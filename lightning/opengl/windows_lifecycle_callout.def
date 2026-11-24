@@ -1,0 +1,6 @@
+; Module: qemu_lightning.opengl.windows_lifecycle_callout_exports
+; Purpose: Keep the loader-refusal observation ABI identical on AMD64 and x86.
+; Created: 2026-11-10
+; Architecture: Acceptance-only export; no installed registration or imports.
+EXPORTS
+    QemuLightningOpenGLLifecycleCalloutResult

@@ -1,0 +1,408 @@
+{
+  "module": "lightning.direct3d12_umd.native_fixed_state_policy",
+  "created": "2026-10-24",
+  "status": "experimental private genuine R0 CPU fixed states consumed by real bounded graphics pipeline construction",
+  "public_interface_ready": false,
+  "states": {
+    "blend": "Genuine R0 owns exact FALSE/TRUE alpha-to-coverage, target0 replication or all8 independent target states, supported ordinary RGB/alpha factors/ops and all write masks. Inactive target fields are ignored only when replication is selected. Logic and dual-source classes remain refused. Original scalar FixedPlan/BlendPlan and292-byte MrtPlan layouts stay unchanged.",
+    "rasterizer": "Solid or wireframe with exact NONE/FRONT/BACK culling and FALSE/TRUE front-counterclockwise state; depth clipping/scissor remain required. Wireframe CPU state uses a validated added flag and actual selected fillModeNonSolid gates all scalar/MRT/coverage pipeline paths. Original default flags3 and all scalar/MRT record layouts stay fixed. Clamp/bias, advanced line/conservative and broader classes remain unfinished.",
+    "depth_stencil": "Depth supports all eight comparisons and ZERO/ALL writes. Stencil supports independent front/back enable, all comparison/fail/depth-fail/pass operations, and shared UINT8 read/write masks. Inactive faces use ALWAYS/KEEP and write mask zero. A 64-bit normalized owner retains all state without field truncation.",
+    "element_layout": "Zero to32 snapshotted elements, original R0 InputRegister/slot fields, explicit or per-slot APPEND offsets, native R32 FLOAT/UINT/SINT scalar/2/3/4-vector formats, PER_VERTEX step0 and PER_INSTANCE step1. Checked register uniqueness, slot class consistency, four-byte alignment and bounded2048-byte extents. Other formats/divisors and unaligned/overlapping-stride emulation remain unsupported."
+  },
+  "ownership": "Typed fresh cross-kind runtime keys pin exact native device. All four identities and bounded reference counts validate before atomic constructor reference acquisition. Retirement is busy while leased. Actual Vulkan graphics construction consumes generated normalized FixedPlan; success bakes states and releases CPU state leases, failure destroys local pipeline first.",
+  "limitations": [
+    "General blending permutations and vertex input remain incomplete.",
+    "No complete mandatory native device table or public DDI advertisement."
+  ],
+  "testing_credit": 0,
+  "single_target_blending": {
+    "normalization": "Genuine R0 blend descriptors admit all RGBA write masks0..15; disabled mode ignores unused factor/operation fields. Enabled mode validates independent RGB/alpha factors and ADD/SUBTRACT/REV_SUBTRACT/MIN/MAX. Alpha factors ending COLOR are rejected. A checked packed u32 stores immutable owned state; bit31 and all unrecognized/unsupported codes refuse.",
+    "supported_factors": "ZERO, ONE, SRC_COLOR, INV_SRC_COLOR, SRC_ALPHA, INV_SRC_ALPHA, DEST_ALPHA, INV_DEST_ALPHA, DEST_COLOR, INV_DEST_COLOR, SRC_ALPHA_SAT for RGB; alpha excludes COLOR factors. Constant BLEND_FACTOR/INV_BLEND_FACTOR are supported: RGB selects constant color/inverse; alpha selects constant alpha/inverse.",
+    "backend": "A separate internal normalized BlendPlan preserves old FixedPlan and private bundle/query ABI sizes. Exact constructor leases freeze blend fields. Actual selected Vulkan format must advertise COLOR_ATTACHMENT_BLEND when enabled. C maps D3D enums to real VkBlendFactor/VkBlendOp and passes actual enable/factor/operation/write-mask fields to graphics pipeline creation.",
+    "lifetime": "Only successful actual pipeline creation bakes state. Temporary fixed/shader inputs are held through constructor and partial output destruction, then released. Caller descriptor mutation after native blend creation does not alter the owned state.",
+    "remaining": "Dual-source shaders/factors, alpha-to-coverage, independent MRTs, logic operations, format-capability publication and full public native qualification are incomplete.",
+    "testing_credit": 0
+  },
+  "dynamic_blend_constants": {
+    "genuine_slot": "pfnOmSetBlendFactor",
+    "default": "New/reset native command lists start with exact float bits for{1,1,1,1}. A NULL setter resets to that value.",
+    "snapshot": "Copy all four scalar caller bits during genuine callback. Repeated calls replace the snapshot; no pointer survives, and there is no global CPU clamp. Vulkan performs actual attachment-format-dependent conversion. The same state is stored when current PSO does not consume constants.",
+    "lifetime": "A separate internal BlendConstants record preserves existing private DirectState and bundle layouts. Move and restore by-value state with recording owners through retry, accepted/uncertain pending execution, reset and caller retirement. Setter commits use native phase/generation/fault admission.",
+    "backend": "Actual graphics PSOs enable VK_DYNAMIC_STATE_BLEND_CONSTANTS. Actual vkCmdSetBlendConstants precedes both color-only and depth/stencil draws. Missing entry point refuses before an attempt, retaining the closed recording for retry.",
+    "remaining": "General multi-draw command streams, bundles, independent MRTs and full public native/GPU qualification remain unfinished.",
+    "testing_credit": 0
+  },
+  "vertex_input_ownership": "Typed layout owns an immutable normalized scalar array. Native PSO construction retains its exact generation, matches actual stored shader register/component signatures and requires the retained root IA permission. The selected Vulkan physical format buffer features and vertex limits are checked before creating actual attribute/binding state; baked PSOs retain no caller array or CPU layout pointer.",
+  "alpha_to_coverage": {
+    "scope": "Native alpha-to-coverage CPU blend snapshots and selected actual Vulkan multisample pipeline state",
+    "implemented": [
+      "genuine R0 blend size/create admits exact FALSE/TRUE AlphaToCoverageEnable and owns it with the complete replicated/independent blend generation; malformed BOOL2 still refuses before claims",
+      "old scalar FixedPlan24bytes, BlendPlan32bytes, MrtPlan292bytes and original private Rust scalar/MRT constructor signatures remain unchanged; new additive coverage constructors carry immutable state through selected backend admission",
+      "coverage-enabled single-target or1..8-target pipelines use the same selected physical count/format/sample/independentBlend checks and exact temporary-image probes as the existing native MRT path",
+      "actual VkPipelineMultisampleState.alphaToCoverageEnable receives the exact saved BOOL with selected sample1/4 and optional depth/stencil; alphaToOne stays disabled and original pixel alpha values remain available to blending",
+      "CPU fixed states may retire after actual pipeline bake while exact root/pipeline generations remain owned; blocked creation, source mutation, missing procedures, partial outputs, format refusal and supported retry retain existing constructor cleanup",
+      "mixed MRT draws bind independently retained enabled/disabled coverage pipelines through rebind, completed replay, pending reset and uncertain/failed drain; Vulkan-side observation reads actual bound pipeline state"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "actual_multisample_state_cases": 24,
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "coverage_enabled_disabled": true,
+      "independent_replicated_blend": true,
+      "optional_depth_stencil": true,
+      "CPU_size_queries_backend_free": true,
+      "caller_source_mutation": true,
+      "blocked_eight_target_constructor": true,
+      "missing_procedure_partial_output_format_and_retry": true,
+      "actual_mixed_draw_coverage_state_observation": true,
+      "prior_runtime_and_disabled_Vulkan_bit_controls": true,
+      "frozen_scalar_and_MRT_layouts": true
+    },
+    "primary_contracts": {
+      "D3D12_blend_state": "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_blend_desc",
+      "Direct3D_output_merger_contract": "https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#17.18%20Alpha-to-Coverage",
+      "Vulkan_multisample_coverage": "https://docs.vulkan.org/spec/latest/chapters/fragops.html#fragops-covg",
+      "supported_raster_samples": [
+        1,
+        4
+      ],
+      "original_scalar_and_MRT_records_unchanged": true,
+      "additional_work_needed": "Physical alpha0/1/NaN and cross-API numerical qualification; coverage output/early-depth/full shader models remain unfinished",
+      "testing_credit": 0
+    },
+    "limitations": [
+      "physical GPU alpha0/1/NaN coverage and cross-API numerical behavior remain unqualified; NaN coverage portability may require additional shader lowering before public qualification",
+      "coverage-output shaders and their alpha-to-coverage suppression, general sample masks/shading, wider sample counts, dual-source/logic blends and remaining raster states remain unfinished",
+      "complete native shader models, public Windows runtime acceptance and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "raster_culling": {
+    "scope": "Native cull mode and front-face raster state from genuine copied CPU descriptions to actual selected Vulkan pipelines and consumed draws",
+    "implemented": [
+      "genuine R0 raster normalization validates NONE/FRONT/BACK cull mode and exact FALSE/TRUE FrontCounterClockwise, storing independent immutable normalized bits in the existing scalar raster_flags",
+      "original default RASTER_SUPPORTED_FLAGS remains3; expanded allowed-mask validation preserves required depth-clip/scissor bits, rejects unknown/high bits and excludes simultaneous FRONT/BACK cull flags",
+      "FixedPlan24bytes, BlendPlan32bytes, MrtPlan292bytes and all constructor/callback record layouts remain unchanged",
+      "selected Vulkan pipeline creation maps retained flags to actual VkCullModeFlags and VkFrontFace under the same color/depth/sample/root/state ownership gates across scalar, MRT and alpha-to-coverage paths",
+      "CPU size queries remain backend-free; caller descriptor mutation cannot change baked pipeline state, and missing procedure/partial output/format refusal plus supported retry preserve exact reservations and input cleanup",
+      "mixed indexed/nonindexed MRT draws bind independent immutable default and BACK/CCW pipelines through later source retirement, replay, pending reset and uncertain/failed drain"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "raster_pipeline_cases": 36,
+      "cull_modes": [
+        "NONE",
+        "FRONT",
+        "BACK"
+      ],
+      "front_counterclockwise": [
+        false,
+        true
+      ],
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "optional_depth_stencil": true,
+      "actual_Vulkan_cull_front_fields": true,
+      "malformed_enum_BOOL_and_unsupported_classes": 10,
+      "constructor_failures_and_retry": 3,
+      "actual_consumed_draw_raster_observation": true,
+      "source_mutation_and_baked_state_retirement": true,
+      "prior_runtime_and_disabled_raster_controls": true,
+      "frozen_scalar_and_MRT_layouts": true
+    },
+    "limitations": [
+      "physical triangle winding, coordinate transform and pixel visibility across all states remain unqualified",
+      "wireframe, depth clamp/bias, line/multisample/conservative rasterization and other original raster classes remain unfinished",
+      "general native resources/shaders, full public runtime integration and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "wireframe": {
+    "scope": "Native wireframe CPU raster state and actual selected optional Vulkan feature, pipeline and consumed draw integration",
+    "implemented": [
+      "genuine R0 raster size/create validates SOLID or WIREFRAME and retains an immutable wireframe bit alongside existing cull/front state; default flags3 and scalar FixedPlan24/BlendPlan32/MrtPlan292 layouts remain unchanged",
+      "selected physical fillModeNonSolid is actually queried, retained, enabled at logical VkDevice creation only when observed, and copied into the exact live device context",
+      "unavailable optional non-solid support refuses wireframe in original scalar and common MRT/coverage constructors before any format query, image probe or Vulkan pipeline call; same device/private key still supports solid work",
+      "actual VkPipelineRasterizationState.polygonMode becomes LINE only for retained wireframe state; cull/front, sample1/4, alpha-to-coverage, optional depth and all prior selected physical/format/lifetime checks remain intact",
+      "source descriptions may mutate and CPU fixed states retire after pipeline bake; failed/partial constructors, source rollback and supported retry preserve exact existing ownership",
+      "independently retained solid/wireframe pipelines are actually bound by mixed indexed/nonindexed MRT draws across source retirement, rebind/replay, pending reset and uncertain/failed drain"
+    ],
+    "verification": {
+      "native_regressions_passed": 31,
+      "polygon_pipeline_cases": 24,
+      "actual_physical_optional_feature_query_and_logical_enable": true,
+      "missing_feature_scalar_MRT_coverage_cases": 6,
+      "missing_feature_refusal_before_backend_side_effects": true,
+      "same_device_same_key_solid_retry": true,
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "alpha_enabled_disabled": true,
+      "optional_depth_stencil": true,
+      "actual_Vulkan_polygon_mode": true,
+      "copied_source_and_baked_state_retirement": true,
+      "constructor_failures_and_retry": 3,
+      "actual_consumed_draw_polygon_observation": true,
+      "prior_runtime_and_disabled_polygon_controls": true,
+      "old_runtime_control_model_reports_and_expects_optional_featureFALSE": true,
+      "frozen_scalar_and_MRT_layouts": true
+    },
+    "limitations": [
+      "physical wireframe edge/pixel/line numerical behavior remains unqualified",
+      "depth clamp/bias, advanced line/conservative and broader sample/raster classes remain unfinished",
+      "general native resources/shaders, full public runtime integration and complete D1 remain pending"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_alpha_nan_coverage": {
+    "scope": "Portable native Direct3D NaN alpha-to-coverage guard and exact pipeline specialization",
+    "implemented": [
+      "optional compiler feature131072 and CompilePixelCoverage preserve ABI2/root1/IO1 and all older exports, result ownership and reserved0",
+      "typed transform of actual pinned-compiler Fragment SPIR-V proves sole entry epilogue and float4 output0, adds reserved private default-FALSE bool specialization and actual output alpha load/IsNan/AND/structured Kill; ordinary output values stay untouched",
+      "bounded shared proof distinguishes SPIR-V ID references from literal widths/locations/constants, rejects malformed guard/type/entry/spec/early-test shapes and outside references to fresh guard IDs; compiler and actual module owner independently apply the proof",
+      "real selected shader owner retains a verified guard bit derived from module bytes, never result metadata; coverage construction refuses old unguarded modules before format/image/pipeline work while ordinary older-compiler pipelines remain usable",
+      "actual pixel VkSpecializationInfo enables only the private guard for alpha-to-coverage; ordinary single/MRT pipelines keep defaultFALSE/no specialization and alphaToOne remainsFALSE",
+      "NaN fragments discard all MRT outputs without replacing alpha; finite alpha continues through actual Vulkan coverage and original blending; existing source/root/IO/descriptor/state and pending-draw ownership remain intact"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "SDK_branch_root_MRT_cases": 12,
+      "SDK_numeric_cases": 5,
+      "SPIRV_Tools_Vulkan12_valid": true,
+      "old_entry_IR_byte_identical_after_guard_removal": true,
+      "malformed_and_truncation_cases": 6116,
+      "CPU_offscreen_pixel_cases": 20,
+      "CPU_renderer": "llvmpipe LLVM21.1.8",
+      "sample_counts": [
+        1,
+        4
+      ],
+      "alpha_values": [
+        "NaN",
+        "0",
+        "1",
+        "-1",
+        "2"
+      ],
+      "coverage_enabled_disabled": true,
+      "independent_actual_module_and_Vulkan_specialization_observed": true,
+      "missing_guard_compiler_and_disabled_specialization_controls": true
+    },
+    "limitations": [
+      "physical GPU and full native Windows runtime acceptance remain unqualified",
+      "sample-mask output, forced early depth/stencil, wider sample classes and full native shader/resource/runtime contracts remain unfinished",
+      "CPU numerical fixture exercises actual compiled fragment SPIR-V and Vulkan state offscreen; it does not qualify Windows GPU execution"
+    ],
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm",
+      "https://docs.vulkan.org/spec/latest/chapters/fragops.html#fragops-covg"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_sample_mask": {
+    "scope": "Native copied per-pipeline UINT sample mask and actual Vulkan pipeline/consumed draw integration",
+    "implemented": [
+      "genuine graphics request already snapshots SampleMask; admission now accepts every UINT, including zero, sparse and high-only bits, without altering any existing request/FixedPlan24/BlendPlan32/MrtPlan292 layouts",
+      "nondefault masks use an additive internal constructor and immutable scalar copy while all-ones retains original scalar/MRT/coverage routes and frozen signatures",
+      "selected-device common construction preserves real format/sample/image prerequisites, independent blend, wireframe feature, depth and verified NaN-coverage module gates; full masks are used by actual VkPipelineMultisampleState pSampleMask",
+      "one copied mask word covers all currently admitted sample counts1/2/4/8/16; Vulkan ignores higher bits, including single-sample bits above0; no optional feature is invented",
+      "exact pipeline ownership retains each mask through CPU source mutation, mixed indexed/nonindexed MRT PSO changes, completed replay, pending reset and uncertain/failed drain; no extra command or backend object is introduced"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "pipeline_cases": 72,
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts_tested": [
+        1,
+        4
+      ],
+      "coverage_enabled_disabled": true,
+      "mask_values": [
+        "0xffffffff",
+        "0",
+        "1",
+        "5",
+        "0xaaaaaaaa",
+        "0x80000000"
+      ],
+      "optional_depth": true,
+      "CPU_size_backend_free": true,
+      "blocked_constructor_source_mutation": true,
+      "constructor_failures_and_same_key_retry": 3,
+      "actual_consumed_and_replayed_Vulkan_mask_observation": true,
+      "previous_runtime_and_disabled_mask_controls": true,
+      "CPU_offscreen_numeric_cases": 100,
+      "CPU_numeric_renderer": "llvmpipe LLVM21.1.8",
+      "CPU_numeric_includes_NaN_and_finite_coverage": true
+    },
+    "limitations": [
+      "physical GPU pixels and public native Windows runtime acceptance remain unqualified",
+      "broader topology/raster/depth/resource/shader classes and full production integration remain unfinished"
+    ],
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_graphics_pipeline_state_desc",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineMultisampleStateCreateInfo.html"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  },
+  "native_primitive_topology": {
+    "scope": "Native LINE/TRIANGLE PSO classes and per-draw list/strip topology through real Vulkan1.3 dynamic state",
+    "implemented": [
+      "genuine graphics request admits LINE2 and TRIANGLE3 classes; copied CPU sizes remain backend-free and actual VkPipelineInputAssemblyState selects matching class with dynamic primitive topology",
+      "new explicit primitive constructor accepts class/mask/coverage while all original scalar/MRT/coverage/masked signatures and fixed public/private records remain unchanged; selected formats/samples/independent blend/wireframe/depth/NaN guards stay mandatory",
+      "Rust pipeline and immutable lease retain class; current IA topology lives in List/RecordingOwners take/restore/reset paths and is matched to PSO class before draw admission",
+      "genuine IA accepts LINELIST2,LINESTRIP3,TRIANGLELIST4,TRIANGLESTRIP5; legacy private setter stays TRIANGLELIST4; POINT/adjacency/PATCH and index strip-cut remain gated",
+      "explicit topology/reserved fields append only to generated internal GraphicsWork; DirectState/DrawArguments and private callback bundles are frozen; zero internal topology means legacy triangle-list and is checked against the retained selected class",
+      "every consumed draw snapshots topology independently of later IA mutation or pipeline binding; exact replay, pending reset and uncertain/failed drain retain original generations",
+      "whole-stream selected C preflight repeats actual owner class/enum/reserved checks before recording; core vkCmdSetPrimitiveTopology is required and emitted for each real draw, with older scalar/private draws explicitly setting triangle-list",
+      "Vulkan1.3 selected physical and instance API already required; same-class dynamic topology uses core behavior without claiming optional unrestricted topology or inventing features"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "native_pipeline_cases": 48,
+      "pipeline_classes": [
+        "LINE",
+        "TRIANGLE"
+      ],
+      "IA_topologies": [
+        "LINELIST",
+        "LINESTRIP",
+        "TRIANGLELIST",
+        "TRIANGLESTRIP"
+      ],
+      "target_counts": [
+        1,
+        2,
+        8
+      ],
+      "sample_counts": [
+        1,
+        4
+      ],
+      "alpha_coverage_and_sample_masks": true,
+      "optional_depth": true,
+      "immutable_blocked_constructor_class": true,
+      "class_mismatch_and_POINT_recording_errors": true,
+      "invalid_lists_retire_exactly_and_fresh_lists_reuse_sources": true,
+      "actual_consumed_and_replayed_topology": true,
+      "no_attempt_pending_reset_uncertain_failed_drain": true,
+      "missing_core_topology_on_fresh_device_and_retry": true,
+      "valid_cached_function_remains_valid": true,
+      "assembly_class_and_dynamic_command_disabled_controls": true,
+      "CPU_Vulkan13_offscreen_pixel_cases": 8,
+      "CPU_renderer": "llvmpipe LLVM21.1.8",
+      "CPU_list_strip_pixel_coverage_distinguished": true
+    },
+    "limitations": [
+      "POINT requires proved vertex point-size semantics; adjacency/GS/PATCH/tessellation/index strip-cut remain unfinished",
+      "physical GPU line rasterization/winding and full native Windows runtime acceptance remain unqualified",
+      "broader resource/shader/runtime contracts and complete D1 remain pending"
+    ],
+    "primary_sources": [
+      "https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetPrimitiveTopology.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3PropertiesEXT.html"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "followup": "Native POINT and point-only entry now implemented; original ordinary interfaces are preserved, selected output budgets gate both entries and triangle wireframe is ignored for POINT/LINE. See native_point_rasterization."
+  },
+  "native_point_rasterization": {
+    "scope": "Native POINT class/list with proved one-pixel vertex output and separate ordinary/private SPIR-V entries",
+    "implemented": [
+      "optional compiler262144/CompileVertexPointSize transforms genuine pinned Vertex SPIR-V, preserves ABI2/root1/IO1/result reserved0 and all older entry restrictions; actual unsupported transform falls back to ordinary StageIo without point admission while a declared missing export fails strictly",
+      "ordinary main wrapper and private ql_point wrapper call the unchanged original application helper; only ql_point appends float32 Output PointSize=1; original main interface remains byte-identical and canonical wrapper/typed ID proof binds actual module bytes",
+      "shared bounded literal-aware proof validates unique typed Output PointSize, exact constant1, canonical entry wrappers/call/store, old interface identity and absence of outside fresh-ID references; selected VkShaderModule owner derives metadata from actual bytes without caller flags",
+      "real selected vertex output count and location extent include built-ins; ordinary/point budgets are retained separately and checked against actual maxVertexOutputComponents before format probes or pipeline creation; unknown output layouts refuse conservatively",
+      "POINT/LINE/TRIANGLE immutable PSO classes and IA POINTLIST1/list-strip snapshots select actual assembly and dynamic topology; POINT requires proved module and selects ql_point while ordinary LINE/TRIANGLE selects main",
+      "triangle-only wireframe is normalized to FILL for POINT and LINE, without requiring fillModeNonSolid for ignored state; point culling does not change actual point rasterization",
+      "all existing selected mask/coverage/depth/format/sample, source-lifetime and exact command ownership/fault gates remain mandatory; frozen external records, original constructors and legacy private triangle-list behavior are preserved"
+    ],
+    "verification": {
+      "native_regressions": 31,
+      "pipeline_cases": 72,
+      "nontriangle_wireframe_feature_boundary_cases": 12,
+      "SDK_shader_profiles": [
+        "5.0",
+        "5.1"
+      ],
+      "SDK_compiler_root_IO_cases": 12,
+      "SDK_pixel_profiles": 2,
+      "SDK_wide_output_case": true,
+      "SPIRV_Tools_Vulkan12_valid": true,
+      "old_IR_byte_identity_after_private_entry_removal": true,
+      "ordinary_interface_unchanged": true,
+      "point_size_proof_cases": 4068,
+      "per_entry_budget_cases": 15,
+      "alpha_guard_regression_cases": 6116,
+      "selected_64_components_ordinary64_point65_refusal_and_smaller_retry": true,
+      "CPU_Vulkan_pixel_cases": 288,
+      "CPU_only_ICD_asserted": true,
+      "prior_compiler_and_disabled_module_proof_and_output_budget_controls": true,
+      "width2_real_pixel_count_sensitivity_control": true,
+      "mixed_indexed_nonindexed_consumed_replayed_pending_fault_lifetimes": true
+    },
+    "limitations": [
+      "adjacency/GS/PATCH/tessellation/index strip-cut and full general shaders/resources/runtime contracts remain unfinished",
+      "currently admitted vertex scalar32/vector outputs receive exact budgets; unknown composites fail closed",
+      "physical GPU point/line/winding qualification and public native Windows D3D12 acceptance remain unqualified"
+    ],
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/PointSize.html",
+      "https://docs.vulkan.org/spec/latest/chapters/interfaces.html"
+    ],
+    "scope_unchanged": true,
+    "testing_credit": 0,
+    "native_gpu_qualification": false,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false
+  }
+}

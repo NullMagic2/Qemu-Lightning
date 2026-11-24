@@ -1,0 +1,23 @@
+{
+  "generator": "Native shader compiler integration pin",
+  "base_commit": "c965c1351fd6915a65bb7f647319536252a24a93",
+  "patch_sha256": "1f549aa6ca3a1271550dd7e13aad11c87c465c7417b2bab9f5e1fc78b6753365",
+  "patched_upstream_files": [
+    {
+      "path": "libs/vkd3d-shader/vkd3d_shader_main.c",
+      "base_sha256": "08d821a30b43cd90366b5d7b4691995f8796e5aa12896202fa7879bb0360b18e",
+      "integrated_sha256": "bc257077ec0b52b069c65fcbb4f0c89f8581c1553801e85f4e57a8869c118af9"
+    },
+    {
+      "path": "libs/vkd3d-shader/vkd3d_shader_private.h",
+      "base_sha256": "3a6035e1e5a11cb719e019da1e70926d37338a570e7dea9227c199e7933cdcf9",
+      "integrated_sha256": "1a79e4d8be31e26e39dab5865bca0fe2607debdd85cc3268489dab0a83de61d9"
+    },
+    {
+      "path": "libs/vkd3d-shader/dxbc.c",
+      "base_sha256": "40c07b0389ba4a150c2d3d8f3ee873c0943e0f2daf760ed6d016851e4724b2e1",
+      "integrated_sha256": "1a803342e5ed3e43a55f99b05bc6f685fa608a09ffbb98011c5c3a86786ca317"
+    }
+  ],
+  "behavior": "Factor genuine borrowed token scanner/parser/compiler; preserve actual extension-presence observations for strict native PS rejection, without changing upstream token semantics or full-container behavior"
+}

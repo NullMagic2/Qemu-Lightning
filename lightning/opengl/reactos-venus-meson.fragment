@@ -1,0 +1,26 @@
+# Module: qemu_lightning.opengl.reactos_venus_dependency
+# Purpose: Reuse the native renderer with a C++ NT5 platform and identity boundary.
+# Created: 2026-10-21
+# Architecture: Existing C renderer and unchanged Rust packet policy are dependencies.
+if with_platform_windows
+  vn_incs += include_directories('lightning')
+  vn_native = static_library('lightning_nt5_native',
+    files('lightning/mesa_windows_renderer.c', 'lightning/mesa_specialization_storage.c',
+          'lightning/reactos_venus_renderer.cpp', 'lightning/reactos_venus_platform.cpp',
+          'lightning/reactos_venus_exchange.cpp', 'lightning/reactos_phase.cpp'),
+    # Order-only: the C renderer includes the generated vn_entrypoints.h.
+    vn_entrypoints[0],
+    include_directories : vn_incs,
+    dependencies : vn_deps,
+    c_args : vn_c_args + ['-Dvn_renderer_create_windows=qlv_dependency_create_windows'],
+    cpp_args : ['-std=c++17'],
+  )
+  vn_libs += vn_native
+  vn_link_args += [
+    '@QL_POLICY_LIBRARY@',
+    '-Wl,--exclude-all-symbols',
+    join_paths(meson.current_source_dir(), 'lightning/windows_icd.def'),
+  ]
+else
+  libvn_files += files('vn_renderer_vtest.c')
+endif

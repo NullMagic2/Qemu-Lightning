@@ -1,0 +1,297 @@
+{
+  "module": "lightning.direct3d12_umd.native_descriptors",
+  "created": "2026-10-25",
+  "status": "experimental_native_attachment_buffer_CBV_tables_and_sampler_objects",
+  "genuine_contracts": [
+    "D3D12DDIARG_CREATE_DESCRIPTOR_HEAP_0001",
+    "PFND3D12DDI_CALC_PRIVATE_DESCRIPTOR_HEAP_SIZE_0001",
+    "PFND3D12DDI_CREATE_DESCRIPTOR_HEAP_0001",
+    "PFND3D12DDI_DESTROY_DESCRIPTOR_HEAP",
+    "PFND3D12DDI_GET_DESCRIPTOR_SIZE_IN_BYTES",
+    "PFND3D12DDI_GET_CPU_DESCRIPTOR_HANDLE_FOR_HEAP_START",
+    "D3D12DDIARG_CREATE_RENDER_TARGET_VIEW_0002",
+    "PFND3D12DDI_CREATE_RENDER_TARGET_VIEW_0002",
+    "PFND3D12DDI_OM_SET_RENDER_TARGETS_0003",
+    "PFND3D12DDI_CLEAR_RENDER_TARGET_VIEW_0003",
+    "PFND3D12DDI_COPY_DESCRIPTORS_0003",
+    "PFND3D12DDI_COPY_DESCRIPTORS_SIMPLE_0003",
+    "PFND3D12DDI_GET_GPU_DESCRIPTOR_HANDLE_FOR_HEAP_START",
+    "PFND3D12DDI_CREATE_CONSTANT_BUFFER_VIEW",
+    "PFND3D12DDI_CREATE_SHADER_RESOURCE_VIEW_0002",
+    "PFND3D12DDI_CREATE_UNORDERED_ACCESS_VIEW_0002"
+  ],
+  "primary_sources": [
+    "https://learn.microsoft.com/en-us/windows/win32/direct3d12/creating-descriptor-heaps",
+    "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3d12umddi/ns-d3d12umddi-d3d12ddi_cpu_descriptor_handle",
+    "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3d12umddi/nc-d3d12umddi-pfnd3d12ddi_create_descriptor_heap_0001",
+    "https://learn.microsoft.com/en-us/windows/win32/direct3d12/copying-descriptors",
+    "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html"
+  ],
+  "heap_subset": {
+    "type": "Separate resource(CBV_SRV_UAV=0), RTV2 and DSV3 classes",
+    "flags": "CPU_VISIBLE1 for all admitted classes; resource heaps also admit CPU_VISIBLE|SHADER_VISIBLE3. GPU-only flag2 and sampler heaps remain unsupported.",
+    "descriptor_count": "1 through16",
+    "node_mask": "0 or1; one selected native device",
+    "maximum_live_heaps": 16,
+    "runtime_private_storage_bytes": 8,
+    "CPU_descriptor_stride_bytes": 8,
+    "CPU_storage": "Real stable aligned driver-owned allocated u64 arena; CPU handle is its actual address plus checked stride offset. The generation payload is descriptor data, never a fabricated address."
+  },
+  "view_subset": {
+    "format": "DXGI_FORMAT_R8G8B8A8_UNORM",
+    "dimension": "D3D12DDI_RD_TEXTURE1D, D3D12DDI_RD_TEXTURE2D or D3D12DDI_RD_TEXTURE3D matching the retained image type",
+    "mip_slice": 0,
+    "first_array_slice": "A valid first array layer or Texture3D W slice",
+    "array_size": "A nonempty contiguous range within image and framebuffer limits. A Texture3D WSize of UINT_MAX selects the remaining W slices.",
+    "plane_slice": 0,
+    "image": "An initialized same-device committed RGBA8, BGRA8, RGB10A2, RGBA16_FLOAT or RGBA16_UNORM image requires a view with the same format and dimension and an in-range layer range; buffers, rollback/uninitialized images, stale cookies and cross-device images are rejected."
+  },
+  "ownership_and_ordering": [
+    "Each heap owns a globally claimed KIND_DESCRIPTOR_HEAP runtime key and a separately allocated real CPU arena.",
+    "The exact Creating child atomically registers the checked nonempty arena range before any CPU descriptor address can be published.",
+    "All native object storage claims and output range guards exclude every registered arena as well as native keys, under the existing common policy lock. No descriptor-registry callback is invoked under that lock.",
+    "A non-Copy initialized ImageLease holds the exact native resource cookie, adapter and backend token throughout actual image-view construction, failure cleanup and the published slot lifetime. Image retirement refuses live references.",
+    "RTV replacement keeps the old slot unchanged until real same-device Vulkan image-view creation and final native fault admission succeed. A unique generation is then committed with the actual CPU payload.",
+    "The heap remains Operating through candidate or old-view destruction. Destruction precedes consuming the retained image reference; callbacks and external Vulkan/allocator calls occur outside policy locks.",
+    "Heap retirement first removes descriptor lookup, then destroys all views, releases image references and frees the actual arena while global bounds exclusion remains held. Global child/range claims release last.",
+    "A non-Copy RtvLease pins one exact initialized slot generation, actual view and its initialized image lease during DIRECT recording, detached pending submission, reset and retirement. Referenced slots reject replacement, and referenced heaps reject retirement. In-progress constructors/replacements also retain all owners; terminal device loss still permits safe cleanup once command owners release.",
+    "Independent optional OM binding and explicit full-target or bounded rectangle clear each acquire their own RTV reference. Only the shared native submission engine's actual accepted-target completion or explicit safe drain permits pending ownership release; failed or uncertain work retains both targets."
+  ],
+  "CPU_handle_lifetime": [
+    "A CPU descriptor handle is opaque to API callers. They may offset it only by the returned descriptor increment within a live heap; no foreign address is dereferenced to resolve ownership.",
+    "Unknown, misaligned, one-past-end and retired/unallocated addresses are rejected by checked current range and stride.",
+    "The process allocator may reuse an actual arena address after retirement. A stale numeric pointer cannot uniquely encode a historical generation forever; old handles become invalid at heap retirement and runtime callers must obey that lifetime contract.",
+    "Explicit native heap storage cookies and device generation still select exact live objects; QueryDescriptor exposes only current slot generation, initialization and image metadata."
+  ],
+  "explicit_gaps": [
+    "General SRV/UAV/sampler/image tables, dynamic descriptor indices/arrays and multiple ranges, broader shader semantics/stages/root flags, DEFAULT table state transactions, persistent mapped execution, heap scale and complete public D3D12 runtime/backend acceptance remain unfinished. Compute table plumbing exists but observable resource-reading compute GPU behavior remains unqualified.",
+    "Attachment and buffer descriptor storage have distinct checked resource owners. General mixed command families and full shader/PSO semantics remain incomplete.",
+    "Public native tables/capabilities/discovery, complete KMD/residency/GPUVA and scheduled execution remain incomplete.",
+    "No installed-driver, VM or physical GPU action/acceptance is implied by these isolated ABI/model checks."
+  ],
+  "testing_progress_credit": 0,
+  "render_target_command_subset": {
+    "recording": "Separate DIRECT render-target list mode: at most one explicit OM binding and at most one independent explicit clear, with at least one operation required at Close. Existing DIRECT state-only bundle is preserved.",
+    "binding": "One CPU RTV and no DSV. Binding records an actual LOAD/store rendering scope and never invents a clear.",
+    "clear": "One explicit initialized RTV, zero for full-target or 1 through16 input rectangles, four snapshotted finite normalized color components. Signed rectangles clamp to the admitted view extent; empty/inverted/fully clipped rectangles affect no pixels. Caller storage is copied during the genuine callback. Clear requires no OM, PSO, root, viewport or scissor; target may differ from OM. Typed DSVs also support full or bounded depth/stencil clears with protected-aspect rejection and mixed read-only layouts.",
+    "backend": "Actual selected-device Vulkan synchronization2 barriers. Full-target clears use dynamic-rendering CLEAR/STORE. Rectangle lists use LOAD/STORE plus vkCmdClearAttachments on clipped nonempty rectangles, preserving other pixels. A list clipped entirely empty remains LOAD-preserving and does not need vkCmdClearAttachments. Missing required procedure returns E_NOINTERFACE before a GPU attempt, preserving the closed recording for retry. No draw."
+  },
+  "depth_view_subset": {
+    "formats": "D16_UNORM, D32_FLOAT, D24_UNORM_S8_UINT, D32_FLOAT_S8X24_UINT matching the retained initialized image",
+    "dimensions": "Texture1D or Texture2D, mip zero and a checked contiguous array range",
+    "flags": "NONE, READ_ONLY_DEPTH, READ_ONLY_STENCIL or both; unknown flag bits reject without replacing the previous descriptor",
+    "permissions": "Read-only flags remain on the exact native view generation and command lease. Clear and draw admission enforce them before submission; the C view range carries them to actual Vulkan layout selection."
+  },
+  "cpu_descriptor_copy": {
+    "entry": "Genuine opt-in R0 pfnCopyDescriptors and pfnCopyDescriptorsSimple; original version1 private descriptor bundle layout unchanged.",
+    "types": "CPU RTV/DSV slots and CPU-staged CBV/raw-structured buffer SRV/UAV/null slots, preserving typed exact same-device ownership.",
+    "bounds": "Flatten at most 256 descriptors, matching all 16 bounded heaps of up to 16 slots; checked handle arithmetic and exact current registered ranges. NULL size arrays mean one descriptor per range.",
+    "transaction": "Validate all sources and destinations before mutation. Unequal counts, unknown/misaligned/uninitialized sources, cross-device or mistyped slots, duplicate destinations and overlapping source/destination locations fail without changing any slot.",
+    "ownership": "Hold every participating exact heap generation in Operating state, construct independent genuine Vulkan views and retain typed source image leases outside locks, then commit all replacements under shared native fault admission. Preserve old views through failure, late device loss and rollback.",
+    "lifetime": "Source heap retirement cannot invalidate copied descriptors; destination views own independent image leases. Recorded destination references block overwrites. Callback leases span runtime error reporting and reentry.",
+    "unsupported": "Sampler and general image/typed-resource descriptors, shader-visible copy sources, unbounded heap scale and public runtime integration remain unfinished.",
+    "testing_credit": 0
+  },
+  "buffer_descriptors": {
+    "scope": "Genuine R0 CBV_SRV_UAV heap storage, CPU-visible staging and CPU+shader-visible heaps; genuine CBV, raw/structured buffer SRV/UAV creation and opaque GPU heap handles. Descriptor-table binding/execution remains separate and unfinished.",
+    "shape": "Bounded existing16 heaps/16 slots, single node, exact original DDI flags1 or3. Real driver-owned CPU descriptor arena and globally protected slot-generation payloads. Monotonic opaque GPU handle intervals never encode a host pointer or Windows/Vulkan buffer address, and are never reused on heap recreation.",
+    "views": "CBVs validate acknowledged 256-aligned GPUVA, size multiple256 up64KiB and exact logical buffer bounds. Raw SRV/UAV use R32_TYPELESS/raw flags, checked16-byte view starts and4-byte elements. Structured views use UNKNOWN/no flags and positive DWORD stride up2048. Checked FirstElement/NumElements arithmetic stays within exact same-device resource generation. UAV nonnull backing is DEFAULT only and counters are refused. Typed null views retain no invented buffer.",
+    "ownership": "Distinct descriptor-resource references prevent resource retirement while allowing ordinary CPU Map. Command-access ranges remain separate and retain their existing map/state exclusions. Heap operations pin exact generations across unlocked buffer-owner acquisition/cleanup; replacement publishes atomically only after final selected-parent/device admission. Error preserves prior payload, view and resource references.",
+    "copies": "Resource descriptor copies validate the full flattened bounded transaction before mutation, then independently retain each exact source resource generation and commit all destinations together. Shader-visible source heaps, overlap, duplicate destinations, wrong classes and invalid later ranges refuse atomically. Typed null views copy without resource owners. Staging-heap retirement cannot invalidate copied descriptors.",
+    "queries": "GPU handle queries require an actual live shader-visible resource heap. Additive exact-size aligned buffer-shape inspection guards output overlap and globally protected runtime/descriptor storage; original attachment inspection ABI is unchanged.",
+    "remaining": "General SRV/UAV/sampler/image tables, dynamic descriptor indices/arrays and multiple ranges, broader shader semantics/stages/root flags, DEFAULT table state transactions, persistent mapped execution, heap scale and complete public D3D12 runtime/backend acceptance remain unfinished. Compute table plumbing exists but observable resource-reading compute GPU behavior remains unqualified.",
+    "testing_credit": 0,
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "installed_runtime_changed": false
+  },
+  "native_cbv_descriptor_tables": {
+    "scope": "Genuine bounded CBV descriptor tables connect R0 heap/table setters, owned root ranges, shader interfaces, selected real Vulkan descriptor layouts/pools/sets and independently consumed graphics histories. Existing root constants and physical CBV/SRV/UAV bindings retain their contracts.",
+    "root_and_compiler": "One CBV range containing one descriptor per admitted table; explicit range offsets0..65535 or first APPEND0, separate b-register/space/visibility conflict checks and exact one-DWORD root cost. Actual address pushes and inline constants use separate packed words; table set0 binding indices are original root parameter indices. Additive feature128/CompileDescriptorTables uses an exact version1 1568-byte frame embedding the unchanged binding plan. All earlier entry/frame restrictions and ABI2 remain frozen. Actual SDK VS5.0/5.1 and PS5.1 emit real uniform-buffer descriptor interfaces, including mixed table/inline/physical plans.",
+    "heap_binding": "Genuine SetDescriptorHeaps admits zero/unbind or one actual shader-visible resource heap; stale/cross-device, sampler, CPU-only, mistyped, invalid count/input and wrong command classes reject under exact callback ownership. Same heap preserves current table arguments; a changed heap or root invalidates current table arguments. Every consumed command independently retains exact heap identity and table handles. Immutable heap identity queries and key bindings may overlap CPU slot updates; used-slot acquisition retains its separate exclusion. Concurrent writer/key-binding stress passes and the preserved pre-fix module reproduces the invalid rejection.",
+    "late_consumption": "Recording and Close retain keys rather than descriptor contents or execution ranges. Each actual submission resolves current used slot generations, validates descriptor kind and exact resource identity, and acquires independent slot/buffer execution owners. CPU descriptor and buffer updates after Close or completed replay are observed. Initial constant-buffer read states are supported; general DEFAULT table state transactions and broader persistent-map/resource semantics remain unfinished. Each consumed table key carries immutable resource/cookie/state points from its recording generation. BufferStateRecording retains the exact DEFAULT owners alongside the consumed commands. Late hydration resolves the current used descriptor slot and exact buffer GPUVA, then matches resource identity plus generation against that command-specific state snapshot. The initial state is used only when no exact point exists; final list state, another draw and another resource cannot supply the proof.",
+    "vulkan": "Selected uniform descriptor/stage/set limits, minUniformBufferOffsetAlignment, maxUniformBufferRange, real native UNIFORM_BUFFER usage and exact actual buffer ranges gate execution. Each draw/dispatch obtains an independent real descriptor set. Pool capacity counts every allocated layout binding, including unused bindings. Actual buffer updates, descriptor binding and uniform-read barriers are separate from raw address-push handling. Descriptor write scratch lives in bounded owned heap storage.",
+    "bounds": "Admitted CBV view sizes are multiples256, so the selected enabled robustness2 uniform-bound rounding (power-of-two1..256) does not enlarge those ranges. Static shader read spans may exceed the descriptor view while remaining inside declared shader bounds; true Vulkan descriptor bounds provide zero reads rather than exposing neighboring backing. Typed null CBVs use actual null descriptors, not a physical-address-zero dereference or shared writable fake storage.",
+    "receipt_lifetime": "An actual native command retains its descriptor pool until the same observed receipt completion or safe drain releases command storage. Rust slot and buffer execution owners follow the same acceptance/no-attempt/unknown/drain facts; failed or uncertain work cannot release early. No-attempt failures release temporary owners and preserve replayable keys. Origin reset/caller retirement cannot retarget detached pending descriptors, buffers, roots, PSOs or allocators.",
+    "evidence": "All31 isolated regressions pass; final draw fixture adds mixed table-before-root address ordering. Fresh SDK shaders, actual SPIR-V uniform access-chain interpretation and real descriptor-buffer metadata verify uploaded bits, nulls, populated-neighbor out-of-view zeros, post-Close updates, completed replay, partial set allocation failure and pending reset/retirement. These are isolated ABI/model checks, not Windows-native GPU or full public runtime qualification.",
+    "remaining": "The full public runtime, native GPU qualification, general state persistence/promotion across command lists, broader resources, SRV/UAV/sampler/image table classes, arrays/dynamic indexing and complete shader semantics remain unfinished.",
+    "primary_sources": [
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceRobustness2PropertiesKHR.html",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_robustness2.html"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0,
+    "genuine_upload_mapping": "Genuine mapped UPLOAD sources flow through retained physical CBV/raw/structured SRV ranges, true CBV table descriptor consumption, vertex/index views, unified buffer copies and buffer-to-image uploads. Backing read admission permits only that genuine UPLOAD map mode while retaining independent pending/uncertain GPU execution guards. Destinations, UAV stores, READBACK writes, retirement and older private maps keep their existing guards."
+  },
+  "genuine_upload_persistent_mapping": {
+    "scope": "Genuine R0 MapHeap exposes nested persistent CPU mappings of admitted coherent UPLOAD buffers without treating read-only command ownership or pending GPU reads as an implicit map/unmap fence. Frozen private version1 MapHeap remains exclusive; READBACK CPU/GPU write exclusions are unchanged.",
+    "ownership": "Map counts and exact backing ownership remain distinct from command/descriptor leases. First genuine UPLOAD Map sets an internal read-compatible permission; nested calls share the actual VkMapMemory address, have a bounded independent count, and preserve caller output on quota/failure. Mixing public read-compatible and private exclusive live maps rejects without reclassifying the owner. The last Unmap releases the CPU mapping without waiting for GPU readers; neither CPU nor GPU pins alone may free backing still owned by the other.",
+    "reads": "Genuine mapped UPLOAD sources flow through retained physical CBV/raw/structured SRV ranges, true CBV table descriptor consumption, vertex/index views, unified buffer copies and buffer-to-image uploads. Backing read admission permits only that genuine UPLOAD map mode while retaining independent pending/uncertain GPU execution guards. Destinations, UAV stores, READBACK writes, retirement and older private maps keep their existing guards.",
+    "synchronization": "Map and Unmap do not synchronize GPU work. Applications must finish CPU writes before the dependent ExecuteCommandLists and must observe their own GPU completion before overwriting bytes still in use. Existing actual host-write/read barriers and coherent memory admission provide visibility; no copied staging pointer, fabricated fence completion, CPU-read result or map-time drain replaces real GPU execution.",
+    "evidence": "All31 isolated ABI/model regressions pass. Current fixtures exercise actual uniform/physical reads, R16/R32 indices, vertex fetches, whole/region copies and image-upload/readback bytes with CPU mappings open, nested 1024-map quota/failure output preservation, post-Close mapped writes and completed replay, first actual Map/Unmap during an accepted pending copy, and detached reset/caller retirement. The preserved pre-fix DLL fails the new mapped-index draw. These checks do not qualify the Windows public runtime or native GPU.",
+    "remaining": "Complete public D3D12 runtime negotiation and GPU qualification; broader resources/heaps including full READBACK persistent-map semantics, general placed/reserved mapping, broader concurrency and full shader/descriptor/command support remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12resource-map",
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceHeaps.html",
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/readback-data-using-heaps"
+    ],
+    "native_windows_acceptance": false,
+    "public_native_d3d12_ready": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "native_cbv_table_default_states": {
+    "scope": "Genuine bounded CBV tables resolve current descriptor contents at submission and verify exact resource state at each consuming draw or dispatch, including DEFAULT buffers inside supported closed state transactions.",
+    "state_proof": "Each consumed table key carries immutable resource/cookie/state points from its recording generation. BufferStateRecording retains the exact DEFAULT owners alongside the consumed commands. Late hydration resolves the current used descriptor slot and exact buffer GPUVA, then matches resource identity plus generation against that command-specific state snapshot. The initial state is used only when no exact point exists; final list state, another draw and another resource cannot supply the proof.",
+    "backend": "The existing real selected uniform layouts/descriptor sets/pools and exact uniform-read barriers consume actual DEFAULT VkBuffer ranges. The compiler and Vulkan model are unchanged. Distinguishable whole/region copies from actual mapped UPLOAD backing seed positive readback evidence; no synthetic state change, guessed global state, fake buffer or CPU-generated shader result substitutes for execution.",
+    "failure_lifetime": "Wrong-stage/read bits, an earlier or later invalid draw, and post-Close replacement with an untransitioned DEFAULT resource refuse before Vulkan draw/submission. Partial hydration cleanup releases temporary slot/range owners while preserving replayable keys and state owners. A later valid descriptor update repairs the same closed recording. Typed nulls need no fabricated resource state. Pending reset and caller retirement retain all original state, buffer and slot owners until that exact receipt completes or safely drains.",
+    "evidence": "All31 isolated ABI/model regressions pass. Four two-draw DEFAULT-table scenarios per fixture repetition prove independent consumed state, post-Close descriptor changes, real nonzero uniform bits, zero nulls, no-attempt failure/retry and detached pending state lifetime. The preserved pre-fix DLL fails the valid DEFAULT-table execution. This is not public Windows D3D12/native GPU qualification.",
+    "remaining": "The full public runtime, native GPU qualification, general state persistence/promotion across command lists, broader resources, SRV/UAV/sampler/image table classes, arrays/dynamic indexing and complete shader semantics remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_default_initial_states": {
+    "scope": "Genuine R0 committed DEFAULT buffer creation, private-size calculation and actual allocation requirements admit supported nonzero read-only GENERIC_READ-subset initial states and exclusive UNORDERED_ACCESS, preserving the original exact initial state in the resource owner. Existing COPY_SOURCE/COPY_DEST support remains. COMMON promotion is still unfinished.",
+    "admission": "A distinct genuine public planner extends only DEFAULT L1/CPU-unavailable initial-state admission, without changing shape layout, logical width, memory/capacity/alignment/flags/node checks or selected actual Vulkan representation. Private version1 size/create/planner contracts remain frozen. Read/write mixed states, unknown bits and unsupported COMMON state refuse without publishing caller cookies or fake backing; added DEFAULT states never imply host-visible memory.",
+    "execution": "Real nonzero UPLOAD data reaches initial CBV/GENERIC_READ DEFAULT backing through exact closed DIRECT read/COPY_DEST/read transactions. Both C normalization and Rust policy accept the same read-state combinations; DIRECT buffer-copy recordings can restore their shader/read initial state without admitting mixed graphics commands or broadening COPY-queue state rules. Existing selected uniform descriptors and barriers consume that initial read state without invented transitions. An independent initial-UAV compute recording executes actual SDK literal stores with no redundant initial transition, then a closed UAV/COPY_SOURCE/UAV DIRECT copy exposes exact output through normal READBACK.",
+    "ownership": "Only actual initialized selected backing, WDDM allocation association and acknowledged exact OS mappings publish resource owners. Failed private/genuine size/create paths preserve outputs. Existing command/range/state/descriptor owners, replay/reset, pending/drain and retirement protections remain. Creation in INDEX/shader/UAV/indirect-only state does not falsely qualify a CBV shader read.",
+    "evidence": "All31 isolated regressions pass. Nine additional initial-state classes cover matching allocation/sizes/create, frozen private controls, host-map refusal and exact retirement. Initial CBV/GENERIC_READ tests compare nonzero uploaded uniform words; the initial-UAV case replaces poisoned READBACK with independent SPIR-V-derived literal stores and checks neighboring bytes. The preserved pre-fix DLL fails genuine size admission. Compiler and independent Vulkan model are unchanged. This is not public Windows runtime/native GPU qualification.",
+    "remaining": "COMMON implicit promotion/decay and general persistent resource-state coordination, broader heap/resource flags/types/placements, full public runtime integration, complete command/shader/table support and native GPU qualification remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_common_explicit_buffer_states": {
+    "scope": "Genuine R0 committed DEFAULT buffers may start in COMMON(0). Genuine allocation requirements, private-size calculation and creation agree, while private version1 admission stays frozen. Explicit supported COMMON/read/copy/UAV transitions use exact generation-owned state transactions. Implicit promotion/decay remains unfinished.",
+    "admission": "COMMON extends only public DEFAULT L1/CPU-unavailable state admission. Existing selected real initialized backing, logical width, memory/alignment/flags/node checks and acknowledged OS mapping remain required. Read/write mixtures and unknown bits still refuse without publishing caller storage. COMMON DEFAULT does not become CPU-visible and does not silently acquire a shader-read or write role.",
+    "execution": "Matching C and Rust buffer-barrier normalization admits COMMON before/after states. Genuine COPY queues retain copy-only role validation; DIRECT supports the existing read/UAV and copy state transactions, and COMPUTE supports explicit COMMON/UAV/COMMON dispatch. Every supported recording returns each exact resource to its retained initial state. Existing real selected copy, uniform-read and shader-write barriers execute the resource accesses; no synthetic GPU work, fake resource state or map-time synchronization substitutes for them.",
+    "proof": "Initial COMMON buffers receive nonzero uploaded data through closed explicit COMMON/COPY_DEST/COMMON transactions, then actual CBV-table reads use COMMON/VERTEX_AND_CONSTANT_BUFFER/COMMON snapshots. Genuine COPY and DIRECT queues both run whole/non-word/region copy chains with COMMON DEFAULT intermediates and exact bytes/padding/order/retry checks; pre-existing COPY_DEST scenarios remain. An independent COMMON/UAV/COMMON compute recording stores actual SDK literals and COMMON/COPY_SOURCE/COMMON normal readback replaces poison with exact output and neighboring bytes.",
+    "ownership": "Existing per-command descriptor-table state points, exact state/range/slot owners, no-attempt rollback, replay and pending reset/caller-retirement protections apply unchanged. The malformed allocation-info control now uses an actual mixed read/write state instead of classifying valid COMMON creation as malformed.",
+    "evidence": "All31 isolated ABI/model regressions pass; the compiler and independent Vulkan model are unchanged. The preserved pre-fix DLL fails the COMMON genuine size/create workflow. These are isolated production ABI checks, not Windows native GPU or full public-runtime qualification.",
+    "remaining": "Implicit COMMON promotion/decay and general resource-state coordination across command lists/queues, additional barriers/resources/heaps and full public runtime/command/shader/table coverage and native GPU qualification remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_common_buffer_promotions": {
+    "scope": "Genuine admitted DEFAULT buffers in COMMON may implicitly enter supported read, COPY_SOURCE/COPY_DEST and UAV access roles. COMMON-created buffers may finish a recording in a supported promotable state and decay after actual Execute completion. Non-COMMON initial states retain the prior bounded closed-transaction rule; general state coordination remains unfinished.",
+    "state_contract": "One Rust buffer-state predicate covers exact tracked state or DEFAULT COMMON eligibility for the actual selected access role. Read-only root CBV/raw/structured SRV, vertex/index and late CBV-table consumption use it, as do genuine buffer-copy source/destination and compute UAV snapshots. Explicit incompatible state points still refuse: COMMON eligibility never overrides a captured UAV or other wrong read state. Private version1 copy/resource creation remains frozen.",
+    "barriers_and_decay": "COMMON promotion requires no synthetic GPU transition or CPU fence wait. The existing selected Vulkan per-access host/copy/uniform/shader dependencies execute real accesses. Explicit barriers may identify a promotable BeforeState while the exact resource is COMMON. COPY transactions may first retain a COMMON state owner after an implicit copy, while non-COMMON restrictions stay intact. Buffer readiness permits COMMON-created resources to end in a promotable state; only actual accepted receipt completion or safe drain permits GPU-owner cleanup. Reset and failed/no-attempt work never manufacture completion or decay.",
+    "execution": "Actual nonzero implicit upload copies feed true uniform tables and a physical root CBV. Independent SDK compute stores use implicit COMMON/UAV access followed by implicit COPY_SOURCE normal readback that replaces poison with literal and neighboring bytes. COPY and DIRECT whole/region chains exercise no-opening/no-closing promotion, subsequent promotable BeforeState barriers, exact bytes/padding/order, no-attempt retry and pending ownership. Prior explicit COMMON, initial UAV and COPY_DEST cases remain.",
+    "evidence": "All31 isolated ABI/model regressions pass. The final draw proof checks recording and submission errors before accepting any completion result, so a stale prior receipt cannot qualify a failed implicit copy. The preserved pre-fix DLL fails that copy proof. Exact explicit UAV-at-draw state refuses incompatible CBV-table reads before any draw/submit. Compiler and independent Vulkan model remain unchanged. These are not Windows native GPU or full public runtime qualification.",
+    "remaining": "General decay/state coordination for non-COMMON-created resources and arbitrary command-list batches/queues, broader barriers/heaps/resources, complete command/shader/table coverage and full public Windows runtime/native GPU qualification remain unfinished.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12",
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_resource_states"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_sampler_descriptor_objects": {
+    "scope": "Genuine R0 pfnCreateSampler constructs real selected Vulkan samplers in bounded CPU or shader-visible sampler descriptor heaps, with immutable owned metadata, protected CPU slots, opaque GPU intervals, atomic copies and exact cleanup. Private descriptor ABI1 sampler size/create/increment refusal stays frozen. Sampler shader binding/texture sampling remains unfinished.",
+    "abi": "A separate 52-byte normalized raw sampler shape and 52-byte semantic execution plan are generated from Rust with C layout assertions; prior normalized records and private bundle layouts remain unchanged. Distinct genuine public heap size/create/increment callbacks admit sampler heaps. Original R0 D3D12DDIARG_CREATE_SAMPLER/descriptor types remain in C. DWORD-aligned sampler inputs/outputs use the same global protected-range exclusions with the correct four-byte alignment; runtime-cookie and generation alignment stays eight.",
+    "state": "All point/linear min/mag/mip combinations and comparison variants, standard float border colors, wrap/mirror/clamp/border/mirror-once and finite ordered LOD state are normalized. Ignored comparison/anisotropy/border fields preserve their raw metadata without enabling unused Vulkan state. Anisotropic filters require actual physical support, optional feature enablement and selected maximum. Reduction filtering, arbitrary custom/integer border variants and complete sampler/shader combinations remain unfinished.",
+    "backend": "Exact selected maxSamplerLodBias, maxSamplerAnisotropy and maxSamplerAllocationCount are cached. Optional samplerAnisotropy is enabled only when physically observed; mirror clamp uses the existing required Vulkan1.2 feature. Both real create/destroy procedures must exist before constructing anything. A bounded atomic selected-device quota covers independent cleanup/create overlap. Actual VkSamplerCreateInfo drives vkCreateSampler; failed undefined Vulkan outputs are ignored, and late faults use the existing exact backend-object rollback helper. No CPU-generated sampling or fabricated GPU resource substitutes for the sampler object.",
+    "lifetime_copy": "Heap operation and device-child claims pin all constructor/copy/rollback/destructor work. Each sampler copy owns an independently constructed immutable VkSampler; all candidates are prepared before any destination changes. Source retirement cannot invalidate copies. Mistyped/stale/out-of-range destinations, shader-visible copy sources, overlap, duplicate destinations and uninitialized sources refuse before construction. Partial create failure destroys only new prepared objects and preserves every prior generation. Cleanup destroys actual objects before releasing protected arenas and parent claims.",
+    "evidence": "All31 isolated ABI/model regressions pass. An independent model validates actual Vulkan enums, enabled features, bounds and sampler lifecycle. Matrices exercise normal/comparison filtering, standard borders, optional/limited anisotropy and LOD, ignored raw bits, explicit four-byte records, missing procedures, failed undefined outputs, partial atomic copies and blocked-constructor snapshot/heap/device ownership. The otherwise identical control with the old eight-byte guard fails the explicit valid four-byte case. Genuine inventory is66 core/36 list/3 queue pointers; pointer availability is not functional public qualification.",
+    "remaining": "Shader sampler heap consumption, root/static sampler layouts, native texture sampling instructions and pixel qualification, reduction/custom-border cases, broader heap scale/flags and complete native threading/public runtime/GPU qualification remain unfinished. Shader-visible sampler storage does not claim executable sampler binding; the current SetDescriptorHeaps path still refuses sampler heaps.",
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-createsampler",
+      "https://docs.vulkan.org/refpages/latest/refpages/source/VkSamplerCreateInfo.html"
+    ],
+    "public_native_d3d12_ready": false,
+    "native_windows_acceptance": false,
+    "native_gpu_qualification": false,
+    "sampler_shader_execution_qualified": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_heap_offer_reclaim": {
+    "scope": "Genuine R0 profile5 exact committed buffer/image heap offer and reclaim",
+    "callbacks": [
+      "pfnOfferResources",
+      "pfnReclaimResources",
+      "pfnOfferAllocationsCb",
+      "pfnReclaimAllocations2Cb"
+    ],
+    "implemented": [
+      "immutable copied optional runtime callbacks; genuine typed R0 slots",
+      "exact allocation identities and caller order including duplicates; actual offer priority",
+      "same-device generation pins across callback and reentrant retirement; callback executes outside native policy locks",
+      "persistent offered state blocks Map, buffer transfer/state/range/descriptor acquisition and image-view/command acquisition",
+      "all active mappings and command/image references refuse offering; descriptors remain retained exact owners",
+      "unconfirmed positive offer result quarantines access until acknowledged reclaim",
+      "only real acknowledged discarded BOOLs publish; callback scratch buffers preserve every output on failure",
+      "actual pending paging fence and WaitMask; no fabricated wait completion or synchronous drain",
+      "DWORD output alignment with protected native-range and source/output overlap exclusions",
+      "actual preserved logical buffer bytes; optional discard output remains NULL; empty requests avoid callback"
+    ],
+    "limitations": [
+      "bounded exact committed heap ownership; no general object-family or placed/shared resource integration",
+      "conservative refusal of referenced images including persistent image views",
+      "runtime must honor actual pending paging fence before submitting GPU work; general kernel-scheduled submission remains unfinished",
+      "Windows runtime acceptance and physical GPU qualification remain pending"
+    ],
+    "primary_sources": [
+      "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/video-memory-offer-and-reclaim",
+      "local official WDK10.0.28000.0 d3d12umddi.h and d3dumddi.h"
+    ],
+    "scope_unchanged": true,
+    "public_native_d3d12_ready": false,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  },
+  "genuine_clear_root_arguments": {
+    "scope": "Genuine R0 ClearRootArguments for implemented native list families",
+    "implemented": [
+      "typed official WDK callback with exact current list generation and recording/error/fault admission",
+      "zero all64 root constant words, all64 root table handles and all current physical CBV/SRV/UAV argument owners",
+      "operation independent of selected root signature, list kind and current DIRECT mode; valid idempotent empty-list state",
+      "retain selected root signature, pipeline, descriptor heap, vertex/index and non-root dynamic state",
+      "release current physical view owners outside native policy locks; consumed commands retain independent snapshots",
+      "existing root null-buffer handling supplies real zero-backed CBV/SRV reads; a required zero table/UAV refuses draw/dispatch until valid rebinding",
+      "closed/pending/invalid or stale generation cannot mutate accepted command snapshots"
+    ],
+    "verified": [
+      "actual graphics vkCmdPushConstants zero and subsequent partial writes across independent draws",
+      "actual compute zero values across independent dispatches, replay and pending/uncertain receipt histories",
+      "physical CBV reads retain original consumed uploaded bytes while cleared current views read zero backing",
+      "table-key invalidation and subsequent rebinding through the still-selected heap",
+      "empty and already-recorded COPY clears retain actual copy work and uncertain-lifetime recovery"
+    ],
+    "primary_source": "https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html#ddi-clearing-root-arguments",
+    "limitations": [
+      "general shader/resource/command families and public D3D12 runtime acceptance remain unfinished"
+    ],
+    "scope_unchanged": true,
+    "installed_runtime_changed": false,
+    "testing_credit": 0
+  }
+}

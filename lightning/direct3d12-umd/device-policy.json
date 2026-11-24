@@ -1,0 +1,90 @@
+{
+  "module": "lightning.direct3d12_umd.device_policy",
+  "created": "2026-10-24",
+  "policy_id": 1,
+  "purpose": "Conservative selected Vulkan backend device and queue initialization; not a native D3D12 device",
+  "vulkan_headers": {
+    "version": "v1.4.335",
+    "hash_manifest": "vulkan-headers.sha256",
+    "instance_api": "Vulkan1.3"
+  },
+  "proposed_translator": {
+    "name": "vkd3d-proton",
+    "tag": "v2.14",
+    "commit": "c965c1351fd6915a65bb7f647319536252a24a93",
+    "integrated": false,
+    "source_requirement_map": "requirements-source.json"
+  },
+  "admission": [
+    "All existing hard and conditional startup inventory requirements must be satisfied",
+    "Conventional million-per-stage sampled-image/storage-image/storage-buffer limits; no unobserved descriptor-buffer alternative",
+    "robustBufferAccess, timelineSemaphore, bufferDeviceAddress, synchronization2 and dynamicRendering must each be supported",
+    "First nonempty family supporting both graphics and compute; Vulkan graphics/compute queues implicitly support transfer operations",
+    "Exact existing selected Lightning LUID/node/matching physical device and sibling loader/ICD contract"
+  ],
+  "enabled_extensions": [
+    "VK_EXT_robustness2",
+    "VK_KHR_push_descriptor"
+  ],
+  "optional_presentation_extensions": {
+    "instance": ["VK_KHR_surface", "VK_KHR_win32_surface"],
+    "device": ["VK_KHR_swapchain"],
+    "condition": "Exact selected ICD advertises Win32 surfaces and selected device advertises swapchains"
+  },
+  "enabled_features": {
+    "VkPhysicalDeviceFeatures": [
+      "robustBufferAccess"
+    ],
+    "VkPhysicalDeviceVulkan11Features": [
+      "shaderDrawParameters"
+    ],
+    "VkPhysicalDeviceVulkan12Features": [
+      "samplerMirrorClampToEdge",
+      "descriptorIndexing",
+      "shaderStorageTexelBufferArrayNonUniformIndexing",
+      "shaderStorageImageArrayNonUniformIndexing",
+      "descriptorBindingVariableDescriptorCount",
+      "timelineSemaphore",
+      "bufferDeviceAddress"
+    ],
+    "VkPhysicalDeviceVulkan13Features": [
+      "synchronization2",
+      "dynamicRendering"
+    ],
+    "VkPhysicalDeviceRobustness2FeaturesEXT": [
+      "robustBufferAccess2",
+      "robustImageAccess2",
+      "nullDescriptor"
+    ]
+  },
+  "enable_chain": "VkDeviceCreateInfo.pNext -> VkPhysicalDeviceFeatures2 -> Vulkan11 -> Vulkan12 -> Vulkan13 -> Robustness2; pEnabledFeatures NULL; every unlisted feature zero",
+  "queue": {
+    "count": 1,
+    "index": 0,
+    "priority": 1.0,
+    "handles_exposed": false,
+    "timeline_initial_value": 0,
+    "operations": [
+      "empty vkQueueSubmit2 with monotonic private timeline signal",
+      "vkGetSemaphoreCounterValue",
+      "bounded vkWaitSemaphores"
+    ],
+    "maximum_wait_ns": 10000000,
+    "maximum_unobserved_submissions": 1
+  },
+  "teardown": "Rust serializes queue/creation/retirement. QueueWaitIdle after any submission attempt; ordinary failed drain retains owner/device/backend for retry; VK_ERROR_DEVICE_LOST permits object teardown. Destroy semaphore before device, then instance, ICD/loader, runtime callback context.",
+  "official_references": [
+    "https://docs.vulkan.org/refpages/latest/refpages/source/VkDeviceCreateInfo.html",
+    "https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceVulkan12Features.html",
+    "https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceRobustness2FeaturesKHR.html",
+    "https://docs.vulkan.org/refpages/latest/refpages/source/vkGetDeviceProcAddr.html",
+    "https://docs.vulkan.org/refpages/latest/refpages/source/vkDestroyDevice.html"
+  ],
+  "limitations": [
+    "Not the complete vkd3d device feature set or bindless implementation",
+    "No shader translation, descriptors, resource/memory/residency bridge, command-list translation, rendering or presentation",
+    "No native DDI device/table, advertised version, feature level or application-facing d3d12.dll replacement",
+    "The private timeline remains distinct from a D3D12 fence. A separate experimental owned-mapping native fence bundle connects actual observed completion to KMT signals and asynchronous OS wait events",
+    "Modeled dependency tests do not establish real Venus, native Windows runtime or GPU execution acceptance"
+  ]
+}

@@ -1,0 +1,25 @@
+From: QEMU Lightning OpenGL integration
+Subject: [dependency configuration] Use Mesa's existing TLS qsort fallback on NT5
+
+Module: qemu_lightning.opengl.reactos_mesa_capabilities
+Purpose: Select the existing upstream sort fallback instead of an unavailable CRT export.
+Created: 2026-10-21
+Architecture: Meson capability input only; no authored renderer implementation.
+
+Target: Mesa ed458ffac6f410e6f03e54d17f47e8aeb55fe3a1
+ReactOS0.4.16 filters qsort_s from msvcrt's NT5 exports. A cross SDK link
+check cannot establish the guest DLL's exports. Removing this detection uses
+the existing util_tls_qsort_r implementation without new renderer code.
+Mesa meson.build retains its upstream MIT license and copyright notices.
+
+diff --git a/meson.build b/meson.build
+--- a/meson.build
++++ b/meson.build
+@@ -1689,7 +1689,6 @@ functions_to_detect = {
+   'flock': '',
+   'strtok_r': '',
+   'getrandom': '#include <sys/random.h>',
+-  'qsort_s': '',
+   'posix_fallocate': '',
+   'secure_getenv': '',
+   'sysconf': '#include <unistd.h>',

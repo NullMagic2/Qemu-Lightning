@@ -1,0 +1,8 @@
+; x64 import spellings (undecorated); the canonical DLL export names are unchanged.
+LIBRARY QemuLightningSync.dll
+EXPORTS
+InitializeConditionVariable
+SleepConditionVariableCS
+SleepConditionVariableSRW
+WakeConditionVariable
+WakeAllConditionVariable

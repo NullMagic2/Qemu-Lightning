@@ -1,0 +1,8 @@
+; Private application-local CV owner (x64, undecorated); native system libraries are unchanged.
+LIBRARY QemuLightningSync.dll
+EXPORTS
+InitializeConditionVariable=ql_nt5_initialize_condition_variable
+SleepConditionVariableCS=ql_nt5_sleep_condition_variable_cs
+SleepConditionVariableSRW=ql_nt5_sleep_condition_variable_srw
+WakeConditionVariable=ql_nt5_wake_condition_variable
+WakeAllConditionVariable=ql_nt5_wake_all_condition_variable

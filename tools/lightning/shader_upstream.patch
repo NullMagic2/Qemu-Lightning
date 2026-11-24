@@ -1,0 +1,347 @@
+--- a/libs/vkd3d-shader/vkd3d_shader_main.c
++++ b/libs/vkd3d-shader/vkd3d_shader_main.c
+@@ -182,6 +182,7 @@
+     struct vkd3d_shader_version shader_version;
+     void *data;
+     const DWORD *ptr;
++    bool owns_desc; /* Lightning integration: raw callers own their copied descriptor. */
+ };
+ 
+ static int vkd3d_shader_parser_init(struct vkd3d_shader_parser *parser,
+@@ -195,6 +196,8 @@
+         WARN("Failed to extract shader, vkd3d result %d.\n", ret);
+         return ret;
+     }
++
++    parser->owns_desc = true;
+ 
+     if (!(parser->data = shader_sm4_init(shader_desc->byte_code,
+             shader_desc->byte_code_size, &shader_desc->output_signature)))
+@@ -208,10 +211,26 @@
+     return VKD3D_OK;
+ }
+ 
++/* Lightning integration: borrow only a caller-owned descriptor through this call.
++ * The original full-container path retains its existing owned-signature behavior. */
++static int vkd3d_shader_parser_init_desc(struct vkd3d_shader_parser *parser,
++        const struct vkd3d_shader_desc *shader_desc)
++{
++    parser->shader_desc = *shader_desc;
++    parser->owns_desc = false;
++    if (!(parser->data = shader_sm4_init(shader_desc->byte_code,
++            shader_desc->byte_code_size, &shader_desc->output_signature)))
++        return VKD3D_ERROR_INVALID_ARGUMENT;
++
++    shader_sm4_read_header(parser->data, &parser->ptr, &parser->shader_version);
++    return VKD3D_OK;
++}
++
+ static void vkd3d_shader_parser_destroy(struct vkd3d_shader_parser *parser)
+ {
+     shader_sm4_free(parser->data);
+-    free_shader_desc(&parser->shader_desc);
++    if (parser->owns_desc)
++        free_shader_desc(&parser->shader_desc);
+ }
+ 
+ static int vkd3d_shader_validate_compile_args(const struct vkd3d_shader_compile_arguments *compile_args)
+@@ -396,6 +415,61 @@
+ }
+ #endif
+ 
++/* Shared genuine instruction compiler for complete DXBC and native token input. */
++static int vkd3d_shader_compile_parser(struct vkd3d_shader_parser *parser,
++        struct vkd3d_shader_scan_info *scan_info, struct vkd3d_shader_code *spirv,
++        struct vkd3d_shader_code_debug *spirv_debug, unsigned int compiler_options,
++        const struct vkd3d_shader_interface_info *shader_interface_info,
++        const struct vkd3d_shader_compile_arguments *compile_args)
++{
++    struct vkd3d_shader_instruction instruction;
++    struct vkd3d_dxbc_compiler *spirv_compiler;
++    int ret = VKD3D_OK;
++
++    if (shader_interface_info)
++    {
++        if ((ret = vkd3d_shader_validate_shader_type(parser->shader_version.type, shader_interface_info->stage)) < 0)
++        {
++            return ret;
++        }
++    }
++
++    if (!(spirv_compiler = vkd3d_dxbc_compiler_create(&parser->shader_version,
++            &parser->shader_desc, compiler_options, shader_interface_info, compile_args, scan_info,
++            spirv->meta.hash)))
++    {
++        ERR("Failed to create DXBC compiler.\n");
++        return VKD3D_ERROR;
++    }
++
++    while (!shader_sm4_is_end(parser->data, &parser->ptr))
++    {
++        shader_sm4_read_instruction(parser->data, &parser->ptr, &instruction);
++
++        if (instruction.handler_idx == VKD3DSIH_INVALID)
++        {
++            WARN("Encountered unrecognized or invalid instruction.\n");
++            vkd3d_dxbc_compiler_destroy(spirv_compiler);
++            return VKD3D_ERROR_INVALID_ARGUMENT;
++        }
++
++        if ((ret = vkd3d_dxbc_compiler_handle_instruction(spirv_compiler, &instruction)) < 0)
++            break;
++    }
++
++    if (ret >= 0)
++        ret = vkd3d_dxbc_compiler_generate_spirv(spirv_compiler, spirv);
++
++    if (ret == 0)
++        vkd3d_shader_dump_spirv_shader(spirv->meta.hash, spirv);
++
++    if (spirv_debug)
++        memset(spirv_debug, 0, sizeof(*spirv_debug));
++
++    vkd3d_dxbc_compiler_destroy(spirv_compiler);
++    return ret;
++}
++
+ int vkd3d_shader_compile_dxbc(const struct vkd3d_shader_code *dxbc,
+         struct vkd3d_shader_code *spirv,
+         struct vkd3d_shader_code_debug *spirv_debug,
+@@ -403,8 +477,6 @@
+         const struct vkd3d_shader_interface_info *shader_interface_info,
+         const struct vkd3d_shader_compile_arguments *compile_args)
+ {
+-    struct vkd3d_shader_instruction instruction;
+-    struct vkd3d_dxbc_compiler *spirv_compiler;
+     struct vkd3d_shader_scan_info scan_info;
+     struct vkd3d_shader_parser parser;
+     vkd3d_shader_hash_t hash;
+@@ -481,53 +553,8 @@
+         return ret;
+     }
+ 
+-    if (shader_interface_info)
+-    {
+-        if ((ret = vkd3d_shader_validate_shader_type(parser.shader_version.type, shader_interface_info->stage)) < 0)
+-        {
+-            vkd3d_shader_scan_destroy(&scan_info);
+-            vkd3d_shader_parser_destroy(&parser);
+-            return ret;
+-        }
+-    }
+-
+-    if (!(spirv_compiler = vkd3d_dxbc_compiler_create(&parser.shader_version,
+-            &parser.shader_desc, compiler_options, shader_interface_info, compile_args, &scan_info,
+-            spirv->meta.hash)))
+-    {
+-        ERR("Failed to create DXBC compiler.\n");
+-        vkd3d_shader_scan_destroy(&scan_info);
+-        vkd3d_shader_parser_destroy(&parser);
+-        return VKD3D_ERROR;
+-    }
+-
+-    while (!shader_sm4_is_end(parser.data, &parser.ptr))
+-    {
+-        shader_sm4_read_instruction(parser.data, &parser.ptr, &instruction);
+-
+-        if (instruction.handler_idx == VKD3DSIH_INVALID)
+-        {
+-            WARN("Encountered unrecognized or invalid instruction.\n");
+-            vkd3d_dxbc_compiler_destroy(spirv_compiler);
+-            vkd3d_shader_scan_destroy(&scan_info);
+-            vkd3d_shader_parser_destroy(&parser);
+-            return VKD3D_ERROR_INVALID_ARGUMENT;
+-        }
+-
+-        if ((ret = vkd3d_dxbc_compiler_handle_instruction(spirv_compiler, &instruction)) < 0)
+-            break;
+-    }
+-
+-    if (ret >= 0)
+-        ret = vkd3d_dxbc_compiler_generate_spirv(spirv_compiler, spirv);
+-
+-    if (ret == 0)
+-        vkd3d_shader_dump_spirv_shader(hash, spirv);
+-
+-    if (spirv_debug)
+-        memset(spirv_debug, 0, sizeof(*spirv_debug));
+-
+-    vkd3d_dxbc_compiler_destroy(spirv_compiler);
++    ret = vkd3d_shader_compile_parser(&parser, &scan_info, spirv, spirv_debug,
++            compiler_options, shader_interface_info, compile_args);
+     vkd3d_shader_scan_destroy(&scan_info);
+     vkd3d_shader_parser_destroy(&parser);
+     return ret;
+@@ -721,10 +748,31 @@
+         vkd3d_shader_scan_record_uav_counter(scan_info, &instruction->src[0].reg);
+ }
+ 
++/* Shared real metadata scan; native callers must not guess zero scan state. */
++static int vkd3d_shader_scan_parser(struct vkd3d_shader_parser *parser,
++        struct vkd3d_shader_scan_info *scan_info)
++{
++    struct vkd3d_shader_instruction instruction;
++
++    while (!shader_sm4_is_end(parser->data, &parser->ptr))
++    {
++        shader_sm4_read_instruction(parser->data, &parser->ptr, &instruction);
++
++        if (instruction.handler_idx == VKD3DSIH_INVALID)
++        {
++            WARN("Encountered unrecognized or invalid instruction.\n");
++            return VKD3D_ERROR_INVALID_ARGUMENT;
++        }
++
++        vkd3d_shader_scan_instruction(scan_info, &instruction);
++    }
++
++    return VKD3D_OK;
++}
++
+ int vkd3d_shader_scan_dxbc(const struct vkd3d_shader_code *dxbc,
+         struct vkd3d_shader_scan_info *scan_info)
+ {
+-    struct vkd3d_shader_instruction instruction;
+     struct vkd3d_shader_parser parser;
+     int ret;
+ 
+@@ -740,23 +788,55 @@
+         if ((ret = vkd3d_shader_parser_init(&parser, dxbc)) < 0)
+             return ret;
+ 
+-        while (!shader_sm4_is_end(parser.data, &parser.ptr))
+-        {
+-            shader_sm4_read_instruction(parser.data, &parser.ptr, &instruction);
+-
+-            if (instruction.handler_idx == VKD3DSIH_INVALID)
+-            {
+-                WARN("Encountered unrecognized or invalid instruction.\n");
+-                vkd3d_shader_parser_destroy(&parser);
+-                return VKD3D_ERROR_INVALID_ARGUMENT;
+-            }
+-
+-            vkd3d_shader_scan_instruction(scan_info, &instruction);
+-        }
+-
++        ret = vkd3d_shader_scan_parser(&parser, scan_info);
+         vkd3d_shader_parser_destroy(&parser);
+-        return VKD3D_OK;
+-    }
++        return ret;
++    }
++}
++
++/* Lightning private integration entry. Input tokens/signatures are genuine,
++ * caller-owned, validated snapshots. No DXBC container or semantic is invented. */
++int vkd3d_shader_compile_tokenized_desc(const struct vkd3d_shader_desc *shader_desc,
++        struct vkd3d_shader_code *spirv, struct vkd3d_shader_code_debug *spirv_debug,
++        unsigned int compiler_options,
++        const struct vkd3d_shader_interface_info *shader_interface_info,
++        const struct vkd3d_shader_compile_arguments *compile_args)
++{
++    struct vkd3d_shader_scan_info scan_info;
++    struct vkd3d_shader_parser parser;
++    struct vkd3d_shader_code code = {0};
++    int ret;
++
++    if ((ret = vkd3d_shader_validate_compile_args(compile_args)) < 0)
++        return ret;
++    memset(&spirv->meta, 0, sizeof(spirv->meta));
++    code.code = shader_desc->byte_code;
++    code.size = shader_desc->byte_code_size;
++    spirv->meta.hash = vkd3d_shader_hash(&code);
++    vkd3d_shader_scan_init(&scan_info);
++    if ((ret = vkd3d_shader_parser_init_desc(&parser, shader_desc)) < 0)
++    {
++        vkd3d_shader_scan_destroy(&scan_info);
++        return ret;
++    }
++    ret = vkd3d_shader_scan_parser(&parser, &scan_info);
++    vkd3d_shader_parser_destroy(&parser);
++    if (ret < 0)
++    {
++        vkd3d_shader_scan_destroy(&scan_info);
++        return ret;
++    }
++    spirv->meta.patch_vertex_count = scan_info.patch_vertex_count;
++    if ((ret = vkd3d_shader_parser_init_desc(&parser, shader_desc)) < 0)
++    {
++        vkd3d_shader_scan_destroy(&scan_info);
++        return ret;
++    }
++    ret = vkd3d_shader_compile_parser(&parser, &scan_info, spirv, spirv_debug,
++            compiler_options, shader_interface_info, compile_args);
++    vkd3d_shader_scan_destroy(&scan_info);
++    vkd3d_shader_parser_destroy(&parser);
++    return ret;
+ }
+ 
+ void vkd3d_shader_free_shader_code(struct vkd3d_shader_code *shader_code)
+--- a/libs/vkd3d-shader/vkd3d_shader_private.h
++++ b/libs/vkd3d-shader/vkd3d_shader_private.h
+@@ -538,6 +538,9 @@
+ 
+ struct vkd3d_shader_register
+ {
++    /* Lightning observation only: preserve whether genuine token extensions
++     * were present before decoder normalization; no semantic behavior changes. */
++    bool lightning_extended_operand;
+     enum vkd3d_shader_register_type type;
+     enum vkd3d_shader_register_modifier modifier;
+     enum vkd3d_data_type data_type;
+@@ -715,6 +718,8 @@
+ 
+ struct vkd3d_shader_instruction
+ {
++    /* Lightning observation only; strict native PS admission rejects extensions. */
++    bool lightning_extended_instruction;
+     const struct vkd3d_shader_context *ctx;
+     enum VKD3D_SHADER_INSTRUCTION_HANDLER handler_idx;
+     DWORD flags;
+@@ -803,6 +808,13 @@
+         struct vkd3d_shader_code *spirv);
+ void vkd3d_dxbc_compiler_destroy(struct vkd3d_dxbc_compiler *compiler);
+ 
++/* Lightning private integration; caller owns genuine token/signature snapshots. */
++int vkd3d_shader_compile_tokenized_desc(const struct vkd3d_shader_desc *shader_desc,
++        struct vkd3d_shader_code *spirv, struct vkd3d_shader_code_debug *spirv_debug,
++        unsigned int compiler_options,
++        const struct vkd3d_shader_interface_info *shader_interface_info,
++        const struct vkd3d_shader_compile_arguments *compile_args);
++
+ void vkd3d_compute_dxbc_checksum(const void *dxbc, size_t size, uint32_t checksum[4]);
+ 
+ void vkd3d_shader_dump_spirv_shader(vkd3d_shader_hash_t hash, const struct vkd3d_shader_code *shader);
+--- a/libs/vkd3d-shader/dxbc.c
++++ b/libs/vkd3d-shader/dxbc.c
+@@ -1577,12 +1577,14 @@
+     enum vkd3d_sm4_register_type register_type;
+     DWORD token, order;
+ 
++    param->lightning_extended_operand = false;
+     if (*ptr >= end)
+     {
+         WARN("Invalid ptr %p >= end %p.\n", *ptr, end);
+         return false;
+     }
+     token = *(*ptr)++;
++    param->lightning_extended_operand = !!(token & VKD3D_SM4_REGISTER_MODIFIER);
+ 
+     register_type = (token & VKD3D_SM4_REGISTER_TYPE_MASK) >> VKD3D_SM4_REGISTER_TYPE_SHIFT;
+     if (register_type >= ARRAY_SIZE(register_type_table)
+@@ -1904,6 +1906,7 @@
+     const DWORD *p;
+     DWORD precise;
+ 
++    ins->lightning_extended_instruction = false;
+     list_move_head(&priv->src_free, &priv->src);
+ 
+     if (*ptr >= priv->end)
+@@ -1914,6 +1917,7 @@
+     remaining = priv->end - *ptr;
+ 
+     opcode_token = *(*ptr)++;
++    ins->lightning_extended_instruction = !!(opcode_token & VKD3D_SM4_INSTRUCTION_MODIFIER);
+     opcode = opcode_token & VKD3D_SM4_OPCODE_MASK;
+ 
+     len = ((opcode_token & VKD3D_SM4_INSTRUCTION_LENGTH_MASK) >> VKD3D_SM4_INSTRUCTION_LENGTH_SHIFT);
