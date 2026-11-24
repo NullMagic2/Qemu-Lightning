@@ -32,3 +32,8 @@ The Qemu-Lightning README and the original release packaging under packaging/
 are available under the MIT license in LICENSE.MIT. Existing component licenses,
 SPDX notices, bundled artwork, firmware and third-party code retain their own
 terms. Changes integrated into the QEMU emulator are distributed with QEMU.
+
+Original stand-alone Windows guest miniport and installer code written for this
+project under lightning/graphics-driver/ is also available under LICENSE.MIT.
+This grant covers project-authored code only. SDK headers, third-party
+libraries and binaries bundled with the guest setup retain their own licenses.

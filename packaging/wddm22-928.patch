@@ -1,0 +1,230 @@
+--- a/lightning/graphics-driver/objects.c
++++ b/lightning/graphics-driver/objects.c
+@@ -358,29 +358,31 @@
+ #endif
+         args->pAllocationInfo[index].Size = (SIZE_T)descriptions[index].bytes;
+         args->pAllocationInfo[index].PitchAlignedSize = (SIZE_T)descriptions[index].bytes;
+-        args->pAllocationInfo[index].Flags.Value = 0;
++#if QLG_WDDM2
++        /* Reserved bits belong to VidMm; CreateInVpr is also an input bit.
++         * Clearing the whole word destroys the OS's allocation metadata. */
++        args->pAllocationInfo[index].FlagsWddm2.Value &= 0xfff83c00u;
++#else
++        args->pAllocationInfo[index].Flags.Value &= 0xffff8000u;
++#endif
+         args->pAllocationInfo[index].Flags.CpuVisible = 1;
+         args->pAllocationInfo[index].AllocationPriority = D3DDDI_ALLOCATIONPRIORITY_NORMAL;
+-        // Shared, CPU-lockable textures require aperture-only residency.
+-        // The scanout primary retains its physically contiguous BAR storage.
++        /* The display controller scans BAR storage. The blit engine accesses
++         * lockable desktop images through the retained system-memory aperture. */
++        UINT segments = descriptions[index].kind == QLG_RESOURCE_SHARED_PRIMARY
++                            ? QLM_MEMORY_SEGMENT_MASK : QLM_APERTURE_SEGMENT_MASK;
++#if QLG_WDDM2
++        const BOOLEAN physical = descriptions[index].kind != QLG_RESOURCE_BUFFER;
++        args->pAllocationInfo[index].FlagsWddm2.AccessedPhysically = physical;
++        args->pAllocationInfo[index].FlagsWddm2.ExplicitResidencyNotification = physical;
++        /* GPU-VA buffers may use either local or system pages. */
++        if (!physical)
++            segments |= QLM_MEMORY_SEGMENT_MASK;
++#endif
+         args->pAllocationInfo[index].SupportedReadSegmentSet =
+-            !adapter->memory_attached ? 0
+-            : descriptions[index].kind == QLG_RESOURCE_SHARED_PRIMARY ? QLM_MEMORY_SEGMENT_MASK
+-                                                                      : QLM_APERTURE_SEGMENT_MASK;
++            adapter->memory_attached ? segments : 0;
+         args->pAllocationInfo[index].SupportedWriteSegmentSet =
+             args->pAllocationInfo[index].SupportedReadSegmentSet;
+-#if QLG_WDDM2
+-        /* The present engine uses segment-relative physical image addresses.
+-         * Buffers use GPU virtual addresses and can occupy separate VidMm pages. */
+-        const BOOLEAN physical = descriptions[index].kind != QLG_RESOURCE_BUFFER;
+-
+-        args->pAllocationInfo[index].FlagsWddm2.AccessedPhysically = physical;
+-        args->pAllocationInfo[index].FlagsWddm2.ExplicitResidencyNotification = physical;
+-        args->pAllocationInfo[index].SupportedReadSegmentSet =
+-            adapter->memory_attached ? QLM_MEMORY_SEGMENT_MASK : 0;
+-        args->pAllocationInfo[index].SupportedWriteSegmentSet =
+-            args->pAllocationInfo[index].SupportedReadSegmentSet;
+-#endif
+     }
+     return status;
+ }
+--- a/lightning/graphics-driver/miniport_contracts.c
++++ b/lightning/graphics-driver/miniport_contracts.c
+@@ -7,12 +7,7 @@
+  */
+ #include "miniport.h"
+ #include "internal.h"
+-#if QLG_WDDM2
+-/* GpuMmu maps system memory through the page tables: no aperture segment. */
+-#define QLG_NATIVE_SEGMENT_COUNT ((UINT)QLM_MEMORY_SEGMENT)
+-#else
+ #define QLG_NATIVE_SEGMENT_COUNT ((UINT)QLM_APERTURE_SEGMENT)
+-#endif
+ #define QLG_NATIVE_NODE_COUNT 1u
+ /* Redirection surfaces up to 2 << (11 + 3) = 16384 pixels per side. */
+ #define QLG_REDIRECTION_SHIFT 3u
+@@ -87,14 +82,12 @@
+ 
+     if (status != STATUS_SUCCESS)
+         return status;
+-#if !QLG_WDDM2
+     /* Logical addresses resolve to the retained runtime MDL mapping at copy
+      * execution. There is no contiguous CPU physical window for this segment. */
+     segments[QLM_APERTURE_SEGMENT - 1].Size = (SIZE_T)QLM_APERTURE_BYTES;
+     segments[QLM_APERTURE_SEGMENT - 1].CommitLimit = (SIZE_T)QLM_APERTURE_BYTES;
+     segments[QLM_APERTURE_SEGMENT - 1].Flags.Aperture = TRUE;
+     segments[QLM_APERTURE_SEGMENT - 1].Flags.CacheCoherent = TRUE;
+-#endif
+     if (args->Type == DXGKQAITYPE_QUERYSEGMENT) {
+         DXGK_QUERYSEGMENTOUT *output = args->pOutputData;
+ 
+@@ -211,9 +204,7 @@
+             return STATUS_BUFFER_TOO_SMALL;
+         RtlZeroMemory(caps, sizeof(*caps));
+         caps->HighestAcceptableAddress.QuadPart = MAXLONGLONG;
+-#if !QLG_WDDM2
+         caps->ApertureSegmentCommitLimit = (SIZE_T)QLM_APERTURE_BYTES;
+-#endif
+         caps->MaxAllocationListSlotId = QLG_BATCH_ALLOCATIONS - 1;
+         caps->InterruptMessageNumber = QLG_MINIPORT_INTERRUPT_MESSAGE;
+         /* Flips are MMIO address writes latched by the software vertical blank,
+@@ -225,7 +216,7 @@
+          * GDI redirection bitmaps are software bitmaps, screen-to-screen Blts
+          * are slow CPU copies, and redirection surfaces may be 16K wide
+          * (2 << (11 + shift)). */
+-        caps->PresentationCaps.SupportSoftwareDeviceBitmaps = TRUE;
++        /* SupportSoftwareDeviceBitmaps is reserved on Windows 8 and later. */
+         caps->PresentationCaps.NoScreenToScreenBlt = TRUE;
+         caps->PresentationCaps.NoOverlapScreenBlt = TRUE;
+         caps->PresentationCaps.MaxTextureWidthShift = QLG_REDIRECTION_SHIFT;
+@@ -248,6 +239,9 @@
+ #endif
+         caps->MemoryManagementCaps.VirtualAddressingSupported = 1;
+         caps->MemoryManagementCaps.GpuMmuSupported = 1;
++        /* Let VidMm back primary CPU mappings with a section. The legacy IO
++         * range path has no process mapping object for CDD's early boot Blt. */
++        caps->MemoryManagementCaps.SectionBackedPrimary = 1;
+         caps->MemoryManagementCaps.PagingNode = QLG_RENDER_NODE;
+ #else
+         caps->WDDMVersion = DXGKDDI_WDDMv1_3;
+--- a/lightning/graphics-driver/platform_memory.c
++++ b/lightning/graphics-driver/platform_memory.c
+@@ -93,8 +93,7 @@
+     segment->Size = QLM_SEGMENT_BYTES;
+     segment->CommitLimit = QLM_SEGMENT_BYTES;
+     segment->Flags.CpuVisible = 1;
+-    /* The engine copies with the CPU through ordinary RAM: always coherent. */
+-    segment->Flags.CacheCoherent = 1;
++    /* CacheCoherent describes aperture mappings, not this CPU-visible BAR. */
+     return STATUS_SUCCESS;
+ }
+ 
+--- a/lightning/graphics-driver/wddm2_abi.c
++++ b/lightning/graphics-driver/wddm2_abi.c
+@@ -260,7 +260,7 @@
+     CHECK(lifecycle == &miniport.lifecycle);
+     RtlZeroMemory(segment, sizeof(*segment));
+     segment->Size = segment->CommitLimit = (SIZE_T)QLM_SEGMENT_BYTES;
+-    segment->Flags.CpuVisible = segment->Flags.CacheCoherent = 1;
++    segment->Flags.CpuVisible = 1;
+     return STATUS_SUCCESS;
+ }
+ 
+@@ -2932,8 +2932,16 @@
+     for (UINT index = 0; index < RTL_NUMBER_OF(information); ++index) {
+         information[index].pPrivateDriverData = &descriptions[index];
+         information[index].PrivateDriverDataSize = sizeof(descriptions[index]);
++        information[index].FlagsWddm2.DXGK_ALLOC_RESERVED16 = 1;
++        information[index].FlagsWddm2.DXGK_ALLOC_RESERVED17 = 1;
+     }
+     CHECK(QlgCreateAllocation(&core, &create) == STATUS_SUCCESS);
++    for (UINT index = 0; index < RTL_NUMBER_OF(information); ++index)
++        CHECK(information[index].FlagsWddm2.DXGK_ALLOC_RESERVED16 &&
++              information[index].FlagsWddm2.DXGK_ALLOC_RESERVED17);
++    CHECK(information[0].SupportedWriteSegmentSet ==
++              (QLM_MEMORY_SEGMENT_MASK | QLM_APERTURE_SEGMENT_MASK) &&
++          information[1].SupportedWriteSegmentSet == QLM_APERTURE_SEGMENT_MASK);
+     CHECK(information[1].FlagsWddm2.AccessedPhysically &&
+           information[1].FlagsWddm2.ExplicitResidencyNotification);
+     CHECK(!information[0].FlagsWddm2.AccessedPhysically &&
+@@ -3593,9 +3601,12 @@
+     CHECK(caps.WDDMVersion == (QLG_PAGING_SIGNALS ? DXGKDDI_WDDMv2_2 : DXGKDDI_WDDMv2) &&
+           caps.MemoryManagementCaps.GpuMmuSupported &&
+           caps.MemoryManagementCaps.VirtualAddressingSupported &&
++          caps.MemoryManagementCaps.SectionBackedPrimary &&
++          !caps.PresentationCaps.NoCacheCoherentApertureMemory &&
++          !caps.PresentationCaps.SupportSoftwareDeviceBitmaps &&
+           !caps.MemoryManagementCaps.IoMmuSupported &&
+           caps.MemoryManagementCaps.PagingNode == QLG_RENDER_NODE &&
+-          caps.ApertureSegmentCommitLimit == 0);
++          caps.ApertureSegmentCommitLimit == QLM_APERTURE_BYTES);
+ 
+     /* Required startup query: no optional display features, bounded writes. */
+     struct {
+@@ -3614,21 +3625,22 @@
+           display_extension.caps.Value == 0xa5a5a5a5u &&
+           display_extension.canary == 0xfeed1234u);
+ 
+-    /* One memory segment and no aperture, in the 3 and 4 layouts. */
++    /* One local memory segment and one system-memory aperture, in the 3 and 4 layouts. */
+     query.Type = DXGKQAITYPE_QUERYSEGMENT3;
+     query.pOutputData = &segments3;
+     query.OutputDataSize = sizeof(segments3);
+     CHECK(QlgMiniportQueryContracts(&miniport, &query) == STATUS_SUCCESS &&
+-          segments3.NbSegment == 1);
++          segments3.NbSegment == 2);
+     segments3.pSegmentDescriptor = descriptor3;
+     CHECK(QlgMiniportQueryContracts(&miniport, &query) == STATUS_SUCCESS &&
+           descriptor3[0].Flags.CpuVisible && !descriptor3[0].Flags.Aperture &&
+-          descriptor3[0].Size == QLM_SEGMENT_BYTES);
++          descriptor3[0].Size == QLM_SEGMENT_BYTES && descriptor3[1].Flags.Aperture &&
++          descriptor3[1].Flags.CacheCoherent && descriptor3[1].Size == QLM_APERTURE_BYTES);
+     query.Type = DXGKQAITYPE_QUERYSEGMENT4;
+     query.pOutputData = &segments4;
+     query.OutputDataSize = sizeof(segments4);
+     CHECK(QlgMiniportQueryContracts(&miniport, &query) == STATUS_SUCCESS &&
+-          segments4.NbSegment == 1 &&
++          segments4.NbSegment == 2 &&
+           segments4.SegmentDescriptorStride == sizeof(DXGK_SEGMENTDESCRIPTOR4) &&
+           segments4.PagingBufferPrivateDataSize == QLG_PAGING_PACKET_BYTES);
+     memset(descriptor4, FIXTURE_POISON, sizeof(descriptor4));
+@@ -3637,7 +3649,8 @@
+     CHECK(QlgMiniportQueryContracts(&miniport, &query) == STATUS_SUCCESS);
+     CHECK(((DXGK_SEGMENTDESCRIPTOR4 *)descriptor4)->Size == QLM_SEGMENT_BYTES &&
+           ((DXGK_SEGMENTDESCRIPTOR4 *)descriptor4)->Flags.CpuVisible &&
+-          descriptor4[sizeof(DXGK_SEGMENTDESCRIPTOR4)] == FIXTURE_POISON);
++          descriptor4[sizeof(DXGK_SEGMENTDESCRIPTOR4)] == FIXTURE_POISON &&
++          ((DXGK_SEGMENTDESCRIPTOR4 *)(descriptor4 + segments4.SegmentDescriptorStride))->Flags.Aperture);
+     segments4.SegmentDescriptorStride = sizeof(DXGK_SEGMENTDESCRIPTOR4) - 8;
+     CHECK(QlgMiniportQueryContracts(&miniport, &query) == STATUS_BUFFER_TOO_SMALL);
+     segments4.SegmentDescriptorStride = 0;
+--- a/lightning/graphics-driver/driver-package.json
++++ b/lightning/graphics-driver/driver-package.json
+@@ -1,6 +1,6 @@
+ {
+   "schema": 3,
+-  "version": "0.1.0.922",
++  "version": "0.1.0.928",
+   "hardware_id": "PCI\\VEN_1234&DEV_11F1",
+   "installer": "setup.exe",
+   "setup_engine": "Install-QemuLightning.ps1",
+@@ -27,5 +27,5 @@
+   "signing": "Development signing on the target: the installer creates a self-signed code-signing certificate, trusts it on that machine, signs the files and catalog with the WDK signtool and Inf2Cat, and requires test signing to be enabled. No production signature is claimed.",
+   "scope": "Native Windows WDDM display adapter with a driver-local Vulkan loader, Venus ICD and Direct3D 10/11 UMD. The native D3D12 DLL is registered in the DX12 loader slot and negotiates R0; full feature-level support and public D3D12 device acceptance remain unfinished.",
+   "singleDisplayHandoff": "Keep firmware BASICDISPLAY enabled through driver updates. Detach only its desktop path after healthy Lightning activation; never persistently disable the fallback device.",
+-  "startupRepair": "Use the OS physical adapter handle, required stable-power entry point, zero-offset identity rotation and WDDM 2.x allocation references. Native public D3D12 feature-level acceptance remains unfinished."
++  "startupRepair": "Keep the firmware fallback available during installation. WDDM 2.2 publishes the CPU-visible local segment and a cache-coherent system-memory aperture. Scanout primaries use local memory; CPU-lockable images use the aperture."
+ }
+--- a/lightning/graphics-driver/QemuLightningGraphics.inf
++++ b/lightning/graphics-driver/QemuLightningGraphics.inf
+@@ -8,7 +8,7 @@
+ Class=Display
+ ClassGuid={4d36e968-e325-11ce-bfc1-08002be10318}
+ Provider=%Provider%
+-DriverVer=11/24/2026,0.1.0.922
++DriverVer=11/24/2026,0.1.0.928
+ CatalogFile=QemuLightningGraphics.cat
+ PnpLockdown=1
+ 
